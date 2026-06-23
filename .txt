@@ -1,0 +1,2 @@
+Southlake User Management System
+NestJS + Drizzle ORM + PostgreSQL
