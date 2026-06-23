@@ -72,6 +72,7 @@ On first startup, the seeder creates:
 | Modules | Module listing |
 | Api Endpoints | API endpoint listing |
 
+
 ### Api Endpoints (19)
 
 | Module | Method | Path | Name |
