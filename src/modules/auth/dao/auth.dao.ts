@@ -26,6 +26,16 @@ export class AuthDao {
     });
   }
 
+  findUserWithPasswordByEmail(email: string): Promise<User | null> {
+    return this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('user.email = :email', { email })
+      .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+      .getOne();
+  }
+
   findUserById(id: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: { id, isDeleted: false },

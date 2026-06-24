@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, In, Repository } from 'typeorm';
 import { User } from '../../../entities/user.entity';
 import { UserPermission } from '../../../entities/user-permission.entity';
 import { PendingInvite } from '../../../entities/pending-invite.entity';
+import { Role } from '../../../entities/role.entity';
 
 export interface FindUsersFilter {
   search?: string;
@@ -23,7 +24,19 @@ export class UsersDao {
     private readonly permRepo: Repository<UserPermission>,
     @InjectRepository(PendingInvite)
     private readonly inviteRepo: Repository<PendingInvite>,
+    @InjectRepository(Role)
+    private readonly roleRepo: Repository<Role>,
   ) {}
+
+  async getStats(): Promise<{ total: number; active: number; roles_defined: number; pending_invites: number }> {
+    const [total, active, roles_defined, pending_invites] = await Promise.all([
+      this.userRepo.count({ where: { isDeleted: false } }),
+      this.userRepo.count({ where: { isDeleted: false, status: 'active' } }),
+      this.roleRepo.count(),
+      this.inviteRepo.count({ where: { status: 'pending' } }),
+    ]);
+    return { total, active, roles_defined, pending_invites };
+  }
 
   findAll(filters: FindUsersFilter): Promise<[User[], number]> {
     const { search, roleId, status, userType, page = 1, limit = 20 } = filters;
@@ -81,6 +94,14 @@ export class UsersDao {
     });
   }
 
+  async deactivateBulk(ids: string[], updatedBy: string): Promise<void> {
+    if (!ids.length) return;
+    await this.userRepo.update(
+      { id: In(ids), isDeleted: false },
+      { status: 'inactive', updatedBy },
+    );
+  }
+
   findUserPermissions(userId: string): Promise<UserPermission[]> {
     return this.permRepo.find({
       where: { userId },
@@ -118,5 +139,17 @@ export class UsersDao {
 
   findInviteByToken(token: string): Promise<PendingInvite | null> {
     return this.inviteRepo.findOne({ where: { token } });
+  }
+
+  findPendingInvites(): Promise<PendingInvite[]> {
+    return this.inviteRepo.find({
+      where: { status: 'pending' },
+      relations: ['role'],
+      order: { invitedAt: 'DESC' },
+    });
+  }
+
+  async revokeInvite(id: string): Promise<void> {
+    await this.inviteRepo.update(id, { status: 'revoked' });
   }
 }

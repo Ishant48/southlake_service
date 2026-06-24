@@ -66,6 +66,9 @@ export class User {
   @Column({ type: 'varchar', default: 'active' })
   status: string;
 
+  @Column({ name: 'password_hash', type: 'varchar', nullable: true, select: false })
+  passwordHash: string | null;
+
   @Column({ name: 'joined_date', type: 'date', nullable: true })
   joinedDate: Date;
 

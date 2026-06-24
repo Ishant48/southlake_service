@@ -27,6 +27,15 @@ export class PendingInvite {
   @JoinColumn({ name: 'role_id' })
   role: Role;
 
+  @Column({ name: 'user_type', type: 'varchar', nullable: true })
+  userType: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  department: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  title: string;
+
   @Column({ name: 'user_entity_type', type: 'varchar', nullable: true })
   userEntityType: string;
 

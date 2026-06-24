@@ -15,7 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
-import { RequestOtpDto } from './dto/request-otp.dto';
+import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -28,14 +28,15 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Post('request-otp')
+  @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request a one-time password via email' })
-  @ApiResponse({ status: 200, description: 'OTP sent successfully' })
-  @ApiResponse({ status: 400, description: 'Too many requests or invalid input' })
-  requestOtp(@Body() dto: RequestOtpDto, @Req() req: Request) {
+  @ApiOperation({ summary: 'Step 1: Verify email and password, then receive OTP' })
+  @ApiResponse({ status: 200, description: 'OTP sent to email' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 400, description: 'Too many OTP requests' })
+  login(@Body() dto: LoginDto, @Req() req: Request) {
     const ipAddress = this.getIpAddress(req);
-    return this.authService.requestOtp(dto, ipAddress);
+    return this.authService.login(dto, ipAddress);
   }
 
   @Public()

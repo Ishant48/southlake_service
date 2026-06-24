@@ -7,10 +7,12 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -28,10 +30,15 @@ export class RolesController {
   constructor(private readonly service: RolesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all roles' })
-  @ApiResponse({ status: 200, description: 'All roles' })
-  findAll() {
-    return this.service.findAll();
+  @ApiOperation({ summary: 'List roles with user counts (paginated)' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'per_page', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Paginated roles' })
+  findAll(
+    @Query('page') page = '1',
+    @Query('per_page') perPage = '20',
+  ) {
+    return this.service.findAll(parseInt(page, 10), parseInt(perPage, 10));
   }
 
   @Post()
@@ -41,10 +48,17 @@ export class RolesController {
     return this.service.create(dto, user);
   }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a role by ID with permissions' })
+  @ApiResponse({ status: 200, description: 'Role details' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  findOne(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.findOne(id);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing role' })
   @ApiResponse({ status: 200, description: 'Role updated' })
-  @ApiResponse({ status: 404, description: 'Role not found' })
   update(
     @Param('id', UuidValidationPipe) id: string,
     @Body() dto: UpdateRoleDto,
@@ -54,9 +68,8 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a role (fails if users are assigned)' })
+  @ApiOperation({ summary: 'Delete a role' })
   @ApiResponse({ status: 200, description: 'Role deleted' })
-  @ApiResponse({ status: 400, description: 'Users still assigned to role' })
   remove(@Param('id', UuidValidationPipe) id: string, @CurrentUser() user: User) {
     return this.service.remove(id, user);
   }

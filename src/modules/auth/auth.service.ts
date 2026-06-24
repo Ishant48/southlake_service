@@ -10,7 +10,7 @@ import * as crypto from 'crypto';
 import { AuthDao } from './dao/auth.dao';
 import { MailService } from '../mail/mail.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
-import { RequestOtpDto } from './dto/request-otp.dto';
+import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
 import { UserSession } from '../../entities/user-session.entity';
@@ -25,8 +25,23 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async requestOtp(dto: RequestOtpDto, ipAddress: string): Promise<{ message: string }> {
-    const { email } = dto;
+  async login(dto: LoginDto, ipAddress: string): Promise<{ message: string }> {
+    const { email, password } = dto;
+
+    const user = await this.authDao.findUserWithPasswordByEmail(email);
+
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordMatch) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Your account is inactive.');
+    }
 
     const rateLimitWindow = new Date(Date.now() - 15 * 60 * 1000);
     const recentCount = await this.authDao.countRecentOtps(email, rateLimitWindow);
@@ -42,6 +57,8 @@ export class AuthService {
 
     await this.authDao.saveOtp({ email, otpHash, expiresAt });
 
+    console.log(`[DEV OTP] ${email} → ${otp}`);
+
     await this.mailService.sendOtp(email, otp);
 
     await this.activityLogsService.log({
@@ -50,7 +67,7 @@ export class AuthService {
       ipAddress,
     });
 
-    return { message: 'OTP sent' };
+    return { message: 'OTP sent to your email.' };
   }
 
   async verifyOtp(
@@ -236,7 +253,7 @@ export class AuthService {
   ): Promise<UserSession> {
     const sessionToken = crypto.randomBytes(32).toString('hex');
     const sessionExpiryHours =
-      this.configService.get<number>('app.sessionExpiryHours') || 24;
+      this.configService.get<number>('app.sessionExpiryHours') || 1;
     const expiresAt = new Date(Date.now() + sessionExpiryHours * 60 * 60 * 1000);
 
     return this.authDao.saveSession({

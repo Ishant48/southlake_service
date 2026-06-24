@@ -13,8 +13,12 @@ export class RolesDao {
     private readonly rpRepo: Repository<RolePermission>,
   ) {}
 
-  findAll(): Promise<Role[]> {
-    return this.roleRepo.find({ order: { createdAt: 'ASC' } });
+  findAll(page = 1, limit = 20): Promise<[Role[], number]> {
+    return this.roleRepo.findAndCount({
+      order: { createdAt: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
   }
 
   findById(id: string): Promise<Role | null> {

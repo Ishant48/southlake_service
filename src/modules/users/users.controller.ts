@@ -30,6 +30,27 @@ import { User } from '../../entities/user.entity';
 export class UsersController {
   constructor(private readonly service: UsersService) {}
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get user statistics' })
+  @ApiResponse({ status: 200, description: 'User stats' })
+  getStats() {
+    return this.service.getStats();
+  }
+
+  @Post('deactivate-bulk')
+  @ApiOperation({ summary: 'Deactivate multiple users' })
+  @ApiResponse({ status: 200, description: 'Users deactivated' })
+  deactivateBulk(@Body() body: { ids: string[] }, @CurrentUser() user: User) {
+    return this.service.deactivateBulk(body.ids, user);
+  }
+
+  @Post('invite')
+  @ApiOperation({ summary: 'Invite a new user by email' })
+  @ApiResponse({ status: 201, description: 'Invitation sent' })
+  invite(@Body() dto: InviteUserDto, @CurrentUser() user: User) {
+    return this.service.invite(dto, user);
+  }
+
   @Get()
   @ApiOperation({ summary: 'List all users with filters' })
   @ApiQuery({ name: 'search', required: false })
@@ -37,7 +58,7 @@ export class UsersController {
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'user_type', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'per_page', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Paginated list of users' })
   findAll(
     @Query('search') search?: string,
@@ -45,7 +66,7 @@ export class UsersController {
     @Query('status') status?: string,
     @Query('user_type') userType?: string,
     @Query('page') page = '1',
-    @Query('limit') limit = '20',
+    @Query('per_page') perPage = '20',
   ) {
     return this.service.findAll({
       search,
@@ -53,7 +74,7 @@ export class UsersController {
       status,
       userType,
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: parseInt(perPage, 10),
     });
   }
 
@@ -65,17 +86,19 @@ export class UsersController {
     return this.service.findOne(id);
   }
 
-  @Post('invite')
-  @ApiOperation({ summary: 'Invite a new user by email' })
-  @ApiResponse({ status: 201, description: 'Invitation sent' })
-  invite(@Body() dto: InviteUserDto, @CurrentUser() user: User) {
-    return this.service.invite(dto, user);
+  @Post(':id/deactivate')
+  @ApiOperation({ summary: 'Deactivate a user' })
+  @ApiResponse({ status: 200, description: 'User deactivated' })
+  deactivate(
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.deactivate(id, user);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update user profile fields' })
   @ApiResponse({ status: 200, description: 'Updated user' })
-  @ApiResponse({ status: 404, description: 'User not found' })
   update(
     @Param('id', UuidValidationPipe) id: string,
     @Body() dto: UpdateUserDto,

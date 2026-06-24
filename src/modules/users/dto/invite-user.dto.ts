@@ -14,6 +14,21 @@ export class InviteUserDto {
   @IsUUID()
   role_id: string;
 
+  @ApiPropertyOptional({ example: 'staff' })
+  @IsOptional()
+  @IsString()
+  user_type?: string;
+
+  @ApiPropertyOptional({ example: 'Finance' })
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @ApiPropertyOptional({ example: 'Analyst' })
+  @IsOptional()
+  @IsString()
+  title?: string;
+
   @ApiPropertyOptional({ example: 'mga_user' })
   @IsOptional()
   @IsString()

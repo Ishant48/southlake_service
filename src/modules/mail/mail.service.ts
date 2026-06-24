@@ -40,8 +40,7 @@ export class MailService {
         `,
       });
     } catch (err) {
-      this.logger.error(`Failed to send OTP to ${to}`, err);
-      throw err;
+      this.logger.warn(`Failed to send OTP email to ${to} (mail not configured) — OTP was logged to console`);
     }
   }
 
@@ -79,8 +78,7 @@ export class MailService {
         `,
       });
     } catch (err) {
-      this.logger.error(`Failed to send invite to ${to}`, err);
-      throw err;
+      this.logger.warn(`Failed to send invite email to ${to} (mail not configured)`);
     }
   }
 }

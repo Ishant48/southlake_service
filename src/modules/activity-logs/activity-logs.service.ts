@@ -32,13 +32,40 @@ export class ActivityLogsService {
     });
   }
 
-  async findAll(filter: ActivityLogFilter): Promise<{ data: ActivityLog[]; total: number; page: number; limit: number }> {
+  async findAll(filter: ActivityLogFilter): Promise<{
+    data: ActivityLog[];
+    total: number;
+    page: number;
+    per_page: number;
+    total_pages: number;
+  }> {
     const [data, total] = await this.dao.findAll(filter);
+    const perPage = filter.limit || 20;
+    const page = filter.page || 1;
     return {
       data,
       total,
-      page: filter.page || 1,
-      limit: filter.limit || 20,
+      page,
+      per_page: perPage,
+      total_pages: Math.ceil(total / perPage),
     };
+  }
+
+  async exportCsv(filter: Omit<ActivityLogFilter, 'page' | 'limit'>): Promise<string> {
+    const logs = await this.dao.findAllForExport(filter);
+
+    const headers = ['Date', 'User', 'Email', 'Action', 'Module', 'Description', 'IP Address'];
+    const rows = logs.map((log) => [
+      new Date(log.createdAt).toISOString(),
+      log.user?.name || '',
+      log.user?.email || '',
+      log.action,
+      log.moduleId || '',
+      (log.description || '').replace(/,/g, ';'),
+      log.ipAddress || '',
+    ]);
+
+    const csvLines = [headers, ...rows].map((row) => row.join(','));
+    return csvLines.join('\n');
   }
 }

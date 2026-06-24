@@ -13,6 +13,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { User } from '../../entities/user.entity';
 import { UserPermission } from '../../entities/user-permission.entity';
+import { PendingInvite } from '../../entities/pending-invite.entity';
 
 export interface UpsertPermissionEntry {
   moduleId: string;
@@ -30,9 +31,21 @@ export class UsersService {
     private readonly configService: ConfigService,
   ) {}
 
-  async findAll(filters: FindUsersFilter): Promise<{ data: User[]; total: number; page: number; limit: number }> {
+  async getStats(): Promise<{ total: number; active: number; roles_defined: number; pending_invites: number }> {
+    return this.dao.getStats();
+  }
+
+  async findAll(filters: FindUsersFilter): Promise<{ data: User[]; total: number; page: number; per_page: number; total_pages: number }> {
     const [data, total] = await this.dao.findAll(filters);
-    return { data, total, page: filters.page || 1, limit: filters.limit || 20 };
+    const perPage = filters.limit || 20;
+    const page = filters.page || 1;
+    return {
+      data,
+      total,
+      page,
+      per_page: perPage,
+      total_pages: Math.ceil(total / perPage),
+    };
   }
 
   async findOne(id: string): Promise<User> {
@@ -54,6 +67,9 @@ export class UsersService {
       email: dto.email,
       name: dto.name,
       roleId: dto.role_id,
+      userType: dto.user_type || null,
+      department: dto.department || null,
+      title: dto.title || null,
       userEntityType: dto.user_entity_type || null,
       userEntityId: dto.user_entity_id || null,
       invitedBy: invitedBy.id,
@@ -64,7 +80,6 @@ export class UsersService {
 
     const appUrl = this.configService.get<string>('app.appUrl');
     const inviteLink = `${appUrl}/accept-invite?token=${token}`;
-
     await this.mailService.sendInvite(dto.email, dto.name, inviteLink, invitedBy.name);
 
     await this.activityLogsService.log({
@@ -121,6 +136,36 @@ export class UsersService {
     return updated;
   }
 
+  async deactivate(id: string, updatedBy: User): Promise<{ message: string }> {
+    await this.findOne(id);
+    await this.dao.update(id, { status: 'inactive', updatedBy: updatedBy.id });
+
+    await this.activityLogsService.log({
+      userId: updatedBy.id,
+      moduleId: 'user_management',
+      action: 'edit',
+      entityType: 'user',
+      entityId: id,
+      description: `Deactivated user ${id}`,
+    });
+
+    return { message: 'User deactivated' };
+  }
+
+  async deactivateBulk(ids: string[], updatedBy: User): Promise<{ message: string; count: number }> {
+    await this.dao.deactivateBulk(ids, updatedBy.id);
+
+    await this.activityLogsService.log({
+      userId: updatedBy.id,
+      moduleId: 'user_management',
+      action: 'edit',
+      entityType: 'user',
+      description: `Bulk deactivated ${ids.length} users`,
+    });
+
+    return { message: `${ids.length} users deactivated`, count: ids.length };
+  }
+
   async remove(id: string, deletedBy: User): Promise<{ message: string }> {
     await this.findOne(id);
     await this.dao.softDelete(id, deletedBy.id);
@@ -163,5 +208,24 @@ export class UsersService {
     });
 
     return result;
+  }
+
+  getPendingInvites(): Promise<PendingInvite[]> {
+    return this.dao.findPendingInvites();
+  }
+
+  async revokeInvite(id: string, revokedBy: User): Promise<{ message: string }> {
+    await this.dao.revokeInvite(id);
+
+    await this.activityLogsService.log({
+      userId: revokedBy.id,
+      moduleId: 'user_management',
+      action: 'delete',
+      entityType: 'pending_invite',
+      entityId: id,
+      description: `Revoked invite ${id}`,
+    });
+
+    return { message: 'Invite revoked' };
   }
 }
