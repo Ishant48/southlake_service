@@ -13,8 +13,10 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { UserSession } from '../../entities/user-session.entity';
 import { User } from '../../entities/user.entity';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +25,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly activityLogsService: ActivityLogsService,
     private readonly configService: ConfigService,
+    private readonly usersService: UsersService,
   ) {}
 
   async login(dto: LoginDto, ipAddress: string): Promise<{ message: string }> {
@@ -156,10 +159,15 @@ export class AuthService {
       userAgent,
     });
 
+    const permissions = await this.usersService.getPermissions(user.id);
+
     return {
       token_type: 'session',
       session_token: session.sessionToken,
-      user: this.sanitizeUser(user),
+      user: {
+        ...this.sanitizeUser(user),
+        permissions,
+      },
     };
   }
 
@@ -223,9 +231,14 @@ export class AuthService {
       userAgent,
     });
 
+    const permissions = await this.usersService.getPermissions(user.id);
+
     return {
       session_token: session.sessionToken,
-      user: this.sanitizeUser(user),
+      user: {
+        ...this.sanitizeUser(user),
+        permissions,
+      },
     };
   }
 
@@ -241,8 +254,14 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async getMe(user: User): Promise<User> {
-    return this.authDao.findUserByEmail(user.email);
+  async getMe(user: User): Promise<any> {
+    const fullUser = await this.authDao.findUserByEmail(user.email);
+    if (!fullUser) return null;
+    const permissions = await this.usersService.getPermissions(fullUser.id);
+    return {
+      ...fullUser,
+      permissions,
+    };
   }
 
   private async createSession(
@@ -264,6 +283,91 @@ export class AuthService {
       userAgent,
       expiresAt,
     });
+  }
+
+  async getInviteDetails(token: string): Promise<{ email: string; name: string }> {
+    if (!token) {
+      throw new BadRequestException('Token is required.');
+    }
+    const invite = await this.authDao.findInviteByToken(token);
+    if (!invite) {
+      throw new NotFoundException('Invalid invitation token.');
+    }
+    if (invite.status !== 'pending') {
+      throw new BadRequestException('Invitation has already been accepted or revoked.');
+    }
+    if (invite.expiresAt < new Date()) {
+      throw new BadRequestException('Invitation has expired.');
+    }
+    return { email: invite.email, name: invite.name };
+  }
+
+  async acceptInvite(dto: AcceptInviteDto): Promise<Record<string, unknown>> {
+    const { token, password } = dto;
+    const invite = await this.authDao.findInviteByToken(token);
+    if (!invite) {
+      throw new NotFoundException('Invalid invitation token.');
+    }
+    if (invite.status !== 'pending') {
+      throw new BadRequestException('Invitation has already been accepted or revoked.');
+    }
+    if (invite.expiresAt < new Date()) {
+      throw new BadRequestException('Invitation has expired.');
+    }
+
+    const existing = await this.authDao.findUserByEmail(invite.email);
+    if (existing) {
+      throw new BadRequestException(`A user with email ${invite.email} already exists.`);
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    let initials = '';
+    const parts = invite.name.trim().split(/\s+/);
+    if (parts.length > 1) {
+      initials = parts.map(p => p[0]).join('').slice(0, 4).toUpperCase();
+    } else if (parts.length === 1 && parts[0]) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    }
+
+    const user = await this.authDao.saveUser({
+      email: invite.email,
+      name: invite.name,
+      roleId: invite.roleId,
+      userType: invite.userType,
+      department: invite.department,
+      title: invite.title,
+      userEntityType: invite.userEntityType,
+      userEntityId: invite.userEntityId,
+      status: 'active',
+      passwordHash,
+      initials: initials || null,
+      avatarColor: '#0d1b4b',
+      joinedDate: new Date(),
+      createdBy: invite.invitedBy,
+    });
+
+    invite.status = 'accepted';
+    await this.authDao.saveInvite(invite);
+
+    await this.activityLogsService.log({
+      userId: user.id,
+      action: 'invite_accepted',
+      description: `Invitation accepted by ${invite.email}`,
+    });
+
+    const session = await this.createSession(user, 'Default Device', 'unknown', 'unknown');
+
+    const permissions = await this.usersService.getPermissions(user.id);
+
+    return {
+      token_type: 'session',
+      session_token: session.sessionToken,
+      user: {
+        ...this.sanitizeUser(user),
+        permissions,
+      },
+    };
   }
 
   private sanitizeUser(user: User): Partial<User> {

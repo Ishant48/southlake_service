@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { User } from '../../entities/user.entity';
@@ -80,6 +82,26 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getMe(@CurrentUser() user: User) {
     return this.authService.getMe(user);
+  }
+
+  @Public()
+  @Get('invite-details')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify invite token and return name & email' })
+  @ApiResponse({ status: 200, description: 'Token verified successfully' })
+  @ApiResponse({ status: 404, description: 'Invalid token' })
+  getInviteDetails(@Query('token') token: string) {
+    return this.authService.getInviteDetails(token);
+  }
+
+  @Public()
+  @Post('accept-invite')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accept invitation and set password' })
+  @ApiResponse({ status: 200, description: 'Invitation accepted and account created' })
+  @ApiResponse({ status: 400, description: 'Invalid request or token' })
+  acceptInvite(@Body() dto: AcceptInviteDto) {
+    return this.authService.acceptInvite(dto);
   }
 
   private getIpAddress(req: Request): string {

@@ -1,303 +1,450 @@
-# southlake-service
+# Southlake Service — NestJS Backend API
 
-NestJS backend for the **Southlake Insurance** accounting platform.
-Covers the **User Management** domain: identity, sessions, roles, permissions, audit trail, and email-OTP authentication.
+The backend REST API for the **Southlake Insurance** platform, built with **NestJS 11**, **TypeORM**, and **PostgreSQL**. Handles authentication (email + OTP), user management, role-based permissions, chart of accounts, master data, and activity logging.
 
 ---
 
-## Tech stack
+## Table of Contents
 
-| Layer | Choice |
-|---|---|
-| Runtime | Node.js 24 |
-| Framework | NestJS 11 |
-| ORM | TypeORM 0.3 |
-| Database | PostgreSQL 15+ |
-| Auth | Email OTP + opaque session tokens (no passwords, no 3rd-party IdP) |
-| Email | Nodemailer (SMTP) |
-| Docs | Swagger / OpenAPI at `/api/docs` |
-| Validation | class-validator + class-transformer |
-| Linting | ESLint 9 (flat config) + Prettier 3 |
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Setup on a New Device](#setup-on-a-new-device)
+  - [Step 1 — Install Node.js](#step-1--install-nodejs)
+  - [Step 2 — Configure PostgreSQL](#step-2--configure-postgresql)
+  - [Step 3 — Install Dependencies](#step-3--install-dependencies)
+  - [Step 4 — Create the Environment File](#step-4--create-the-environment-file)
+  - [Step 5 — Run Database Migrations](#step-5--run-database-migrations)
+  - [Step 6 — Seed Chart of Accounts](#step-6--seed-chart-of-accounts)
+  - [Step 7 — Start the Server](#step-7--start-the-server)
+- [Environment Variables Reference](#environment-variables-reference)
+- [Database Management](#database-management)
+- [Available Scripts](#available-scripts)
+- [Modules Overview](#modules-overview)
+- [API Overview](#api-overview)
+- [Security Notes](#security-notes)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Tech Stack
+
+| Layer        | Technology                        | Version    |
+|--------------|-----------------------------------|------------|
+| Framework    | NestJS                            | ^11.0.0    |
+| Language     | TypeScript                        | >= 5.6     |
+| Runtime      | Node.js                           | >= 24.0.0  |
+| Database     | PostgreSQL                        | >= 14      |
+| ORM          | TypeORM                           | ^0.3.20    |
+| Auth         | JWT (JSON Web Tokens) + OTP Email | —          |
+| Email        | Nodemailer (SMTP / Gmail)         | ^6.9.16    |
+| Validation   | class-validator + class-transformer | —        |
+| Security     | Helmet, bcryptjs                  | —          |
+| Docs         | Swagger / OpenAPI                 | ^11.0.0    |
+
+---
+
+## Project Structure
+
+```
+southlake_service/
+├── src/
+│   ├── main.ts                        Application entry point (Swagger, CORS, Helmet)
+│   ├── app.module.ts                  Root module
+│   │
+│   ├── config/                        Configuration files
+│   │
+│   ├── common/                        Shared decorators, guards, pipes
+│   │
+│   ├── entities/                      TypeORM entity definitions
+│   │   ├── user.entity.ts
+│   │   ├── role.entity.ts
+│   │   ├── permission.entity.ts
+│   │   ├── user-session.entity.ts
+│   │   ├── module-group.entity.ts
+│   │   └── ...
+│   │
+│   ├── database/
+│   │   ├── data-source.ts             TypeORM DataSource (used by CLI and migrations)
+│   │   ├── migrations/                All TypeORM migration files
+│   │   └── seed-coa.ts                Chart of Accounts seeder script
+│   │
+│   └── modules/
+│       ├── auth/                      Login, OTP, invite acceptance, /auth/me
+│       ├── users/                     User CRUD + invite flow
+│       ├── roles/                     Role CRUD + permission assignment
+│       ├── permissions/               Permission read/update per user
+│       ├── chart-of-accounts/         COA hierarchy + account types
+│       ├── masters/                   Master data management
+│       ├── mail/                      Nodemailer email service
+│       └── activity-logs/             Audit trail for all actions
+│
+├── .env                               Your local environment config (never commit!)
+├── .env.example                       Template — copy this to create .env
+├── nest-cli.json
+├── tsconfig.json
+└── package.json
+```
 
 ---
 
 ## Prerequisites
 
-- Node.js >= 24
-- PostgreSQL >= 15 running locally (or via Docker)
-- An SMTP account for sending OTP emails (Gmail, SendGrid, etc.)
+| Tool           | Version   | Download / Install                                                 |
+|----------------|-----------|--------------------------------------------------------------------|
+| Node.js        | >= 24.0.0 | https://nodejs.org                                                 |
+| NVM (optional) | Latest    | https://github.com/coreybutler/nvm-windows/releases                |
+| PostgreSQL     | >= 14     | https://www.postgresql.org/download/                               |
+| NestJS CLI     | >= 11.0.0 | `npm install -g @nestjs/cli`                                       |
+| Git            | Latest    | https://git-scm.com/downloads                                      |
+
+> **Tip:** Use **NVM for Windows** to manage Node.js versions and easily switch between them.
 
 ---
 
-## Quick start
+## Setup on a New Device
+
+Follow every step in order.
+
+---
+
+### Step 1 — Install Node.js
+
+**Using NVM (recommended):**
 
 ```bash
-# 1. Install dependencies
+nvm install 24
+nvm use 24
+
+# Verify
+node --version    # v24.x.x
+npm --version
+```
+
+**Without NVM:** Download and install Node.js 24 from https://nodejs.org.
+
+---
+
+### Step 2 — Configure PostgreSQL
+
+1. Install PostgreSQL >= 14 from https://www.postgresql.org/download/
+2. During setup, note the password you set for the `postgres` user.
+3. Open **pgAdmin** or the **psql** terminal and create the database:
+
+```sql
+CREATE DATABASE southlake;
+```
+
+> You can use a different database name — just make sure it matches `DATABASE_NAME` in your `.env`.
+
+---
+
+### Step 3 — Install Dependencies
+
+```bash
+cd southlake_service
 npm install
+```
 
-# 2. Copy and fill in environment variables
+---
+
+### Step 4 — Create the Environment File
+
+**Windows PowerShell:**
+```powershell
+Copy-Item .env.example .env
+```
+
+**Windows CMD:**
+```cmd
+copy .env.example .env
+```
+
+**macOS / Linux:**
+```bash
 cp .env.example .env
+```
 
-# 3. Create the database
-createdb southlake_db   # or use your preferred Postgres client
+Open `.env` and fill in all values. See the [Environment Variables Reference](#environment-variables-reference) section below for a description of each field.
 
-# 4. Run migrations (creates schema + seeds Superadmin/Admin roles)
+```env
+# ── Database ─────────────────────────────────────────────────────────
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=southlake
+DATABASE_USER=postgres
+DATABASE_PASSWORD=your_postgres_password
+
+# ── JWT ──────────────────────────────────────────────────────────────
+JWT_SECRET=replace_with_a_long_random_secret_at_least_64_chars
+
+# ── Email (SMTP / Gmail) ─────────────────────────────────────────────
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=your_gmail@gmail.com
+MAIL_PASSWORD=your_gmail_app_password
+MAIL_FROM="Southlake Insurance <noreply@southlake.com>"
+
+# ── Application ──────────────────────────────────────────────────────
+APP_URL=http://localhost:4200
+PORT=3000
+
+# ── Security ─────────────────────────────────────────────────────────
+SESSION_EXPIRY_HOURS=24
+OTP_EXPIRY_MINUTES=5
+OTP_MAX_ATTEMPTS=5
+```
+
+**How to generate a Gmail App Password:**
+
+1. Go to https://myaccount.google.com/security
+2. Enable **2-Step Verification** (required).
+3. Under 2-Step Verification, open **App passwords**.
+4. Create a new app password for **Mail**.
+5. Copy the 16-character password into `MAIL_PASSWORD`.
+
+> **Never use your regular Gmail password here.** App Passwords are separate credentials.
+
+---
+
+### Step 5 — Run Database Migrations
+
+This creates all required tables in PostgreSQL:
+
+```bash
 npm run migration:run
+```
 
-# 5. Start in dev mode (hot-reload)
+---
+
+### Step 6 — Seed Chart of Accounts
+
+Populate the initial Chart of Accounts data (recommended for first setup):
+
+```bash
+npm run seed:coa
+```
+
+---
+
+### Step 7 — Start the Server
+
+**Development mode** — auto-restarts on file changes:
+
+```bash
 npm run start:dev
 ```
 
-The API is available at `http://localhost:3000/api`.
-Swagger docs are at `http://localhost:3000/api/docs`.
-
----
-
-## Environment variables
-
-Copy `.env.example` to `.env` and fill in each value:
-
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_HOST` | Postgres host | `localhost` |
-| `DATABASE_PORT` | Postgres port | `5432` |
-| `DATABASE_NAME` | Database name | `southlake_db` |
-| `DATABASE_USER` | Postgres user | `postgres` |
-| `DATABASE_PASSWORD` | Postgres password | `postgres` |
-| `MAIL_HOST` | SMTP host | `smtp.gmail.com` |
-| `MAIL_PORT` | SMTP port | `587` |
-| `MAIL_USER` | SMTP username | |
-| `MAIL_PASSWORD` | SMTP password / app password | |
-| `MAIL_FROM` | From address shown on emails | `Southlake Insurance <noreply@southlake.com>` |
-| `APP_URL` | Frontend base URL (used in invite links) | `http://localhost:4200` |
-| `SESSION_EXPIRY_HOURS` | Session lifetime | `24` |
-| `OTP_EXPIRY_MINUTES` | OTP TTL | `5` |
-| `OTP_MAX_ATTEMPTS` | Failed attempts before OTP is locked | `5` |
-| `PORT` | HTTP port | `3000` |
-
----
-
-## Project structure
-
-```
-src/
-├── app.module.ts               Root module
-├── main.ts                     Bootstrap (Swagger, pipes, filters, helmet, CORS)
-│
-├── config/                     registerAs() config factories
-│   ├── app.config.ts
-│   ├── database.config.ts
-│   └── mail.config.ts
-│
-├── common/                     Cross-cutting concerns
-│   ├── decorators/
-│   │   ├── current-user.decorator.ts   @CurrentUser() param decorator
-│   │   └── roles.decorator.ts          @Roles() metadata decorator
-│   ├── filters/
-│   │   └── http-exception.filter.ts    Shapes all error responses
-│   ├── guards/
-│   │   ├── auth.guard.ts               Validates session_token from Bearer header
-│   │   ├── auth-guard.module.ts        Module that provides AuthGuard
-│   │   └── roles.guard.ts              Checks user role against @Roles() metadata
-│   ├── interceptors/
-│   │   ├── audit.interceptor.ts        Auto-logs mutating requests to activity_logs
-│   │   └── audit.module.ts             Module that registers AuditInterceptor globally
-│   └── pipes/
-│       └── uuid-validation.pipe.ts     Validates UUID route params
-│
-├── entities/                   TypeORM entities (12 total, one per DBML table)
-│   ├── role.entity.ts
-│   ├── user.entity.ts
-│   ├── module.entity.ts
-│   ├── submodule.entity.ts
-│   ├── permission.entity.ts
-│   ├── role-permission.entity.ts
-│   ├── user-permission.entity.ts
-│   ├── login-otp.entity.ts
-│   ├── user-session.entity.ts
-│   ├── login-challenge.entity.ts
-│   ├── pending-invite.entity.ts
-│   └── activity-log.entity.ts
-│
-├── database/
-│   ├── data-source.ts          TypeORM DataSource for CLI (migrations)
-│   └── migrations/
-│       ├── 001-initial-schema.ts   Creates all 12 IAM tables + indexes
-│       └── 002-seed-roles-modules.ts  Seeds Superadmin, Admin, modules, permissions
-│
-└── modules/
-    ├── auth/                   OTP request/verify, challenge flow, logout, /me
-    │   ├── auth.module.ts
-    │   ├── auth.controller.ts
-    │   ├── auth.service.ts
-    │   ├── dao/auth.dao.ts
-    │   └── dto/
-    ├── users/                  User CRUD + invite + per-user permissions
-    │   ├── users.module.ts
-    │   ├── users.controller.ts
-    │   ├── users.service.ts
-    │   ├── dao/users.dao.ts
-    │   └── dto/
-    ├── roles/                  Role CRUD + role-level permissions matrix
-    │   ├── roles.module.ts
-    │   ├── roles.controller.ts
-    │   ├── roles.service.ts
-    │   ├── dao/roles.dao.ts
-    │   └── dto/
-    ├── permissions/            List permissions + modules
-    │   ├── permissions.module.ts
-    │   ├── permissions.controller.ts
-    │   ├── permissions.service.ts
-    │   └── dao/permissions.dao.ts
-    ├── activity-logs/          Paginated audit trail
-    │   ├── activity-logs.module.ts
-    │   ├── activity-logs.controller.ts
-    │   ├── activity-logs.service.ts
-    │   └── dao/activity-logs.dao.ts
-    └── mail/                   Nodemailer wrapper (OTP + invite emails)
-        ├── mail.module.ts
-        └── mail.service.ts
-```
-
----
-
-## API reference
-
-All routes are prefixed with `/api`. Bearer token is required on all routes except the `/api/auth/*` endpoints.
-
-### Auth
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/auth/request-otp` | Send a 6-digit OTP to the given email |
-| `POST` | `/api/auth/verify-otp` | Validate OTP; returns session or conflict challenge |
-| `POST` | `/api/auth/resolve-challenge` | Accept/reject a single-device conflict |
-| `POST` | `/api/auth/logout` | Revoke the current session |
-| `GET` | `/api/auth/me` | Return the current user with role + permissions |
-
-**Single-device login flow**
-
-```
-POST /api/auth/verify-otp
-  -> { token_type: 'session', session_token, user }       // no conflict
-  -> { token_type: 'challenge', challenge_token,           // conflict detected
-       existing_device: { label, ip_address, created_at } }
-
-POST /api/auth/resolve-challenge { challenge_token, accept: true }
-  -> { session_token, user }   // old session displaced, new session created
-
-POST /api/auth/resolve-challenge { challenge_token, accept: false }
-  -> 200 { message: 'Login cancelled' }
-```
-
-### Users
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/users` | List users (search, role_id, status, page, limit) |
-| `GET` | `/api/users/:id` | Get user with role + effective permissions |
-| `POST` | `/api/users/invite` | Create pending invite + send invite email |
-| `PATCH` | `/api/users/:id` | Update user profile fields |
-| `PATCH` | `/api/users/:id/status` | Toggle active / inactive |
-| `DELETE` | `/api/users/:id` | Soft delete |
-| `GET` | `/api/users/:id/permissions` | Get per-user permission overrides |
-| `PUT` | `/api/users/:id/permissions` | Upsert per-user permission overrides |
-
-### Roles
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/roles` | List all roles |
-| `POST` | `/api/roles` | Create a role |
-| `PATCH` | `/api/roles/:id` | Update role name/label/color/description |
-| `DELETE` | `/api/roles/:id` | Delete role (blocked if users are assigned) |
-| `GET` | `/api/roles/:id/permissions` | Get all role-permission rows |
-| `PUT` | `/api/roles/:id/permissions` | Replace all permissions for a role |
-
-### Permissions
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/permissions` | List all permission action records |
-| `GET` | `/api/permissions/modules` | List all modules with nested submodules |
-
-### Activity logs
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/activity-logs` | Paginated list (user_id, module_id, action, from_date, to_date, page, limit) |
-
----
-
-## Seeded data (Migration 002)
-
-After running migrations the database contains:
-
-**Roles**
-| name | label | is_system | Permissions |
-|---|---|---|---|
-| `superadmin` | Super Admin | yes | All 12 actions on all 9 modules |
-| `admin` | Admin | yes | view, create, edit, approve, export on all 9 modules |
-
-**Modules** (9): `journal_entry`, `claims`, `billing`, `reinsurance`, `mga`, `compliance`, `period_locking`, `audit_trail`, `user_management`
-
-**Permissions / actions** (12): `view`, `create`, `edit`, `approve`, `export`, `post`, `file`, `lock`, `override`, `reconcile`, `void`, `reverse`
-
----
-
-## Database migrations
+**Production mode** — compile first, then run the output:
 
 ```bash
-# Run all pending migrations
+npm run build
+npm run start:prod
+```
+
+| Resource              | URL                           |
+|-----------------------|-------------------------------|
+| API Base URL          | http://localhost:3000         |
+| Swagger Documentation | http://localhost:3000/api     |
+
+---
+
+## Environment Variables Reference
+
+| Variable               | Description                                            | Example                                |
+|------------------------|--------------------------------------------------------|----------------------------------------|
+| `DATABASE_HOST`        | PostgreSQL server hostname                             | `localhost`                            |
+| `DATABASE_PORT`        | PostgreSQL server port                                 | `5432`                                 |
+| `DATABASE_NAME`        | Name of the database to connect to                     | `southlake`                            |
+| `DATABASE_USER`        | PostgreSQL username                                    | `postgres`                             |
+| `DATABASE_PASSWORD`    | PostgreSQL password                                    | `yourpassword`                         |
+| `JWT_SECRET`           | Secret key used to sign and verify JWT tokens          | `a_very_long_random_secret_string`     |
+| `MAIL_HOST`            | SMTP server hostname                                   | `smtp.gmail.com`                       |
+| `MAIL_PORT`            | SMTP server port                                       | `587`                                  |
+| `MAIL_USER`            | SMTP username / sender email address                   | `you@gmail.com`                        |
+| `MAIL_PASSWORD`        | SMTP password or Gmail App Password                    | `abcd efgh ijkl mnop`                  |
+| `MAIL_FROM`            | Display name and address shown in outgoing emails      | `"Southlake <noreply@southlake.com>"`  |
+| `APP_URL`              | Frontend base URL — used to build links in emails      | `http://localhost:4200`                |
+| `PORT`                 | Port the NestJS server listens on                      | `3000`                                 |
+| `SESSION_EXPIRY_HOURS` | How long a user session stays active                   | `24`                                   |
+| `OTP_EXPIRY_MINUTES`   | How long an OTP code remains valid                     | `5`                                    |
+| `OTP_MAX_ATTEMPTS`     | Maximum wrong OTP attempts before the code is locked   | `5`                                    |
+
+---
+
+## Database Management
+
+The project uses **TypeORM migrations** for all schema changes. Never edit the database schema directly.
+
+### Apply all pending migrations
+
+```bash
 npm run migration:run
+```
 
-# Revert the last migration
+### Revert the last applied migration
+
+```bash
 npm run migration:revert
-
-# Generate a new migration from entity changes (auto-detects diff)
-npm run migration:generate -- src/database/migrations/NNN-description
-
-# Create an empty migration file
-npm run migration:create -- src/database/migrations/NNN-description
 ```
 
-`synchronize` is **always `false`** in TypeORM config. All schema changes must go through migrations.
-
----
-
-## Code quality
+### Generate a new migration (after modifying an entity)
 
 ```bash
-# Check for lint errors
-npm run lint
-
-# Auto-fix lint errors
-npm run lint:fix
-
-# Format source files with Prettier
-npm run format
-
-# Check formatting without writing
-npm run format:check
+npm run migration:generate -- --name=DescriptiveMigrationName
 ```
 
-VSCode will auto-format and auto-fix on save if the recommended extensions are installed:
-- **esbenp.prettier-vscode** (Prettier)
-- **dbaeumer.vscode-eslint** (ESLint)
-
-Install them once with:
+### Seed Chart of Accounts data
 
 ```bash
-code --install-extension esbenp.prettier-vscode
-code --install-extension dbaeumer.vscode-eslint
+npm run seed:coa
 ```
 
 ---
 
-## Architecture notes
+## Available Scripts
 
-- **DAO layer**: Every module has a `dao/` folder. Services call DAOs; DAOs own all TypeORM repository queries. Services never import `Repository` directly.
-- **AuditInterceptor**: Registered globally (`APP_INTERCEPTOR`). Auto-logs every `POST`, `PATCH`, `PUT`, `DELETE` request to `activity_logs` when an authenticated user is present.
-- **AuthGuard**: Reads `Authorization: Bearer <token>`, validates against `user_sessions` (is_active + not expired), attaches `req.user`.
-- **OTP rate-limiting**: The DAO enforces a max of 3 OTP requests per email per 15 minutes via a `login_otps` count query (no Redis needed).
-- **Single-device enforcement**: On OTP verify, if an active session already exists the service creates a `login_challenges` row (TTL: 10 min) and returns a `challenge_token`. The frontend shows a conflict dialog; the user resolves it via `/resolve-challenge`.
+| Script                       | Description                                         |
+|------------------------------|-----------------------------------------------------|
+| `npm run build`              | Compile TypeScript to JavaScript (`dist/`)          |
+| `npm run start`              | Start the server (no watch)                         |
+| `npm run start:dev`          | Start with hot-reload (development)                 |
+| `npm run start:prod`         | Run the compiled production build from `dist/`      |
+| `npm run migration:run`      | Apply all pending database migrations               |
+| `npm run migration:revert`   | Roll back the most recent migration                 |
+| `npm run migration:generate` | Auto-generate a migration from entity changes       |
+| `npm run migration:create`   | Create a blank migration file                       |
+| `npm run seed:coa`           | Seed Chart of Accounts data into the database       |
+| `npm run lint`               | Run ESLint (zero warnings policy)                   |
+| `npm run lint:fix`           | Auto-fix all fixable ESLint violations              |
+| `npm run format`             | Auto-format all TypeScript files with Prettier      |
+| `npm run format:check`       | Check formatting without writing changes            |
+| `npm run test`               | Run all unit tests with Jest                        |
+| `npm run test:watch`         | Run tests in watch mode                             |
+| `npm run test:cov`           | Run tests and generate a coverage report            |
+
+---
+
+## Modules Overview
+
+| Module              | Description                                                                   |
+|---------------------|-------------------------------------------------------------------------------|
+| `auth`              | Login initiation, OTP verification, session conflict resolution, invite acceptance, `/auth/me` |
+| `users`             | User CRUD, invite flow, permission overrides per user                        |
+| `roles`             | Role creation/update/delete, permission matrix per role                      |
+| `permissions`       | Read and update module-level permissions                                     |
+| `chart-of-accounts` | Full COA hierarchy — account groups, types, sub-types, and leaf accounts     |
+| `masters`           | Master data management (e.g., categories, references)                        |
+| `mail`              | Centralized Nodemailer email service (OTP emails, invite links)               |
+| `activity-logs`     | Audit trail — records every significant user action with IP and timestamp    |
+
+---
+
+## API Overview
+
+Full interactive Swagger documentation is available at **http://localhost:3000/api** when the server is running.
+
+### Key Endpoints
+
+| Method | Endpoint                      | Auth | Description                                 |
+|--------|-------------------------------|:----:|---------------------------------------------|
+| POST   | `/auth/login`                 | No   | Initiate login — sends OTP to email         |
+| POST   | `/auth/verify-otp`            | No   | Submit OTP, receive session or challenge token |
+| POST   | `/auth/resolve-challenge`     | No   | Resolve a session conflict challenge        |
+| GET    | `/auth/me`                    | Yes  | Get current user profile + permissions      |
+| POST   | `/auth/logout`                | Yes  | Invalidate current session                  |
+| GET    | `/auth/invite-details/:token` | No   | Get invite info by token                    |
+| POST   | `/auth/accept-invite`         | No   | Accept invite and set password              |
+| GET    | `/users`                      | Yes  | List all users                              |
+| POST   | `/users/invite`               | Yes  | Invite a new user by email                  |
+| PATCH  | `/users/:id`                  | Yes  | Update user details                         |
+| GET    | `/roles`                      | Yes  | List all roles                              |
+| POST   | `/roles`                      | Yes  | Create a new role                           |
+| PUT    | `/roles/:id/permissions`      | Yes  | Update permissions for a role               |
+| GET    | `/chart-of-accounts`          | Yes  | Retrieve COA tree                           |
+| GET    | `/masters`                    | Yes  | Retrieve master data                        |
+| GET    | `/activity-logs`              | Yes  | List activity log entries                   |
+
+> All authenticated endpoints require the header: `Authorization: Bearer <token>`
+
+---
+
+## Security Notes
+
+- **Never commit `.env`** — it is in `.gitignore`. Every developer and server environment needs its own copy.
+- Use a **strong `JWT_SECRET`** — at minimum 64 random characters. Use a password generator.
+- Use **Gmail App Passwords**, never your actual Google account password.
+- In production, update `APP_URL` to your real domain (e.g., `https://app.southlake.com`).
+- Review and tighten the CORS configuration in `src/main.ts` before deploying to production.
+- Enable HTTPS in production via a reverse proxy (e.g., Nginx, Caddy).
+
+---
+
+## Troubleshooting
+
+### Database connection error
+
+**Symptoms:** `ECONNREFUSED 127.0.0.1:5432` or `password authentication failed`
+
+**Fix:**
+1. On Windows, open **Services** and confirm the PostgreSQL service is running.
+2. Verify all `DATABASE_*` values in your `.env`.
+3. Make sure the database exists — run `\l` in psql or check pgAdmin.
+
+---
+
+### Migration fails
+
+**Symptoms:** `relation already exists`, `column does not exist`, or `QueryFailedError`
+
+**Fix:**
+```bash
+# Revert the last migration and re-apply
+npm run migration:revert
+npm run migration:run
+```
+
+If the schema is badly out of sync, drop and recreate the database:
+
+```sql
+DROP DATABASE southlake;
+CREATE DATABASE southlake;
+```
+
+Then re-run migrations:
+
+```bash
+npm run migration:run
+npm run seed:coa
+```
+
+---
+
+### Emails not sending
+
+**Symptoms:** `Invalid login`, `EAUTH`, or SMTP timeout in logs
+
+**Fix:**
+1. Confirm you are using a **Gmail App Password**, not your account password.
+2. Make sure **2-Step Verification** is enabled before generating an App Password.
+3. Verify `MAIL_HOST=smtp.gmail.com` and `MAIL_PORT=587`.
+4. Generate a fresh App Password and update `.env`.
+
+---
+
+### npm install fails
+
+```bash
+npm cache clean --force
+npm install
+```
+
+Verify Node.js version:
+
+```bash
+node --version   # Must be v24.x.x or higher
+```
+
+---
+
+*Last updated: June 2026*

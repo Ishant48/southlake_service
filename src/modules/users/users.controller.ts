@@ -16,10 +16,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UsersService, UpsertPermissionEntry } from './users.service';
+import { UsersService } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 import { User } from '../../entities/user.entity';
@@ -137,9 +138,9 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Permissions updated' })
   upsertPermissions(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() permissions: UpsertPermissionEntry[],
+    @Body() dto: UpdateUserPermissionsDto,
     @CurrentUser() user: User,
   ) {
-    return this.service.upsertPermissions(id, permissions, user);
+    return this.service.upsertPermissions(id, dto.permissions, user);
   }
 }

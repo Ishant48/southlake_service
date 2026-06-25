@@ -5,6 +5,7 @@ import { LoginOtp } from '../../../entities/login-otp.entity';
 import { UserSession } from '../../../entities/user-session.entity';
 import { LoginChallenge } from '../../../entities/login-challenge.entity';
 import { User } from '../../../entities/user.entity';
+import { PendingInvite } from '../../../entities/pending-invite.entity';
 
 @Injectable()
 export class AuthDao {
@@ -17,6 +18,8 @@ export class AuthDao {
     private readonly challengeRepo: Repository<LoginChallenge>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(PendingInvite)
+    private readonly inviteRepo: Repository<PendingInvite>,
   ) {}
 
   findUserByEmail(email: string): Promise<User | null> {
@@ -128,5 +131,17 @@ export class AuthDao {
 
   async updateUserLastLogin(userId: string): Promise<void> {
     await this.userRepo.update(userId, { lastLoginAt: new Date() });
+  }
+
+  findInviteByToken(token: string): Promise<PendingInvite | null> {
+    return this.inviteRepo.findOne({ where: { token } });
+  }
+
+  saveInvite(invite: PendingInvite): Promise<PendingInvite> {
+    return this.inviteRepo.save(invite);
+  }
+
+  saveUser(user: Partial<User>): Promise<User> {
+    return this.userRepo.save(this.userRepo.create(user));
   }
 }

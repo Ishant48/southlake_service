@@ -1,5 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches } from 'class-validator';
+import { IsOptional, IsString, Matches, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { RolePermissionDto } from './create-role.dto';
 
 export class UpdateRoleDto {
   @ApiPropertyOptional({ example: 'Underwriter' })
@@ -17,4 +19,12 @@ export class UpdateRoleDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ type: () => [RolePermissionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RolePermissionDto)
+  permissions?: RolePermissionDto[];
 }
+

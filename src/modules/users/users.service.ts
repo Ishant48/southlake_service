@@ -14,6 +14,20 @@ import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { User } from '../../entities/user.entity';
 import { UserPermission } from '../../entities/user-permission.entity';
 import { PendingInvite } from '../../entities/pending-invite.entity';
+import { RolePermission } from '../../entities/role-permission.entity';
+import { Permission } from '../../entities/permission.entity';
+
+const ALL_ACTIONS = ['view', 'create', 'edit', 'approve', 'export', 'post', 'file', 'lock', 'override', 'reconcile', 'void', 'reverse'];
+const ACTIVE_MODULES = ['chart_of_accounts', 'user_management', 'master_data'];
+
+
+export interface FlatRolePermission {
+  module_id: string;
+  view: boolean; create: boolean; edit: boolean; approve: boolean; export: boolean;
+  post: boolean; file: boolean; lock: boolean; override: boolean; reconcile: boolean;
+  void: boolean; reverse: boolean;
+}
+
 
 export interface UpsertPermissionEntry {
   moduleId: string;
@@ -182,21 +196,66 @@ export class UsersService {
     return { message: 'User deleted' };
   }
 
-  getPermissions(userId: string): Promise<UserPermission[]> {
-    return this.dao.findUserPermissions(userId);
+  async getPermissions(userId: string): Promise<FlatRolePermission[]> {
+    const user = await this.findOne(userId);
+    const roleId = user.roleId;
+
+    const [rolePerms, userOverrides] = await Promise.all([
+      roleId ? this.dao.findRolePermissions(roleId) : Promise.resolve([]),
+      this.dao.findUserPermissions(userId),
+    ]);
+
+    return this.resolvePermissions(rolePerms, userOverrides);
   }
 
   async upsertPermissions(
     userId: string,
-    permissions: UpsertPermissionEntry[],
+    permissions: any[],
     updatedBy: User,
-  ): Promise<UserPermission[]> {
-    await this.findOne(userId);
+  ): Promise<FlatRolePermission[]> {
+    const user = await this.findOne(userId);
+    const roleId = user.roleId;
 
-    const result = await this.dao.upsertUserPermissions(
-      userId,
-      permissions.map((p) => ({ ...p, createdBy: updatedBy.id })),
-    );
+    const [rolePerms, permissionEntities] = await Promise.all([
+      roleId ? this.dao.findRolePermissions(roleId) : Promise.resolve([]),
+      this.dao.findAllPermissionsList(),
+    ]);
+
+    const actionToIdMap = new Map(permissionEntities.map((p) => [p.action, p.id]));
+
+    // Helper to check if role has permission
+    const roleHasPermission = (moduleId: string, action: string): boolean => {
+      const rp = rolePerms.find((p) => p.moduleId === moduleId && p.permission?.action === action);
+      return !!rp;
+    };
+
+    const overrides: Array<{
+      moduleId: string;
+      permissionId: string;
+      accessType: string;
+      createdBy: string;
+    }> = [];
+
+    for (const fp of permissions) {
+      for (const action of ALL_ACTIONS) {
+        const sentVal = fp[action] === true;
+        const roleVal = roleHasPermission(fp.module_id, action);
+
+        if (sentVal !== roleVal) {
+          const permissionId = actionToIdMap.get(action);
+          if (permissionId) {
+            overrides.push({
+              moduleId: fp.module_id,
+              permissionId,
+              accessType: sentVal ? 'grant' : 'revoke',
+              createdBy: updatedBy.id,
+            });
+          }
+        }
+      }
+    }
+
+    await this.dao.upsertUserPermissions(userId, overrides);
 
     await this.activityLogsService.log({
       userId: updatedBy.id,
@@ -207,7 +266,42 @@ export class UsersService {
       description: `Updated permissions for user ${userId}`,
     });
 
-    return result;
+    return this.getPermissions(userId);
+  }
+
+  private resolvePermissions(rolePerms: RolePermission[], overrides: UserPermission[]): FlatRolePermission[] {
+    const moduleMap = new Map<string, Record<string, boolean>>();
+
+    // Initialize moduleMap with only active modules
+    for (const mId of ACTIVE_MODULES) {
+      moduleMap.set(mId, Object.fromEntries(ALL_ACTIONS.map((a) => [a, false])));
+    }
+
+    // 1. Apply role permissions for active modules
+    for (const rp of rolePerms) {
+      if (ACTIVE_MODULES.includes(rp.moduleId)) {
+        const action = rp.permission?.action;
+        if (action) {
+          moduleMap.get(rp.moduleId)![action] = true;
+        }
+      }
+    }
+
+    // 2. Apply user overrides for active modules
+    for (const op of overrides) {
+      if (ACTIVE_MODULES.includes(op.moduleId)) {
+        const action = op.permission?.action;
+        if (action) {
+          moduleMap.get(op.moduleId)![action] = op.accessType === 'grant';
+        }
+      }
+    }
+
+    // 3. Convert to flat representation
+    return Array.from(moduleMap.entries()).map(([module_id, actions]) => ({
+      module_id,
+      ...(actions as any),
+    }));
   }
 
   getPendingInvites(): Promise<PendingInvite[]> {

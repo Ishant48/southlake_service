@@ -12,6 +12,7 @@ import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module
 import { MailModule } from './modules/mail/mail.module';
 import { AuditModule } from './common/interceptors/audit.module';
 import { AuthGuardModule } from './common/guards/auth-guard.module';
+import { ChartOfAccountsModule } from './modules/chart-of-accounts/chart-of-accounts.module';
 import { Role } from './entities/role.entity';
 import { User } from './entities/user.entity';
 import { Module as ModuleEntity } from './entities/module.entity';
@@ -24,6 +25,22 @@ import { UserSession } from './entities/user-session.entity';
 import { LoginChallenge } from './entities/login-challenge.entity';
 import { PendingInvite } from './entities/pending-invite.entity';
 import { ActivityLog } from './entities/activity-log.entity';
+import { ChartOfAccount } from './entities/chart-of-account.entity';
+import { ChartOfAccountDocument } from './entities/chart-of-account-document.entity';
+import { StateMaster } from './entities/state-master.entity';
+import { MgaMaster } from './entities/mga-master.entity';
+import { MgaDocument } from './entities/mga-document.entity';
+import { ReinsurerCompany } from './entities/reinsurer-company.entity';
+import { RiskCompany } from './entities/risk-company.entity';
+import { LineOfBusiness } from './entities/line-of-business.entity';
+import { CobMaster } from './entities/cob-master.entity';
+import { Treaty } from './entities/treaty.entity';
+import { TreatyLob } from './entities/treaty-lob.entity';
+import { TreatyLobCob } from './entities/treaty-lob-cob.entity';
+import { TreatyState } from './entities/treaty-state.entity';
+import { StateDocument } from './entities/state-document.entity';
+import { RiskCompanyDocument } from './entities/risk-company-document.entity';
+import { MastersModule } from './modules/masters/masters.module';
 
 @Module({
   imports: [
@@ -55,6 +72,21 @@ import { ActivityLog } from './entities/activity-log.entity';
           LoginChallenge,
           PendingInvite,
           ActivityLog,
+          ChartOfAccount,
+          ChartOfAccountDocument,
+          StateMaster,
+          MgaMaster,
+          MgaDocument,
+          ReinsurerCompany,
+          RiskCompany,
+          LineOfBusiness,
+          CobMaster,
+          Treaty,
+          TreatyLob,
+          TreatyLobCob,
+          TreatyState,
+          StateDocument,
+          RiskCompanyDocument,
         ],
         synchronize: false,
         logging: process.env.NODE_ENV !== 'production',
@@ -68,6 +100,8 @@ import { ActivityLog } from './entities/activity-log.entity';
     MailModule,
     AuditModule,
     AuthGuardModule,
+    ChartOfAccountsModule,
+    MastersModule,
   ],
 })
 export class AppModule {}
