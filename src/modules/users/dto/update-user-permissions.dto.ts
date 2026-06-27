@@ -1,12 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { RolePermissionDto } from '../../roles/dto/create-role.dto';
+import { IsArray, IsUUID } from 'class-validator';
 
 export class UpdateUserPermissionsDto {
-  @ApiProperty({ type: () => [RolePermissionDto] })
+  @ApiProperty({ example: ['uuid-1', 'uuid-2'] })
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RolePermissionDto)
-  permissions: RolePermissionDto[];
+  @IsUUID('4', { each: true })
+  permissions: string[];
 }

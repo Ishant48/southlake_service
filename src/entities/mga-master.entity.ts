@@ -26,6 +26,36 @@ export class MgaMaster {
   @Column({ name: 'ledger_amount', type: 'decimal', precision: 15, scale: 2, default: 0.00 })
   ledgerAmount: number;
 
+  @Column({ name: 'company_id', type: 'bigint', nullable: true })
+  companyId: string | null;
+
+  @Column({ name: 'id_name', type: 'varchar', nullable: true })
+  idName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  address: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  zip: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  city: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  state: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  phone: string | null;
+
+  @Column({ name: 'open_item', type: 'boolean', default: false })
+  openItem: boolean;
+
+  @Column({ name: 'op_start_date', type: 'date', nullable: true })
+  opStartDate: Date | string | null;
+
+  @Column({ name: 'other_names', type: 'jsonb', nullable: true })
+  otherNames: { state: string; displayName: string }[] | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 

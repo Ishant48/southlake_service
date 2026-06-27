@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class CreateLobDto {
   @IsString()
@@ -12,6 +12,26 @@ export class CreateLobDto {
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  type?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  taxable?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  priority?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  fully_earned?: boolean;
 }
 
 export class UpdateLobDto {
@@ -26,4 +46,24 @@ export class UpdateLobDto {
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  type?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  taxable?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  priority?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  fully_earned?: boolean;
 }

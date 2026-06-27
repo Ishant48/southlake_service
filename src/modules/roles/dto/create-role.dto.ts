@@ -1,72 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, IsBoolean, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class RolePermissionDto {
-  @ApiProperty({ example: 'billing' })
-  @IsString()
-  module_id: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  view?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  create?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  edit?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  approve?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  export?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  post?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  file?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  lock?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  override?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  reconcile?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  void?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  reverse?: boolean;
-}
+import { IsOptional, IsString, Matches, IsArray, IsUUID } from 'class-validator';
 
 export class CreateRoleDto {
   @ApiProperty({ example: 'underwriter' })
@@ -88,11 +21,9 @@ export class CreateRoleDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ type: () => [RolePermissionDto] })
+  @ApiPropertyOptional({ example: ['uuid-1', 'uuid-2'] })
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RolePermissionDto)
-  permissions?: RolePermissionDto[];
+  @IsUUID('4', { each: true })
+  permissions?: string[];
 }
-

@@ -16,6 +16,7 @@ import { TreatyLobCob } from '../../entities/treaty-lob-cob.entity';
 import { TreatyState } from '../../entities/treaty-state.entity';
 import { StateDocument } from '../../entities/state-document.entity';
 import { RiskCompanyDocument } from '../../entities/risk-company-document.entity';
+import { TreatyMga } from '../../entities/treaty-mga.entity';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RiskCompanyDocument } from '../../entities/risk-company-document.entity
       TreatyLob,
       TreatyLobCob,
       TreatyState,
+      TreatyMga,
       StateDocument,
       RiskCompanyDocument,
     ]),

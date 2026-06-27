@@ -20,6 +20,7 @@ import { RolesService, UpsertRolePermissionEntry } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 import { User } from '../../entities/user.entity';
 
@@ -30,6 +31,7 @@ export class RolesController {
   constructor(private readonly service: RolesService) {}
 
   @Get()
+  @RequirePermission('role.manage')
   @ApiOperation({ summary: 'List roles with user counts (paginated)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'per_page', required: false, type: Number })
@@ -42,6 +44,7 @@ export class RolesController {
   }
 
   @Post()
+  @RequirePermission('role.manage')
   @ApiOperation({ summary: 'Create a new role' })
   @ApiResponse({ status: 201, description: 'Role created' })
   create(@Body() dto: CreateRoleDto, @CurrentUser() user: User) {
@@ -49,6 +52,7 @@ export class RolesController {
   }
 
   @Get(':id')
+  @RequirePermission('role.manage')
   @ApiOperation({ summary: 'Get a role by ID with permissions' })
   @ApiResponse({ status: 200, description: 'Role details' })
   @ApiResponse({ status: 404, description: 'Role not found' })
@@ -57,6 +61,7 @@ export class RolesController {
   }
 
   @Patch(':id')
+  @RequirePermission('role.manage')
   @ApiOperation({ summary: 'Update an existing role' })
   @ApiResponse({ status: 200, description: 'Role updated' })
   update(
@@ -68,6 +73,7 @@ export class RolesController {
   }
 
   @Delete(':id')
+  @RequirePermission('role.manage')
   @ApiOperation({ summary: 'Delete a role' })
   @ApiResponse({ status: 200, description: 'Role deleted' })
   remove(@Param('id', UuidValidationPipe) id: string, @CurrentUser() user: User) {
@@ -75,6 +81,7 @@ export class RolesController {
   }
 
   @Get(':id/permissions')
+  @RequirePermission('role.manage')
   @ApiOperation({ summary: 'Get permissions for a role' })
   @ApiResponse({ status: 200, description: 'Role permissions' })
   getPermissions(@Param('id', UuidValidationPipe) id: string) {
@@ -82,6 +89,7 @@ export class RolesController {
   }
 
   @Put(':id/permissions')
+  @RequirePermission('role.manage')
   @ApiOperation({ summary: 'Replace all permissions for a role' })
   @ApiResponse({ status: 200, description: 'Permissions updated' })
   upsertPermissions(

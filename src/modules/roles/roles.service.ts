@@ -14,19 +14,10 @@ import { RolePermission } from '../../entities/role-permission.entity';
 import { Permission } from '../../entities/permission.entity';
 import { User } from '../../entities/user.entity';
 
-const ALL_ACTIONS = ['view', 'create', 'edit', 'approve', 'export', 'post', 'file', 'lock', 'override', 'reconcile', 'void', 'reverse'];
-
 export interface UpsertRolePermissionEntry {
   moduleId: string;
   submoduleId?: string;
   permissionId: string;
-}
-
-export interface FlatRolePermission {
-  module_id: string;
-  view: boolean; create: boolean; edit: boolean; approve: boolean; export: boolean;
-  post: boolean; file: boolean; lock: boolean; override: boolean; reconcile: boolean;
-  void: boolean; reverse: boolean;
 }
 
 @Injectable()
@@ -55,7 +46,7 @@ export class RolesService {
     return { data, total, page, per_page: perPage, total_pages: Math.ceil(total / perPage) };
   }
 
-  async findOne(id: string): Promise<Role & { user_count: number; permissions: FlatRolePermission[] }> {
+  async findOne(id: string): Promise<Role & { user_count: number; permissions: { id: string; action: string }[] }> {
     const role = await this.dao.findById(id);
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
@@ -181,49 +172,21 @@ export class RolesService {
     return result;
   }
 
-  private async saveFlatPermissions(roleId: string, flatPerms: any[]): Promise<void> {
-    const permissionEntities = await this.dao.findAllPermissionsList();
-    const actionToIdMap = new Map(permissionEntities.map((p) => [p.action, p.id]));
-
-    const upsertEntries: UpsertRolePermissionEntry[] = [];
-    for (const fp of flatPerms) {
-      for (const action of ALL_ACTIONS) {
-        if (fp[action] === true) {
-          const permissionId = actionToIdMap.get(action);
-          if (permissionId) {
-            upsertEntries.push({
-              moduleId: fp.module_id,
-              permissionId,
-            });
-          }
-        }
-      }
-    }
+  async saveFlatPermissions(roleId: string, permissionIds: string[]): Promise<void> {
+    const upsertEntries: UpsertRolePermissionEntry[] = permissionIds.map((pid) => ({
+      moduleId: 'rbac',
+      permissionId: pid,
+    }));
 
     await this.dao.upsertPermissions(roleId, upsertEntries);
   }
 
-  private flattenPermissions(rawPerms: RolePermission[]): FlatRolePermission[] {
-    const ACTIVE_MODULES = ['chart_of_accounts', 'user_management', 'master_data'];
-    const moduleMap = new Map<string, Record<string, boolean>>();
-
-    // Initialize moduleMap with only active modules
-    for (const mId of ACTIVE_MODULES) {
-      moduleMap.set(mId, Object.fromEntries(ALL_ACTIONS.map((a) => [a, false])));
-    }
-
-    for (const rp of rawPerms) {
-      if (ACTIVE_MODULES.includes(rp.moduleId)) {
-        const action = (rp as any).permission?.action;
-        if (action && moduleMap.has(rp.moduleId)) {
-          moduleMap.get(rp.moduleId)![action] = true;
-        }
-      }
-    }
-
-    return Array.from(moduleMap.entries()).map(([module_id, actions]) => ({
-      module_id,
-      ...(actions as Omit<FlatRolePermission, 'module_id'>),
-    }));
+  private flattenPermissions(rawPerms: RolePermission[]): { id: string; action: string }[] {
+    return rawPerms
+      .filter((rp) => rp.permission?.action)
+      .map((rp) => ({
+        id: rp.permission.id,
+        action: rp.permission.action,
+      }));
   }
 }

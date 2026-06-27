@@ -13,6 +13,7 @@ import { ReinsurerCompany } from './reinsurer-company.entity';
 import { RiskCompany } from './risk-company.entity';
 import { TreatyLob } from './treaty-lob.entity';
 import { TreatyState } from './treaty-state.entity';
+import { TreatyMga } from './treaty-mga.entity';
 
 export class ColumnNumericTransformer {
   to(data: number | null): number | null {
@@ -34,12 +35,12 @@ export class Treaty {
   @Column({ type: 'varchar' })
   name: string;
 
-  @Column({ name: 'mga_id', type: 'uuid' })
-  mgaId: string;
+  @Column({ name: 'mga_id', type: 'uuid', nullable: true })
+  mgaId: string | null;
 
-  @ManyToOne(() => MgaMaster, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => MgaMaster, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'mga_id' })
-  mga: MgaMaster;
+  mga: MgaMaster | null;
 
   @Column({ name: 'reinsurer_id', type: 'uuid', nullable: true })
   reinsurerId: string | null;
@@ -101,6 +102,9 @@ export class Treaty {
 
   @OneToMany(() => TreatyState, (ts) => ts.treaty, { cascade: true })
   treatyStates: TreatyState[];
+
+  @OneToMany(() => TreatyMga, (tm) => tm.treaty, { cascade: true })
+  treatyMgas: TreatyMga[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

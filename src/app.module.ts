@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 import mailConfig from './config/mail.config';
@@ -40,7 +41,14 @@ import { TreatyLobCob } from './entities/treaty-lob-cob.entity';
 import { TreatyState } from './entities/treaty-state.entity';
 import { StateDocument } from './entities/state-document.entity';
 import { RiskCompanyDocument } from './entities/risk-company-document.entity';
+import { TreatyMga } from './entities/treaty-mga.entity';
+import { GlMapping } from './entities/gl-mapping.entity';
+import { JournalEntryBatch } from './entities/journal-entry-batch.entity';
+import { JournalEntry } from './entities/journal-entry.entity';
 import { MastersModule } from './modules/masters/masters.module';
+import { GlMappingsModule } from './modules/gl-mappings/gl-mappings.module';
+import { JournalEntriesModule } from './modules/journal-entries/journal-entries.module';
+import { TestBalanceModule } from './modules/test-balance/test-balance.module';
 
 @Module({
   imports: [
@@ -85,6 +93,10 @@ import { MastersModule } from './modules/masters/masters.module';
           TreatyLob,
           TreatyLobCob,
           TreatyState,
+          TreatyMga,
+          GlMapping,
+          JournalEntryBatch,
+          JournalEntry,
           StateDocument,
           RiskCompanyDocument,
         ],
@@ -102,6 +114,10 @@ import { MastersModule } from './modules/masters/masters.module';
     AuthGuardModule,
     ChartOfAccountsModule,
     MastersModule,
+    GlMappingsModule,
+    JournalEntriesModule,
+    TestBalanceModule,
   ],
+  providers: [],
 })
 export class AppModule {}

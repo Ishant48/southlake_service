@@ -302,6 +302,37 @@ npm run seed:coa
 
 ---
 
+## DB Structure & RBAC Permissions Schema
+
+The database schema manages roles, flat permission rules, and granular user overrides in a modular way:
+
+```
++---------------+         +------------------+         +-----------------+
+|     roles     | <------ | role_permissions | ------> |   permissions   |
++---------------+         +------------------+         +-----------------+
+        ^                                                       ^
+        |                                                       |
+        |                                                       |
++---------------+         +------------------+                  |
+|     users     | <------ | user_permissions | -----------------+
++---------------+         +------------------+
+```
+
+### 1. Key Tables
+* **`roles`**: Defines the user roles (e.g. `superadmin`, `admin`, `underwriter`).
+* **`permissions`**: Flat database-driven permission strings mapped to resource actions (e.g. `chart_of_accounts.view`, `user.create`, `activity_log.export`).
+* **`role_permissions`**: Links roles to specific permissions.
+* **`user_permissions`**: Granular overrides mapping specific users to permission ids with an `access_type`:
+  * `grant`: Explicitly grants access to a permission not included in their role.
+  * `revoke`: Explicitly revokes access to a permission that would normally be granted by their role.
+
+### 2. Resolving Effective Permissions
+When verifying a user's permissions, the system queries the role-level grants first, then overlays user overrides (applying any `revoke` overrides to delete matching permissions, and adding any `grant` overrides to the set). Super Admin users bypass this check and unconditionally receive full access.
+
+---
+
+---
+
 ## Available Scripts
 
 | Script                       | Description                                         |

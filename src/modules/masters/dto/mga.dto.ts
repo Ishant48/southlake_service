@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsNumber, IsArray } from 'class-validator';
 
 export class CreateMgaDto {
   @IsString()
@@ -20,6 +20,44 @@ export class CreateMgaDto {
   @IsNumber()
   @IsOptional()
   ledger_amount?: number;
+
+  @IsOptional()
+  company_id?: string | number;
+
+  @IsString()
+  @IsOptional()
+  id_name?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  zip?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @IsString()
+  @IsOptional()
+  state?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  open_item?: boolean;
+
+  @IsOptional()
+  op_start_date?: string | Date;
+
+  @IsArray()
+  @IsOptional()
+  other_names?: { state: string; displayName: string }[];
 }
 
 export class UpdateMgaDto {
@@ -42,4 +80,42 @@ export class UpdateMgaDto {
   @IsNumber()
   @IsOptional()
   ledger_amount?: number;
+
+  @IsOptional()
+  company_id?: string | number;
+
+  @IsString()
+  @IsOptional()
+  id_name?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  zip?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @IsString()
+  @IsOptional()
+  state?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  open_item?: boolean;
+
+  @IsOptional()
+  op_start_date?: string | Date;
+
+  @IsArray()
+  @IsOptional()
+  other_names?: { state: string; displayName: string }[];
 }

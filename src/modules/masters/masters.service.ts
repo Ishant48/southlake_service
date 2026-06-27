@@ -14,6 +14,7 @@ import { TreatyLobCob } from '../../entities/treaty-lob-cob.entity';
 import { TreatyState } from '../../entities/treaty-state.entity';
 import { StateDocument } from '../../entities/state-document.entity';
 import { RiskCompanyDocument } from '../../entities/risk-company-document.entity';
+import { TreatyMga } from '../../entities/treaty-mga.entity';
 
 import { CreateStateDto, UpdateStateDto } from './dto/state.dto';
 import { CreateMgaDto, UpdateMgaDto } from './dto/mga.dto';
@@ -52,6 +53,8 @@ export class MastersService {
     private readonly stateDocRepo: Repository<StateDocument>,
     @InjectRepository(RiskCompanyDocument)
     private readonly riskCompanyDocRepo: Repository<RiskCompanyDocument>,
+    @InjectRepository(TreatyMga)
+    private readonly treatyMgaRepo: Repository<TreatyMga>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -162,6 +165,16 @@ export class MastersService {
       taxPayableInhouse: dto.tax_payable_inhouse ?? false,
       isActive: dto.is_active ?? true,
       ledgerAmount: dto.ledger_amount ?? 0.00,
+      companyId: dto.company_id ? String(dto.company_id) : null,
+      idName: dto.id_name ?? null,
+      address: dto.address ?? null,
+      zip: dto.zip ?? null,
+      city: dto.city ?? null,
+      state: dto.state ?? null,
+      phone: dto.phone ?? null,
+      openItem: dto.open_item ?? false,
+      opStartDate: dto.op_start_date ?? null,
+      otherNames: dto.other_names ?? null,
       createdBy: userId,
       updatedBy: userId,
     });
@@ -183,6 +196,16 @@ export class MastersService {
       taxPayableInhouse: dto.tax_payable_inhouse !== undefined ? dto.tax_payable_inhouse : mga.taxPayableInhouse,
       isActive: dto.is_active !== undefined ? dto.is_active : mga.isActive,
       ledgerAmount: dto.ledger_amount !== undefined ? dto.ledger_amount : mga.ledgerAmount,
+      companyId: dto.company_id !== undefined ? (dto.company_id ? String(dto.company_id) : null) : mga.companyId,
+      idName: dto.id_name !== undefined ? dto.id_name : mga.idName,
+      address: dto.address !== undefined ? dto.address : mga.address,
+      zip: dto.zip !== undefined ? dto.zip : mga.zip,
+      city: dto.city !== undefined ? dto.city : mga.city,
+      state: dto.state !== undefined ? dto.state : mga.state,
+      phone: dto.phone !== undefined ? dto.phone : mga.phone,
+      openItem: dto.open_item !== undefined ? dto.open_item : mga.openItem,
+      opStartDate: dto.op_start_date !== undefined ? dto.op_start_date : mga.opStartDate,
+      otherNames: dto.other_names !== undefined ? dto.other_names : mga.otherNames,
       updatedBy: userId,
     });
     return this.mgaRepo.save(mga);
@@ -282,6 +305,9 @@ export class MastersService {
       phone: dto.phone ?? null,
       isAdmitted: dto.is_admitted ?? true,
       state: dto.state ?? null,
+      address: dto.address ?? null,
+      zip: dto.zip ?? null,
+      city: dto.city ?? null,
       notes: dto.notes ?? null,
       isActive: dto.is_active ?? true,
       createdBy: userId,
@@ -307,6 +333,9 @@ export class MastersService {
       phone: dto.phone !== undefined ? dto.phone : rc.phone,
       isAdmitted: dto.is_admitted !== undefined ? dto.is_admitted : rc.isAdmitted,
       state: dto.state !== undefined ? dto.state : rc.state,
+      address: dto.address !== undefined ? dto.address : rc.address,
+      zip: dto.zip !== undefined ? dto.zip : rc.zip,
+      city: dto.city !== undefined ? dto.city : rc.city,
       notes: dto.notes !== undefined ? dto.notes : rc.notes,
       isActive: dto.is_active !== undefined ? dto.is_active : rc.isActive,
       updatedBy: userId,
@@ -342,6 +371,11 @@ export class MastersService {
       lobCode: dto.lob_code,
       name: dto.name,
       isActive: dto.is_active ?? true,
+      description: dto.description ?? null,
+      type: dto.type ?? null,
+      taxable: dto.taxable ?? false,
+      priority: dto.priority ?? 1,
+      fullyEarned: dto.fully_earned ?? false,
       createdBy: userId,
       updatedBy: userId,
     });
@@ -361,6 +395,11 @@ export class MastersService {
       lobCode: dto.lob_code !== undefined ? dto.lob_code : lob.lobCode,
       name: dto.name !== undefined ? dto.name : lob.name,
       isActive: dto.is_active !== undefined ? dto.is_active : lob.isActive,
+      description: dto.description !== undefined ? dto.description : lob.description,
+      type: dto.type !== undefined ? dto.type : lob.type,
+      taxable: dto.taxable !== undefined ? dto.taxable : lob.taxable,
+      priority: dto.priority !== undefined ? dto.priority : lob.priority,
+      fullyEarned: dto.fully_earned !== undefined ? dto.fully_earned : lob.fullyEarned,
       updatedBy: userId,
     });
     return this.lobRepo.save(lob);
@@ -394,6 +433,11 @@ export class MastersService {
       cobCode: dto.cob_code,
       name: dto.name,
       isActive: dto.is_active ?? true,
+      description: dto.description ?? null,
+      type: dto.type ?? null,
+      taxable: dto.taxable ?? false,
+      priority: dto.priority ?? 1,
+      fullyEarned: dto.fully_earned ?? false,
       createdBy: userId,
       updatedBy: userId,
     });
@@ -413,6 +457,11 @@ export class MastersService {
       cobCode: dto.cob_code !== undefined ? dto.cob_code : cob.cobCode,
       name: dto.name !== undefined ? dto.name : cob.name,
       isActive: dto.is_active !== undefined ? dto.is_active : cob.isActive,
+      description: dto.description !== undefined ? dto.description : cob.description,
+      type: dto.type !== undefined ? dto.type : cob.type,
+      taxable: dto.taxable !== undefined ? dto.taxable : cob.taxable,
+      priority: dto.priority !== undefined ? dto.priority : cob.priority,
+      fullyEarned: dto.fully_earned !== undefined ? dto.fully_earned : cob.fullyEarned,
       updatedBy: userId,
     });
     return this.cobRepo.save(cob);
@@ -447,6 +496,8 @@ export class MastersService {
         'treatyLobs.treatyLobCobs.cob',
         'treatyStates',
         'treatyStates.state',
+        'treatyMgas',
+        'treatyMgas.mga',
       ],
       order: { treatyCode: 'ASC' },
     });
@@ -465,6 +516,8 @@ export class MastersService {
         'treatyLobs.treatyLobCobs.cob',
         'treatyStates',
         'treatyStates.state',
+        'treatyMgas',
+        'treatyMgas.mga',
       ],
     });
     if (!treaty) throw new NotFoundException('Treaty not found');
@@ -480,10 +533,11 @@ export class MastersService {
     await queryRunner.startTransaction();
 
     try {
+      const firstMgaId = dto.mga_ids && dto.mga_ids.length > 0 ? dto.mga_ids[0] : (dto.mga_id || null);
       const treaty = queryRunner.manager.create(Treaty, {
         treatyCode: dto.treaty_code,
         name: dto.name,
-        mgaId: dto.mga_id,
+        mgaId: firstMgaId,
         reinsurerId: dto.reinsurer_id || null,
         riskCompanyId: dto.risk_company_id || null,
         effectiveDate: dto.effective_date ? new Date(dto.effective_date) : null,
@@ -504,6 +558,16 @@ export class MastersService {
       });
 
       const savedTreaty = await queryRunner.manager.save(Treaty, treaty);
+
+      if (dto.mga_ids && dto.mga_ids.length > 0) {
+        const treatyMgas = dto.mga_ids.map(mgaId => {
+          return queryRunner.manager.create(TreatyMga, {
+            treatyId: savedTreaty.id,
+            mgaId,
+          });
+        });
+        await queryRunner.manager.save(TreatyMga, treatyMgas);
+      }
 
       if (dto.state_ids && dto.state_ids.length > 0) {
         const treatyStates = dto.state_ids.map(stateId => {
@@ -559,10 +623,17 @@ export class MastersService {
     await queryRunner.startTransaction();
 
     try {
+      let updateMgaId = treaty.mgaId;
+      if (dto.mga_ids !== undefined) {
+        updateMgaId = dto.mga_ids.length > 0 ? dto.mga_ids[0] : null;
+      } else if (dto.mga_id !== undefined) {
+        updateMgaId = dto.mga_id;
+      }
+
       Object.assign(treaty, {
         treatyCode: dto.treaty_code !== undefined ? dto.treaty_code : treaty.treatyCode,
         name: dto.name !== undefined ? dto.name : treaty.name,
-        mgaId: dto.mga_id !== undefined ? dto.mga_id : treaty.mgaId,
+        mgaId: updateMgaId,
         reinsurerId: dto.reinsurer_id !== undefined ? dto.reinsurer_id : treaty.reinsurerId,
         riskCompanyId: dto.risk_company_id !== undefined ? dto.risk_company_id : treaty.riskCompanyId,
         effectiveDate: dto.effective_date !== undefined ? (dto.effective_date ? new Date(dto.effective_date) : null) : treaty.effectiveDate,
@@ -582,6 +653,19 @@ export class MastersService {
       });
 
       await queryRunner.manager.save(Treaty, treaty);
+
+      if (dto.mga_ids !== undefined) {
+        await queryRunner.manager.delete(TreatyMga, { treatyId: id });
+        if (dto.mga_ids.length > 0) {
+          const treatyMgas = dto.mga_ids.map(mgaId => {
+            return queryRunner.manager.create(TreatyMga, {
+              treatyId: id,
+              mgaId,
+            });
+          });
+          await queryRunner.manager.save(TreatyMga, treatyMgas);
+        }
+      }
 
       if (dto.state_ids !== undefined) {
         await queryRunner.manager.delete(TreatyState, { treatyId: id });

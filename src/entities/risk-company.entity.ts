@@ -32,6 +32,15 @@ export class RiskCompany {
   @Column({ type: 'varchar', nullable: true })
   state: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  address: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  zip: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  city: string | null;
+
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 

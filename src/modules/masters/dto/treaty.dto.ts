@@ -32,8 +32,13 @@ export class CreateTreatyDto {
   name: string;
 
   @IsUUID()
-  @IsNotEmpty()
-  mga_id: string;
+  @IsOptional()
+  mga_id?: string;
+
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  mga_ids?: string[];
 
   @IsUUID()
   @IsOptional()
@@ -119,6 +124,11 @@ export class UpdateTreatyDto {
   @IsUUID()
   @IsOptional()
   mga_id?: string;
+
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  mga_ids?: string[];
 
   @IsUUID()
   @IsOptional()
