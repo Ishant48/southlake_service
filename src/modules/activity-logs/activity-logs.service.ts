@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ActivityLogsDao, ActivityLogFilter } from './dao/activity-logs.dao';
-import { ActivityLog } from '../../entities/activity-log.entity';
+import { ActivityLog } from './entities/activity-log.entity';
 
 export interface LogEntry {
   userId?: string;
@@ -55,7 +55,7 @@ export class ActivityLogsService {
     const logs = await this.dao.findAllForExport(filter);
 
     const headers = ['Date', 'User', 'Email', 'Action', 'Module', 'Description', 'IP Address'];
-    const rows = logs.map((log) => [
+    const rows = logs.map(log => [
       new Date(log.createdAt).toISOString(),
       log.user?.name || '',
       log.user?.email || '',
@@ -65,7 +65,7 @@ export class ActivityLogsService {
       log.ipAddress || '',
     ]);
 
-    const csvLines = [headers, ...rows].map((row) => row.join(','));
+    const csvLines = [headers, ...rows].map(row => row.join(','));
     return csvLines.join('\n');
   }
 }

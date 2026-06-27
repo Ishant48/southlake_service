@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { UsersService } from './users.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { User } from '../../entities/user.entity';
+import { User } from './entities/user.entity';
 
 @ApiTags('invites')
 @ApiBearerAuth()
@@ -21,10 +21,7 @@ export class InvitesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Revoke a pending invitation' })
   @ApiResponse({ status: 200, description: 'Invite revoked' })
-  revoke(
-    @Param('id', UuidValidationPipe) id: string,
-    @CurrentUser() user: User,
-  ) {
+  revoke(@Param('id', UuidValidationPipe) id: string, @CurrentUser() user: User) {
     return this.service.revokeInvite(id, user);
   }
 }

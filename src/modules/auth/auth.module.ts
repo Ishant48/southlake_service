@@ -5,10 +5,10 @@ import { AuthService } from './auth.service';
 import { AuthDao } from './dao/auth.dao';
 import { MailModule } from '../mail/mail.module';
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
-import { LoginOtp } from '../../entities/login-otp.entity';
-import { UserSession } from '../../entities/user-session.entity';
-import { LoginChallenge } from '../../entities/login-challenge.entity';
-import { User } from '../../entities/user.entity';
+import { LoginOtp } from './entities/login-otp.entity';
+import { UserSession } from './entities/user-session.entity';
+import { LoginChallenge } from './entities/login-challenge.entity';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [

@@ -1,19 +1,28 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RolesDao } from './dao/roles.dao';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { Role } from '../../entities/role.entity';
-import { RolePermission } from '../../entities/role-permission.entity';
-import { User } from '../../entities/user.entity';
+import { Role } from './entities/role.entity';
+import { RolePermission } from './entities/role-permission.entity';
+import { User } from '../users/entities/user.entity';
 
-const ALL_ACTIONS = ['view', 'create', 'edit', 'approve', 'export', 'post', 'file', 'lock', 'override', 'reconcile', 'void', 'reverse'];
+const ALL_ACTIONS = [
+  'view',
+  'create',
+  'edit',
+  'approve',
+  'export',
+  'post',
+  'file',
+  'lock',
+  'override',
+  'reconcile',
+  'void',
+  'reverse',
+];
 
 export interface UpsertRolePermissionEntry {
   moduleId: string;
@@ -23,9 +32,18 @@ export interface UpsertRolePermissionEntry {
 
 export interface FlatRolePermission {
   module_id: string;
-  view: boolean; create: boolean; edit: boolean; approve: boolean; export: boolean;
-  post: boolean; file: boolean; lock: boolean; override: boolean; reconcile: boolean;
-  void: boolean; reverse: boolean;
+  view: boolean;
+  create: boolean;
+  edit: boolean;
+  approve: boolean;
+  export: boolean;
+  post: boolean;
+  file: boolean;
+  lock: boolean;
+  override: boolean;
+  reconcile: boolean;
+  void: boolean;
+  reverse: boolean;
 }
 
 @Injectable()
@@ -37,7 +55,10 @@ export class RolesService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async findAll(page = 1, perPage = 20): Promise<{
+  async findAll(
+    page = 1,
+    perPage = 20,
+  ): Promise<{
     data: (Role & { user_count: number })[];
     total: number;
     page: number;
@@ -46,15 +67,19 @@ export class RolesService {
   }> {
     const [roles, total] = await this.dao.findAll(page, perPage);
     const data = await Promise.all(
-      roles.map(async (role) => {
-        const user_count = await this.userRepo.count({ where: { roleId: role.id, isDeleted: false } });
+      roles.map(async role => {
+        const user_count = await this.userRepo.count({
+          where: { roleId: role.id, isDeleted: false },
+        });
         return { ...role, user_count };
       }),
     );
     return { data, total, page, per_page: perPage, total_pages: Math.ceil(total / perPage) };
   }
 
-  async findOne(id: string): Promise<Role & { user_count: number; permissions: FlatRolePermission[] }> {
+  async findOne(
+    id: string,
+  ): Promise<Role & { user_count: number; permissions: FlatRolePermission[] }> {
     const role = await this.dao.findById(id);
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
@@ -93,7 +118,11 @@ export class RolesService {
     return { ...role, user_count: 0 };
   }
 
-  async update(id: string, dto: UpdateRoleDto, updatedBy: User): Promise<Role & { user_count: number }> {
+  async update(
+    id: string,
+    dto: UpdateRoleDto,
+    updatedBy: User,
+  ): Promise<Role & { user_count: number }> {
     const role = await this.dao.findById(id);
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
@@ -173,11 +202,12 @@ export class RolesService {
 
     for (const rp of rawPerms) {
       if (!moduleMap.has(rp.moduleId)) {
-        moduleMap.set(rp.moduleId, Object.fromEntries(ALL_ACTIONS.map((a) => [a, false])));
+        moduleMap.set(rp.moduleId, Object.fromEntries(ALL_ACTIONS.map(a => [a, false])));
       }
-      const action = (rp as any).permission?.action;
-      if (action && moduleMap.has(rp.moduleId)) {
-        moduleMap.get(rp.moduleId)![action] = true;
+      const action = rp.permission?.action;
+      const moduleActions = moduleMap.get(rp.moduleId);
+      if (action && moduleActions) {
+        moduleActions[action] = true;
       }
     }
 

@@ -1,28 +1,12 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService, UpsertPermissionEntry } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { User } from '../../entities/user.entity';
+import { User } from './entities/user.entity';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -89,10 +73,7 @@ export class UsersController {
   @Post(':id/deactivate')
   @ApiOperation({ summary: 'Deactivate a user' })
   @ApiResponse({ status: 200, description: 'User deactivated' })
-  deactivate(
-    @Param('id', UuidValidationPipe) id: string,
-    @CurrentUser() user: User,
-  ) {
+  deactivate(@Param('id', UuidValidationPipe) id: string, @CurrentUser() user: User) {
     return this.service.deactivate(id, user);
   }
 

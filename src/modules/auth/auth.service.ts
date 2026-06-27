@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,11 +14,13 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
-import { UserSession } from '../../entities/user-session.entity';
-import { User } from '../../entities/user.entity';
+import { UserSession } from './entities/user-session.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authDao: AuthDao,
     private readonly mailService: MailService,
@@ -57,7 +60,7 @@ export class AuthService {
 
     await this.authDao.saveOtp({ email, otpHash, expiresAt });
 
-    console.log(`[DEV OTP] ${email} → ${otp}`);
+    this.logger.log(`[DEV OTP] ${email} → ${otp}`);
 
     await this.mailService.sendOtp(email, otp);
 
@@ -85,9 +88,7 @@ export class AuthService {
     }
 
     if (otpRecord.attemptCount >= maxAttempts) {
-      throw new UnauthorizedException(
-        'Maximum OTP attempts exceeded. Please request a new one.',
-      );
+      throw new UnauthorizedException('Maximum OTP attempts exceeded. Please request a new one.');
     }
 
     const isMatch = await bcrypt.compare(otp, otpRecord.otpHash);
@@ -252,8 +253,7 @@ export class AuthService {
     userAgent: string,
   ): Promise<UserSession> {
     const sessionToken = crypto.randomBytes(32).toString('hex');
-    const sessionExpiryHours =
-      this.configService.get<number>('app.sessionExpiryHours') || 1;
+    const sessionExpiryHours = this.configService.get<number>('app.sessionExpiryHours') || 1;
     const expiresAt = new Date(Date.now() + sessionExpiryHours * 60 * 60 * 1000);
 
     return this.authDao.saveSession({

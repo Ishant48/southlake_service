@@ -1,0 +1,17 @@
+{
+  "$schema": "https://jestjs.io/docs/configuration",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.json" }]
+  },
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/../src/$1"
+  },
+  "modulePaths": ["<rootDir>/../"],
+  "maxWorkers": 1,
+  "forceExit": true,
+  "testTimeout": 30000
+}

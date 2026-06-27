@@ -1,14 +1,9 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 function toSnakeCase(str: string): string {
-  return str.replace(/([A-Z])/g, (letter) => `_${letter.toLowerCase()}`);
+  return str.replace(/([A-Z])/g, letter => `_${letter.toLowerCase()}`);
 }
 
 function transformKeys(value: unknown): unknown {

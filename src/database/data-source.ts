@@ -11,7 +11,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DATABASE_NAME || 'southlake_db',
   username: process.env.DATABASE_USER || 'postgres',
   password: process.env.DATABASE_PASSWORD || 'postgres',
-  entities: [resolve(__dirname, '../entities/**/*.entity.{ts,js}')],
+  entities: [resolve(__dirname, '../modules/**/*.entity.{ts,js}')],
   migrations: [resolve(__dirname, './migrations/**/*.{ts,js}')],
   synchronize: false,
   logging: true,

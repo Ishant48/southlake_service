@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { LoginOtp } from '../../../entities/login-otp.entity';
-import { UserSession } from '../../../entities/user-session.entity';
-import { LoginChallenge } from '../../../entities/login-challenge.entity';
-import { User } from '../../../entities/user.entity';
+import { LoginOtp } from '../entities/login-otp.entity';
+import { UserSession } from '../entities/user-session.entity';
+import { LoginChallenge } from '../entities/login-challenge.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class AuthDao {

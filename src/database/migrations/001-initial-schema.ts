@@ -317,11 +317,21 @@ export class InitialSchema1700000000001 implements MigrationInterface {
 
     // Indexes
     await queryRunner.query(`CREATE INDEX "IDX_login_otps_email" ON "login_otps" ("email")`);
-    await queryRunner.query(`CREATE INDEX "IDX_login_otps_expires_at" ON "login_otps" ("expires_at")`);
-    await queryRunner.query(`CREATE INDEX "IDX_user_sessions_user_id" ON "user_sessions" ("user_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_user_sessions_is_active" ON "user_sessions" ("is_active")`);
-    await queryRunner.query(`CREATE INDEX "IDX_activity_logs_user_id" ON "activity_logs" ("user_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_activity_logs_created_at" ON "activity_logs" ("created_at")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_login_otps_expires_at" ON "login_otps" ("expires_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_user_sessions_user_id" ON "user_sessions" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_user_sessions_is_active" ON "user_sessions" ("is_active")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_activity_logs_user_id" ON "activity_logs" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_activity_logs_created_at" ON "activity_logs" ("created_at")`,
+    );
     await queryRunner.query(`CREATE INDEX "IDX_users_email" ON "users" ("email")`);
     await queryRunner.query(`CREATE INDEX "IDX_users_role_id" ON "users" ("role_id")`);
     await queryRunner.query(`CREATE INDEX "IDX_users_is_deleted" ON "users" ("is_deleted")`);

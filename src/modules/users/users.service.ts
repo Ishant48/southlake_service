@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { UsersDao, FindUsersFilter } from './dao/users.dao';
@@ -11,9 +7,9 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
-import { User } from '../../entities/user.entity';
-import { UserPermission } from '../../entities/user-permission.entity';
-import { PendingInvite } from '../../entities/pending-invite.entity';
+import { User } from './entities/user.entity';
+import { UserPermission } from './entities/user-permission.entity';
+import { PendingInvite } from './entities/pending-invite.entity';
 
 export interface UpsertPermissionEntry {
   moduleId: string;
@@ -31,11 +27,18 @@ export class UsersService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getStats(): Promise<{ total: number; active: number; roles_defined: number; pending_invites: number }> {
+  async getStats(): Promise<{
+    total: number;
+    active: number;
+    roles_defined: number;
+    pending_invites: number;
+  }> {
     return this.dao.getStats();
   }
 
-  async findAll(filters: FindUsersFilter): Promise<{ data: User[]; total: number; page: number; per_page: number; total_pages: number }> {
+  async findAll(
+    filters: FindUsersFilter,
+  ): Promise<{ data: User[]; total: number; page: number; per_page: number; total_pages: number }> {
     const [data, total] = await this.dao.findAll(filters);
     const perPage = filters.limit || 20;
     const page = filters.page || 1;
@@ -152,7 +155,10 @@ export class UsersService {
     return { message: 'User deactivated' };
   }
 
-  async deactivateBulk(ids: string[], updatedBy: User): Promise<{ message: string; count: number }> {
+  async deactivateBulk(
+    ids: string[],
+    updatedBy: User,
+  ): Promise<{ message: string; count: number }> {
     await this.dao.deactivateBulk(ids, updatedBy.id);
 
     await this.activityLogsService.log({
@@ -195,7 +201,7 @@ export class UsersService {
 
     const result = await this.dao.upsertUserPermissions(
       userId,
-      permissions.map((p) => ({ ...p, createdBy: updatedBy.id })),
+      permissions.map(p => ({ ...p, createdBy: updatedBy.id })),
     );
 
     await this.activityLogsService.log({

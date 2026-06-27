@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindManyOptions, Between, MoreThanOrEqual, LessThanOrEqual, ILike } from 'typeorm';
-import { ActivityLog } from '../../../entities/activity-log.entity';
+import {
+  Repository,
+  FindManyOptions,
+  Between,
+  MoreThanOrEqual,
+  LessThanOrEqual,
+  ILike,
+} from 'typeorm';
+import { ActivityLog } from '../entities/activity-log.entity';
 
 export interface ActivityLogFilter {
   search?: string;
@@ -61,7 +68,9 @@ export class ActivityLogsDao {
     return this.repo.findAndCount(options);
   }
 
-  async findAllForExport(filter: Omit<ActivityLogFilter, 'page' | 'limit'>): Promise<ActivityLog[]> {
+  async findAllForExport(
+    filter: Omit<ActivityLogFilter, 'page' | 'limit'>,
+  ): Promise<ActivityLog[]> {
     const { search, userId, moduleId, action, fromDate, toDate } = filter;
 
     const base: Record<string, unknown> = {};

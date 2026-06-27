@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PermissionsDao } from './dao/permissions.dao';
-import { Permission } from '../../entities/permission.entity';
-import { Module } from '../../entities/module.entity';
+import { Permission } from './entities/permission.entity';
+import { Module } from './entities/module.entity';
 
 @Injectable()
 export class PermissionsService {

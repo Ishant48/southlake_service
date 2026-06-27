@@ -6,10 +6,10 @@ import { UsersService } from './users.service';
 import { UsersDao } from './dao/users.dao';
 import { MailModule } from '../mail/mail.module';
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
-import { User } from '../../entities/user.entity';
-import { UserPermission } from '../../entities/user-permission.entity';
-import { PendingInvite } from '../../entities/pending-invite.entity';
-import { Role } from '../../entities/role.entity';
+import { User } from './entities/user.entity';
+import { UserPermission } from './entities/user-permission.entity';
+import { PendingInvite } from './entities/pending-invite.entity';
+import { Role } from '../roles/entities/role.entity';
 
 @Module({
   imports: [

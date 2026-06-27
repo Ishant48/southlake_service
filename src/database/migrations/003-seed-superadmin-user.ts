@@ -28,8 +28,6 @@ export class SeedSuperadminUser1700000000003 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `DELETE FROM "users" WHERE "email" = 'admin@southlake.com'`,
-    );
+    await queryRunner.query(`DELETE FROM "users" WHERE "email" = 'admin@southlake.com'`);
   }
 }

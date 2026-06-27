@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
-import { User } from '../../../entities/user.entity';
-import { UserPermission } from '../../../entities/user-permission.entity';
-import { PendingInvite } from '../../../entities/pending-invite.entity';
-import { Role } from '../../../entities/role.entity';
+import { User } from '../entities/user.entity';
+import { UserPermission } from '../entities/user-permission.entity';
+import { PendingInvite } from '../entities/pending-invite.entity';
+import { Role } from '../../roles/entities/role.entity';
 
 export interface FindUsersFilter {
   search?: string;
@@ -28,7 +28,12 @@ export class UsersDao {
     private readonly roleRepo: Repository<Role>,
   ) {}
 
-  async getStats(): Promise<{ total: number; active: number; roles_defined: number; pending_invites: number }> {
+  async getStats(): Promise<{
+    total: number;
+    active: number;
+    roles_defined: number;
+    pending_invites: number;
+  }> {
     const [total, active, roles_defined, pending_invites] = await Promise.all([
       this.userRepo.count({ where: { isDeleted: false } }),
       this.userRepo.count({ where: { isDeleted: false, status: 'active' } }),
@@ -120,7 +125,7 @@ export class UsersDao {
     }>,
   ): Promise<UserPermission[]> {
     await this.permRepo.delete({ userId });
-    const entities = permissions.map((p) =>
+    const entities = permissions.map(p =>
       this.permRepo.create({
         userId,
         moduleId: p.moduleId,

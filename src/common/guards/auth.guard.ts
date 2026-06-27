@@ -1,14 +1,9 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserSession } from '../../entities/user-session.entity';
-import { User } from '../../entities/user.entity';
+import { UserSession } from '../../modules/auth/entities/user-session.entity';
+import { User } from '../../modules/users/entities/user.entity';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()

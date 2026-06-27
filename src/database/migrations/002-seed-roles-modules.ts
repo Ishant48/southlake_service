@@ -64,17 +64,13 @@ export class SeedRolesModules1700000000002 implements MigrationInterface {
     const superadminRole = await queryRunner.query(
       `SELECT "id" FROM "roles" WHERE "name" = 'superadmin'`,
     );
-    const adminRole = await queryRunner.query(
-      `SELECT "id" FROM "roles" WHERE "name" = 'admin'`,
-    );
+    const adminRole = await queryRunner.query(`SELECT "id" FROM "roles" WHERE "name" = 'admin'`);
 
     const superadminId: string = superadminRole[0].id;
     const adminId: string = adminRole[0].id;
 
     // Get all permission IDs
-    const allPermissions = await queryRunner.query(
-      `SELECT "id", "action" FROM "permissions"`,
-    );
+    const allPermissions = await queryRunner.query(`SELECT "id", "action" FROM "permissions"`);
 
     // Superadmin: all permissions on all modules
     for (const mod of MODULES) {

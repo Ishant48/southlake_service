@@ -1,14 +1,10 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ActivityLog } from '../../entities/activity-log.entity';
+import { ActivityLog } from '../../modules/activity-logs/entities/activity-log.entity';
+import { User } from '../../modules/users/entities/user.entity';
 import { Request } from 'express';
 
 @Injectable()
@@ -19,7 +15,7 @@ export class AuditInterceptor implements NestInterceptor {
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest<Request & { user?: any }>();
+    const request = context.switchToHttp().getRequest<Request & { user?: User }>();
     const method = request.method;
 
     const auditMethods = ['POST', 'PATCH', 'PUT', 'DELETE'];

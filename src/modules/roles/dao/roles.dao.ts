@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Role } from '../../../entities/role.entity';
-import { RolePermission } from '../../../entities/role-permission.entity';
+import { Role } from '../entities/role.entity';
+import { RolePermission } from '../entities/role-permission.entity';
 
 @Injectable()
 export class RolesDao {
@@ -58,7 +58,7 @@ export class RolesDao {
     }>,
   ): Promise<RolePermission[]> {
     await this.rpRepo.delete({ roleId });
-    const entities = permissions.map((p) =>
+    const entities = permissions.map(p =>
       this.rpRepo.create({
         roleId,
         moduleId: p.moduleId,
