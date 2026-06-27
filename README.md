@@ -346,6 +346,7 @@ When verifying a user's permissions, the system queries the role-level grants fi
 | `npm run migration:generate` | Auto-generate a migration from entity changes       |
 | `npm run migration:create`   | Create a blank migration file                       |
 | `npm run seed:coa`           | Seed Chart of Accounts data into the database       |
+| `npm run seed:permissions`   | Seed flat module permissions and roles associations |
 | `npm run lint`               | Run ESLint (zero warnings policy)                   |
 | `npm run lint:fix`           | Auto-fix all fixable ESLint violations              |
 | `npm run format`             | Auto-format all TypeScript files with Prettier      |
