@@ -103,7 +103,7 @@ describe('Users (e2e)', () => {
     it('should respect pagination parameters', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/users')
-        .query({ page: 1, limit: 1 })
+        .query({ page: 1, per_page: 1 })
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 

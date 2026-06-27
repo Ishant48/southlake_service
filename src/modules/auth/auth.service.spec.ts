@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { AuthDao } from './dao/auth.dao';
-import { MailService } from '../mail/mail.service';
+import { CommunicationService } from '../../common/communication/communication.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { User } from '../users/entities/user.entity';
 import { LoginOtp } from './entities/login-otp.entity';
@@ -93,7 +93,7 @@ const mockAuthDao = {
   resolveChallenge: jest.fn(),
 };
 
-const mockMailService = {
+const mockCommunicationService = {
   sendOtp: jest.fn(),
   sendInvite: jest.fn(),
 };
@@ -122,7 +122,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: AuthDao, useValue: mockAuthDao },
-        { provide: MailService, useValue: mockMailService },
+        { provide: CommunicationService, useValue: mockCommunicationService },
         { provide: ActivityLogsService, useValue: mockActivityLogsService },
         { provide: ConfigService, useValue: mockConfigService },
       ],
@@ -137,7 +137,7 @@ describe('AuthService', () => {
     mockAuthDao.findActiveSessionForUser.mockResolvedValue(null);
     mockAuthDao.countRecentOtps.mockResolvedValue(0);
     mockActivityLogsService.log.mockResolvedValue(undefined);
-    mockMailService.sendOtp.mockResolvedValue(undefined);
+    mockCommunicationService.sendOtp.mockResolvedValue(undefined);
   });
 
   // ─── login ────────────────────────────────────────────────────────────────
@@ -208,7 +208,10 @@ describe('AuthService', () => {
       expect(mockAuthDao.saveOtp).toHaveBeenCalledWith(
         expect.objectContaining({ email: TEST_EMAIL }),
       );
-      expect(mockMailService.sendOtp).toHaveBeenCalledWith(TEST_EMAIL, expect.any(String));
+      expect(mockCommunicationService.sendOtp).toHaveBeenCalledWith({
+        to: TEST_EMAIL,
+        otp: expect.any(String),
+      });
       expect(mockActivityLogsService.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'otp_requested' }),
       );

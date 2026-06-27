@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { AuthDao } from './dao/auth.dao';
-import { MailService } from '../mail/mail.service';
+import { CommunicationService } from '../../common/communication/communication.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -23,7 +23,7 @@ export class AuthService {
 
   constructor(
     private readonly authDao: AuthDao,
-    private readonly mailService: MailService,
+    private readonly communicationService: CommunicationService,
     private readonly activityLogsService: ActivityLogsService,
     private readonly configService: ConfigService,
   ) {}
@@ -62,7 +62,7 @@ export class AuthService {
 
     this.logger.log(`[DEV OTP] ${email} → ${otp}`);
 
-    await this.mailService.sendOtp(email, otp);
+    await this.communicationService.sendOtp({ to: email, otp });
 
     await this.activityLogsService.log({
       action: 'otp_requested',

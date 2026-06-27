@@ -11,7 +11,6 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
 import { QueuePriority } from './common/queues/priority/queue-priority.enum';
-import { MAIL_QUEUE } from './common/queues/mail/mail.types';
 
 const logger = new Logger('Bootstrap');
 
@@ -56,7 +55,7 @@ async function bootstrap() {
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath(bullBoardPath);
 
-  const allQueues = [MAIL_QUEUE, ...Object.values(QueuePriority)].map(
+  const allQueues = Object.values(QueuePriority).map(
     name => new BullMQAdapter(new Queue(name, { connection: redisConnection })),
   );
 

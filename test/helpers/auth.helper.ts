@@ -20,6 +20,8 @@ export class AuthHelper {
    * Reads the OTP hash from DB, then verifies with a known plaintext OTP.
    */
   async loginWithCredentials(email: string, password: string): Promise<LoginResult> {
+    await this.db.cleanOtpsForEmail(email);
+
     // Step 1: trigger OTP send
     await request(this.app.getHttpServer())
       .post('/api/auth/login')
