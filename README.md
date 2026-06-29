@@ -479,4 +479,11 @@ node --version   # Must be v24.x.x or higher
 
 ---
 
+### Multiple Carrier & Reinsurer Splits (Added June 2026)
+The platform now supports assigning multiple **Carrier (Risk) Companies** (with custom retention percentages) and multiple **Reinsurer Companies** (with custom cession percentages) per Treaty.
+* Dynamic lists are persisted relational-wise inside `treaty_carriers` and `treaty_reinsurers` tables.
+* Single column fields on `treaties` table act as automatic fallbacks/bridges to maintain backward compatibility.
+
+---
+
 *Last updated: June 2026*
