@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,12 +15,15 @@ import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { User } from '../../entities/user.entity';
 import { UserPermission } from '../../entities/user-permission.entity';
 import { PendingInvite } from '../../entities/pending-invite.entity';
+import { RolePermission } from '../../entities/role-permission.entity';
+import { Permission } from '../../entities/permission.entity';
 
 export interface UpsertPermissionEntry {
   moduleId: string;
   submoduleId?: string;
   permissionId: string;
   accessType: 'grant' | 'revoke';
+  createdBy: string;
 }
 
 @Injectable()
@@ -95,6 +99,10 @@ export class UsersService {
 
   async update(id: string, dto: UpdateUserDto, updatedBy: User): Promise<User> {
     await this.findOne(id);
+
+    if (dto.role_id !== undefined && id === updatedBy.id && !updatedBy.isSuperAdmin) {
+      throw new ForbiddenException('You cannot change your own role');
+    }
 
     const updateData: Partial<User> = { updatedBy: updatedBy.id };
     if (dto.name !== undefined) updateData.name = dto.name;
@@ -182,21 +190,90 @@ export class UsersService {
     return { message: 'User deleted' };
   }
 
-  getPermissions(userId: string): Promise<UserPermission[]> {
-    return this.dao.findUserPermissions(userId);
+  async getPermissions(userId: string): Promise<{ id: string; action: string }[]> {
+    const user = await this.findOne(userId);
+    const roleId = user.roleId;
+
+    const [rolePerms, userOverrides] = await Promise.all([
+      roleId ? this.dao.findRolePermissions(roleId) : Promise.resolve([]),
+      this.dao.findUserPermissions(userId),
+    ]);
+
+    const permissionSet = new Map<string, { id: string; action: string; accessType: string }>();
+
+    for (const rp of rolePerms) {
+      if (rp.permission?.action) {
+        permissionSet.set(rp.permission.id, {
+          id: rp.permission.id,
+          action: rp.permission.action,
+          accessType: 'grant',
+        });
+      }
+    }
+
+    for (const up of userOverrides) {
+      if (up.permission?.action) {
+        if (up.accessType === 'grant') {
+          permissionSet.set(up.permission.id, {
+            id: up.permission.id,
+            action: up.permission.action,
+            accessType: 'grant',
+          });
+        } else if (up.accessType === 'revoke') {
+          permissionSet.delete(up.permission.id);
+        }
+      }
+    }
+
+    return Array.from(permissionSet.values()).map(({ id, action }) => ({ id, action }));
   }
 
   async upsertPermissions(
     userId: string,
-    permissions: UpsertPermissionEntry[],
+    permissionIds: string[],
     updatedBy: User,
-  ): Promise<UserPermission[]> {
-    await this.findOne(userId);
+  ): Promise<{ id: string; action: string }[]> {
+    const user = await this.findOne(userId);
 
-    const result = await this.dao.upsertUserPermissions(
-      userId,
-      permissions.map((p) => ({ ...p, createdBy: updatedBy.id })),
-    );
+    if (userId === updatedBy.id && !updatedBy.isSuperAdmin) {
+      throw new ForbiddenException('You cannot modify your own permissions');
+    }
+
+    const roleId = user.roleId;
+    const rolePerms = roleId ? await this.dao.findRolePermissions(roleId) : [];
+    const rolePermIds = new Set(rolePerms.filter(rp => rp.permission).map(rp => rp.permission.id));
+
+    const allPerms = await this.dao.findAllPermissionsList();
+    const checkedIds = new Set(permissionIds);
+
+    const overrides: UpsertPermissionEntry[] = [];
+
+    for (const perm of allPerms) {
+      const isChecked = checkedIds.has(perm.id);
+      const isRoleGranted = rolePermIds.has(perm.id);
+
+      if (isChecked) {
+        if (!isRoleGranted) {
+          overrides.push({
+            moduleId: 'rbac',
+            permissionId: perm.id,
+            accessType: 'grant',
+            createdBy: updatedBy.id,
+          });
+        }
+      } else {
+        if (isRoleGranted) {
+          overrides.push({
+            moduleId: 'rbac',
+            permissionId: perm.id,
+            accessType: 'revoke',
+            createdBy: updatedBy.id,
+          });
+        }
+      }
+    }
+
+    await this.dao.upsertUserPermissions(userId, overrides);
 
     await this.activityLogsService.log({
       userId: updatedBy.id,
@@ -207,7 +284,40 @@ export class UsersService {
       description: `Updated permissions for user ${userId}`,
     });
 
-    return result;
+    return this.getPermissions(userId);
+  }
+
+  async getEffectivePermissions(userId: string): Promise<string[]> {
+    const user = await this.findOne(userId);
+
+    if (user.role?.name === 'superadmin') {
+      const allPerms = await this.dao.findAllPermissionsList();
+      return allPerms.map(p => p.action);
+    }
+
+    const permissionSet = new Set<string>();
+
+    if (user.roleId) {
+      const rolePerms = await this.dao.findRolePermissions(user.roleId);
+      for (const rp of rolePerms) {
+        if (rp.permission?.action) {
+          permissionSet.add(rp.permission.action);
+        }
+      }
+    }
+
+    const userPerms = await this.dao.findUserPermissions(userId);
+    for (const up of userPerms) {
+      if (up.permission?.action) {
+        if (up.accessType === 'grant') {
+          permissionSet.add(up.permission.action);
+        } else if (up.accessType === 'revoke') {
+          permissionSet.delete(up.permission.action);
+        }
+      }
+    }
+
+    return Array.from(permissionSet);
   }
 
   getPendingInvites(): Promise<PendingInvite[]> {

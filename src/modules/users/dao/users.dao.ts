@@ -5,6 +5,8 @@ import { User } from '../../../entities/user.entity';
 import { UserPermission } from '../../../entities/user-permission.entity';
 import { PendingInvite } from '../../../entities/pending-invite.entity';
 import { Role } from '../../../entities/role.entity';
+import { RolePermission } from '../../../entities/role-permission.entity';
+import { Permission } from '../../../entities/permission.entity';
 
 export interface FindUsersFilter {
   search?: string;
@@ -151,5 +153,16 @@ export class UsersDao {
 
   async revokeInvite(id: string): Promise<void> {
     await this.inviteRepo.update(id, { status: 'revoked' });
+  }
+
+  findRolePermissions(roleId: string): Promise<RolePermission[]> {
+    return this.userRepo.manager.find(RolePermission, {
+      where: { roleId },
+      relations: ['module', 'submodule', 'permission'],
+    });
+  }
+
+  findAllPermissionsList(): Promise<Permission[]> {
+    return this.userRepo.manager.find(Permission);
   }
 }

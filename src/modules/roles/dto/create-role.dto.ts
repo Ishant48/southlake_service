@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsOptional, IsString, Matches, IsArray, IsUUID } from 'class-validator';
 
 export class CreateRoleDto {
   @ApiProperty({ example: 'underwriter' })
@@ -20,4 +20,10 @@ export class CreateRoleDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: ['uuid-1', 'uuid-2'] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  permissions?: string[];
 }

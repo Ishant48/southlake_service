@@ -9,12 +9,16 @@ import { LoginOtp } from '../../entities/login-otp.entity';
 import { UserSession } from '../../entities/user-session.entity';
 import { LoginChallenge } from '../../entities/login-challenge.entity';
 import { User } from '../../entities/user.entity';
+import { PendingInvite } from '../../entities/pending-invite.entity';
+
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([LoginOtp, UserSession, LoginChallenge, User]),
+    TypeOrmModule.forFeature([LoginOtp, UserSession, LoginChallenge, User, PendingInvite]),
     MailModule,
     ActivityLogsModule,
+    UsersModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthDao],

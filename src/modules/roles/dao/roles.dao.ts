@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from '../../../entities/role.entity';
 import { RolePermission } from '../../../entities/role-permission.entity';
+import { Permission } from '../../../entities/permission.entity';
 
 @Injectable()
 export class RolesDao {
@@ -12,6 +13,7 @@ export class RolesDao {
     @InjectRepository(RolePermission)
     private readonly rpRepo: Repository<RolePermission>,
   ) {}
+
 
   findAll(page = 1, limit = 20): Promise<[Role[], number]> {
     return this.roleRepo.findAndCount({
@@ -68,4 +70,9 @@ export class RolesDao {
     );
     return this.rpRepo.save(entities);
   }
+
+  findAllPermissionsList(): Promise<Permission[]> {
+    return this.rpRepo.manager.find(Permission);
+  }
 }
+

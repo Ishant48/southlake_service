@@ -90,6 +90,9 @@ export class User {
   @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
   deletedBy: string;
 
+  @Column({ name: 'is_superadmin', type: 'boolean', default: false })
+  isSuperAdmin: boolean;
+
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

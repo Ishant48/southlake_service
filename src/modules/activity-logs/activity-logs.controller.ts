@@ -2,6 +2,7 @@ import { Controller, Get, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ActivityLogsService } from './activity-logs.service';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
 @ApiTags('activity-logs')
 @ApiBearerAuth()
@@ -10,6 +11,7 @@ export class ActivityLogsController {
   constructor(private readonly service: ActivityLogsService) {}
 
   @Get('export')
+  @RequirePermission('activity_log.export')
   @ApiOperation({ summary: 'Export activity logs as CSV' })
   @ApiResponse({ status: 200, description: 'CSV file' })
   async export(
@@ -33,6 +35,7 @@ export class ActivityLogsController {
   }
 
   @Get()
+  @RequirePermission('activity_log.view')
   @ApiOperation({ summary: 'List activity logs with optional filters' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'module_id', required: false })

@@ -141,3 +141,33 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# ── NestJS specific ───────────────────────────────────────────────────────────
+dist/
+
+# ── Environment files ─────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Uploaded files (runtime storage) ─────────────────────────────────────────
+uploads/
+
+# ── Scratch / one-off scripts (local dev only) ────────────────────────────────
+scratch/
+check_tables.js
+generate_coa_migration.js
+import_csv_accounts.js
+seed_coa_updates.js
+update_coa_mockup_seeds.js
+update_roots.js
+
+# ── OS generated ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.idea/
+*.suo
+*.sw?

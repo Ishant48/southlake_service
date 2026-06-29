@@ -11,21 +11,13 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Role } from '../../entities/role.entity';
 import { RolePermission } from '../../entities/role-permission.entity';
+import { Permission } from '../../entities/permission.entity';
 import { User } from '../../entities/user.entity';
-
-const ALL_ACTIONS = ['view', 'create', 'edit', 'approve', 'export', 'post', 'file', 'lock', 'override', 'reconcile', 'void', 'reverse'];
 
 export interface UpsertRolePermissionEntry {
   moduleId: string;
   submoduleId?: string;
   permissionId: string;
-}
-
-export interface FlatRolePermission {
-  module_id: string;
-  view: boolean; create: boolean; edit: boolean; approve: boolean; export: boolean;
-  post: boolean; file: boolean; lock: boolean; override: boolean; reconcile: boolean;
-  void: boolean; reverse: boolean;
 }
 
 @Injectable()
@@ -54,7 +46,7 @@ export class RolesService {
     return { data, total, page, per_page: perPage, total_pages: Math.ceil(total / perPage) };
   }
 
-  async findOne(id: string): Promise<Role & { user_count: number; permissions: FlatRolePermission[] }> {
+  async findOne(id: string): Promise<Role & { user_count: number; permissions: { id: string; action: string }[] }> {
     const role = await this.dao.findById(id);
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
@@ -81,6 +73,10 @@ export class RolesService {
       createdBy: createdBy.id,
     });
 
+    if (dto.permissions && dto.permissions.length > 0) {
+      await this.saveFlatPermissions(role.id, dto.permissions);
+    }
+
     await this.activityLogsService.log({
       userId: createdBy.id,
       moduleId: 'user_management',
@@ -104,6 +100,10 @@ export class RolesService {
 
     const updated = await this.dao.update(id, updateData);
 
+    if (dto.permissions) {
+      await this.saveFlatPermissions(id, dto.permissions);
+    }
+
     await this.activityLogsService.log({
       userId: updatedBy.id,
       moduleId: 'user_management',
@@ -120,6 +120,10 @@ export class RolesService {
   async remove(id: string, deletedBy: User): Promise<{ message: string }> {
     const role = await this.dao.findById(id);
     if (!role) throw new NotFoundException(`Role ${id} not found`);
+
+    if (role.isSystem) {
+      throw new BadRequestException('Cannot delete system roles');
+    }
 
     const assignedCount = await this.userRepo.count({ where: { roleId: id, isDeleted: false } });
     if (assignedCount > 0) {
@@ -168,22 +172,21 @@ export class RolesService {
     return result;
   }
 
-  private flattenPermissions(rawPerms: RolePermission[]): FlatRolePermission[] {
-    const moduleMap = new Map<string, Record<string, boolean>>();
-
-    for (const rp of rawPerms) {
-      if (!moduleMap.has(rp.moduleId)) {
-        moduleMap.set(rp.moduleId, Object.fromEntries(ALL_ACTIONS.map((a) => [a, false])));
-      }
-      const action = (rp as any).permission?.action;
-      if (action && moduleMap.has(rp.moduleId)) {
-        moduleMap.get(rp.moduleId)![action] = true;
-      }
-    }
-
-    return Array.from(moduleMap.entries()).map(([module_id, actions]) => ({
-      module_id,
-      ...(actions as Omit<FlatRolePermission, 'module_id'>),
+  async saveFlatPermissions(roleId: string, permissionIds: string[]): Promise<void> {
+    const upsertEntries: UpsertRolePermissionEntry[] = permissionIds.map((pid) => ({
+      moduleId: 'rbac',
+      permissionId: pid,
     }));
+
+    await this.dao.upsertPermissions(roleId, upsertEntries);
+  }
+
+  private flattenPermissions(rawPerms: RolePermission[]): { id: string; action: string }[] {
+    return rawPerms
+      .filter((rp) => rp.permission?.action)
+      .map((rp) => ({
+        id: rp.permission.id,
+        action: rp.permission.action,
+      }));
   }
 }

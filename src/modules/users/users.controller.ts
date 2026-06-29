@@ -16,11 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UsersService, UpsertPermissionEntry } from './users.service';
+import { UsersService } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 import { User } from '../../entities/user.entity';
 
@@ -31,6 +33,7 @@ export class UsersController {
   constructor(private readonly service: UsersService) {}
 
   @Get('stats')
+  @RequirePermission('user.view')
   @ApiOperation({ summary: 'Get user statistics' })
   @ApiResponse({ status: 200, description: 'User stats' })
   getStats() {
@@ -38,6 +41,7 @@ export class UsersController {
   }
 
   @Post('deactivate-bulk')
+  @RequirePermission('user.edit')
   @ApiOperation({ summary: 'Deactivate multiple users' })
   @ApiResponse({ status: 200, description: 'Users deactivated' })
   deactivateBulk(@Body() body: { ids: string[] }, @CurrentUser() user: User) {
@@ -45,6 +49,7 @@ export class UsersController {
   }
 
   @Post('invite')
+  @RequirePermission('user.create')
   @ApiOperation({ summary: 'Invite a new user by email' })
   @ApiResponse({ status: 201, description: 'Invitation sent' })
   invite(@Body() dto: InviteUserDto, @CurrentUser() user: User) {
@@ -52,6 +57,7 @@ export class UsersController {
   }
 
   @Get()
+  @RequirePermission('user.view')
   @ApiOperation({ summary: 'List all users with filters' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'role_id', required: false })
@@ -79,6 +85,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @RequirePermission('user.view')
   @ApiOperation({ summary: 'Get a user by ID with role and permissions' })
   @ApiResponse({ status: 200, description: 'User details' })
   @ApiResponse({ status: 404, description: 'User not found' })
@@ -87,6 +94,7 @@ export class UsersController {
   }
 
   @Post(':id/deactivate')
+  @RequirePermission('user.edit')
   @ApiOperation({ summary: 'Deactivate a user' })
   @ApiResponse({ status: 200, description: 'User deactivated' })
   deactivate(
@@ -97,6 +105,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @RequirePermission('user.edit')
   @ApiOperation({ summary: 'Update user profile fields' })
   @ApiResponse({ status: 200, description: 'Updated user' })
   update(
@@ -108,6 +117,7 @@ export class UsersController {
   }
 
   @Patch(':id/status')
+  @RequirePermission('user.edit')
   @ApiOperation({ summary: 'Set user active or inactive' })
   @ApiResponse({ status: 200, description: 'Status updated' })
   updateStatus(
@@ -119,6 +129,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @RequirePermission('user.delete')
   @ApiOperation({ summary: 'Soft delete a user' })
   @ApiResponse({ status: 200, description: 'User deleted' })
   remove(@Param('id', UuidValidationPipe) id: string, @CurrentUser() user: User) {
@@ -126,6 +137,7 @@ export class UsersController {
   }
 
   @Get(':id/permissions')
+  @RequirePermission('user.view')
   @ApiOperation({ summary: 'Get user-level permission overrides' })
   @ApiResponse({ status: 200, description: 'User permissions' })
   getPermissions(@Param('id', UuidValidationPipe) id: string) {
@@ -133,13 +145,14 @@ export class UsersController {
   }
 
   @Put(':id/permissions')
+  @RequirePermission('permission.assign')
   @ApiOperation({ summary: 'Replace user permission overrides' })
   @ApiResponse({ status: 200, description: 'Permissions updated' })
   upsertPermissions(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() permissions: UpsertPermissionEntry[],
+    @Body() dto: UpdateUserPermissionsDto,
     @CurrentUser() user: User,
   ) {
-    return this.service.upsertPermissions(id, permissions, user);
+    return this.service.upsertPermissions(id, dto.permissions, user);
   }
 }

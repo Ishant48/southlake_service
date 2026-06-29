@@ -1,0 +1,126 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class CoaModule1782304979077 implements MigrationInterface {
+    name = 'CoaModule1782304979077'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT "FK_users_role_id"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP CONSTRAINT "FK_user_sessions_user_id"`);
+        await queryRunner.query(`ALTER TABLE "modules" DROP CONSTRAINT "FK_modules_created_by"`);
+        await queryRunner.query(`ALTER TABLE "modules" DROP CONSTRAINT "FK_modules_updated_by"`);
+        await queryRunner.query(`ALTER TABLE "submodules" DROP CONSTRAINT "FK_submodules_module_id"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_user_permissions_user_id"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_user_permissions_module_id"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_user_permissions_submodule_id"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_user_permissions_permission_id"`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" DROP CONSTRAINT "FK_pending_invites_role_id"`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" DROP CONSTRAINT "FK_pending_invites_invited_by"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_role_permissions_role_id"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_role_permissions_module_id"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_role_permissions_submodule_id"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_role_permissions_permission_id"`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" DROP CONSTRAINT "FK_login_challenges_user_id"`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" DROP CONSTRAINT "FK_login_challenges_existing_session_id"`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" DROP CONSTRAINT "FK_activity_logs_user_id"`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" DROP CONSTRAINT "FK_activity_logs_module_id"`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" DROP CONSTRAINT "FK_activity_logs_submodule_id"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_users_email"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_users_role_id"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_users_is_deleted"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_user_sessions_user_id"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_user_sessions_is_active"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_login_otps_email"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_login_otps_expires_at"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_activity_logs_user_id"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_activity_logs_created_at"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "UQ_role_permissions"`);
+        await queryRunner.query(`CREATE TABLE "chart_of_accounts" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "account_code" integer NOT NULL, "key" character varying, "description" character varying NOT NULL, "parent_id" uuid, "is_parent" boolean NOT NULL DEFAULT false, "normal_balance" character varying, "next_number" integer, "earning_account_id" uuid, "notes" text, "is_active" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "created_by" uuid, "updated_at" TIMESTAMP DEFAULT now(), "updated_by" uuid, CONSTRAINT "UQ_1e09dc9479d5cac85e1a5bf9f8b" UNIQUE ("account_code"), CONSTRAINT "UQ_1089483440d41befc1ae214ddbe" UNIQUE ("key"), CONSTRAINT "PK_467c08a2efc78393c647da32bac" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "chart_of_account_documents" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "coa_id" uuid NOT NULL, "file_name" character varying NOT NULL, "file_url" character varying NOT NULL, "uploaded_at" TIMESTAMP NOT NULL DEFAULT now(), "uploaded_by" uuid, CONSTRAINT "PK_c46db3590e3cee5292ebc5179d3" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "UQ_09fa7016b39ac4bd967f8b7939e" UNIQUE ("role_id", "module_id", "submodule_id", "permission_id")`);
+        await queryRunner.query(`ALTER TABLE "users" ADD CONSTRAINT "FK_a2cecd1a3531c0b041e29ba46e1" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD CONSTRAINT "FK_e9658e959c490b0a634dfc54783" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "submodules" ADD CONSTRAINT "FK_e5bc8076b0e21fe38db8ababf2d" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_3495bd31f1862d02931e8e8d2e8" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_8ab0433089f0b41a0f8e5b10d16" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_b987cb1236bbe09f8f448ee059b" FOREIGN KEY ("submodule_id") REFERENCES "submodules"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_8145f5fadacd311693c15e41f10" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" ADD CONSTRAINT "FK_0168a0792f920a6f68840dfe52b" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" ADD CONSTRAINT "FK_02a32b95bac5fb94366ea0451bb" FOREIGN KEY ("invited_by") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_178199805b901ccd220ab7740ec" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_2e0c5c1b40a4137a80930b3b65e" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_52e8c9ecd30630cbb3191a01d7a" FOREIGN KEY ("submodule_id") REFERENCES "submodules"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_17022daf3f885f7d35423e9971e" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" ADD CONSTRAINT "FK_23bb9553efaa83910672d214f65" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" ADD CONSTRAINT "FK_81d9d551e28e9750d2200ab5144" FOREIGN KEY ("existing_session_id") REFERENCES "user_sessions"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" ADD CONSTRAINT "FK_233c2a470511f11b1564bb6cd1e" FOREIGN KEY ("parent_id") REFERENCES "chart_of_accounts"("id") ON DELETE RESTRICT ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" ADD CONSTRAINT "FK_2421e464a281cc019534ddd563f" FOREIGN KEY ("earning_account_id") REFERENCES "chart_of_accounts"("id") ON DELETE RESTRICT ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" ADD CONSTRAINT "FK_a1cc819efca4907a7d7c15731ec" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" ADD CONSTRAINT "FK_b6a884435be11ae0abc05d3aa36" FOREIGN KEY ("updated_by") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "chart_of_account_documents" ADD CONSTRAINT "FK_9fb23c3b101c6dad9df11dff983" FOREIGN KEY ("coa_id") REFERENCES "chart_of_accounts"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "chart_of_account_documents" ADD CONSTRAINT "FK_c2fbb0e1cada125c500594824f9" FOREIGN KEY ("uploaded_by") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" ADD CONSTRAINT "FK_d54f841fa5478e4734590d44036" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" ADD CONSTRAINT "FK_b38bdabb0ea236c2836a79c4d1c" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" ADD CONSTRAINT "FK_fb6adcbf1da4881b2a2a86ba414" FOREIGN KEY ("submodule_id") REFERENCES "submodules"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "activity_logs" DROP CONSTRAINT "FK_fb6adcbf1da4881b2a2a86ba414"`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" DROP CONSTRAINT "FK_b38bdabb0ea236c2836a79c4d1c"`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" DROP CONSTRAINT "FK_d54f841fa5478e4734590d44036"`);
+        await queryRunner.query(`ALTER TABLE "chart_of_account_documents" DROP CONSTRAINT "FK_c2fbb0e1cada125c500594824f9"`);
+        await queryRunner.query(`ALTER TABLE "chart_of_account_documents" DROP CONSTRAINT "FK_9fb23c3b101c6dad9df11dff983"`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" DROP CONSTRAINT "FK_b6a884435be11ae0abc05d3aa36"`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" DROP CONSTRAINT "FK_a1cc819efca4907a7d7c15731ec"`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" DROP CONSTRAINT "FK_2421e464a281cc019534ddd563f"`);
+        await queryRunner.query(`ALTER TABLE "chart_of_accounts" DROP CONSTRAINT "FK_233c2a470511f11b1564bb6cd1e"`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" DROP CONSTRAINT "FK_81d9d551e28e9750d2200ab5144"`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" DROP CONSTRAINT "FK_23bb9553efaa83910672d214f65"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_17022daf3f885f7d35423e9971e"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_52e8c9ecd30630cbb3191a01d7a"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_2e0c5c1b40a4137a80930b3b65e"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "FK_178199805b901ccd220ab7740ec"`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" DROP CONSTRAINT "FK_02a32b95bac5fb94366ea0451bb"`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" DROP CONSTRAINT "FK_0168a0792f920a6f68840dfe52b"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_8145f5fadacd311693c15e41f10"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_b987cb1236bbe09f8f448ee059b"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_8ab0433089f0b41a0f8e5b10d16"`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" DROP CONSTRAINT "FK_3495bd31f1862d02931e8e8d2e8"`);
+        await queryRunner.query(`ALTER TABLE "submodules" DROP CONSTRAINT "FK_e5bc8076b0e21fe38db8ababf2d"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP CONSTRAINT "FK_e9658e959c490b0a634dfc54783"`);
+        await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT "FK_a2cecd1a3531c0b041e29ba46e1"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" DROP CONSTRAINT "UQ_09fa7016b39ac4bd967f8b7939e"`);
+        await queryRunner.query(`DROP TABLE "chart_of_account_documents"`);
+        await queryRunner.query(`DROP TABLE "chart_of_accounts"`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "UQ_role_permissions" UNIQUE ("role_id", "module_id", "submodule_id", "permission_id")`);
+        await queryRunner.query(`CREATE INDEX "IDX_activity_logs_created_at" ON "activity_logs" ("created_at") `);
+        await queryRunner.query(`CREATE INDEX "IDX_activity_logs_user_id" ON "activity_logs" ("user_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_login_otps_expires_at" ON "login_otps" ("expires_at") `);
+        await queryRunner.query(`CREATE INDEX "IDX_login_otps_email" ON "login_otps" ("email") `);
+        await queryRunner.query(`CREATE INDEX "IDX_user_sessions_is_active" ON "user_sessions" ("is_active") `);
+        await queryRunner.query(`CREATE INDEX "IDX_user_sessions_user_id" ON "user_sessions" ("user_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_users_is_deleted" ON "users" ("is_deleted") `);
+        await queryRunner.query(`CREATE INDEX "IDX_users_role_id" ON "users" ("role_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_users_email" ON "users" ("email") `);
+        await queryRunner.query(`ALTER TABLE "activity_logs" ADD CONSTRAINT "FK_activity_logs_submodule_id" FOREIGN KEY ("submodule_id") REFERENCES "submodules"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" ADD CONSTRAINT "FK_activity_logs_module_id" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "activity_logs" ADD CONSTRAINT "FK_activity_logs_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" ADD CONSTRAINT "FK_login_challenges_existing_session_id" FOREIGN KEY ("existing_session_id") REFERENCES "user_sessions"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "login_challenges" ADD CONSTRAINT "FK_login_challenges_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_role_permissions_permission_id" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_role_permissions_submodule_id" FOREIGN KEY ("submodule_id") REFERENCES "submodules"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_role_permissions_module_id" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "role_permissions" ADD CONSTRAINT "FK_role_permissions_role_id" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" ADD CONSTRAINT "FK_pending_invites_invited_by" FOREIGN KEY ("invited_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "pending_invites" ADD CONSTRAINT "FK_pending_invites_role_id" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_user_permissions_permission_id" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_user_permissions_submodule_id" FOREIGN KEY ("submodule_id") REFERENCES "submodules"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_user_permissions_module_id" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_permissions" ADD CONSTRAINT "FK_user_permissions_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "submodules" ADD CONSTRAINT "FK_submodules_module_id" FOREIGN KEY ("module_id") REFERENCES "modules"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "modules" ADD CONSTRAINT "FK_modules_updated_by" FOREIGN KEY ("updated_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "modules" ADD CONSTRAINT "FK_modules_created_by" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD CONSTRAINT "FK_user_sessions_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "users" ADD CONSTRAINT "FK_users_role_id" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE RESTRICT ON UPDATE NO ACTION`);
+    }
+
+}
