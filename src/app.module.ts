@@ -42,6 +42,8 @@ import { TreatyState } from './entities/treaty-state.entity';
 import { StateDocument } from './entities/state-document.entity';
 import { RiskCompanyDocument } from './entities/risk-company-document.entity';
 import { TreatyMga } from './entities/treaty-mga.entity';
+import { TreatyCarrier } from './entities/treaty-carrier.entity';
+import { TreatyReinsurer } from './entities/treaty-reinsurer.entity';
 import { GlMapping } from './entities/gl-mapping.entity';
 import { JournalEntryBatch } from './entities/journal-entry-batch.entity';
 import { JournalEntry } from './entities/journal-entry.entity';
@@ -49,6 +51,13 @@ import { MastersModule } from './modules/masters/masters.module';
 import { GlMappingsModule } from './modules/gl-mappings/gl-mappings.module';
 import { JournalEntriesModule } from './modules/journal-entries/journal-entries.module';
 import { TestBalanceModule } from './modules/test-balance/test-balance.module';
+import { WorkbookModule } from './modules/workbook/workbook.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { ReservesModule } from './modules/reserves/reserves.module';
+import { DatabaseSeederModule } from './modules/database-seeder/database-seeder.module';
+import { Workbook } from './entities/workbook.entity';
+import { StateExhibit } from './entities/state-exhibit.entity';
+import { CashSettlement } from './entities/cash-settlement.entity';
 
 @Module({
   imports: [
@@ -80,6 +89,9 @@ import { TestBalanceModule } from './modules/test-balance/test-balance.module';
           LoginChallenge,
           PendingInvite,
           ActivityLog,
+          Workbook,
+          StateExhibit,
+          CashSettlement,
           ChartOfAccount,
           ChartOfAccountDocument,
           StateMaster,
@@ -94,6 +106,8 @@ import { TestBalanceModule } from './modules/test-balance/test-balance.module';
           TreatyLobCob,
           TreatyState,
           TreatyMga,
+          TreatyCarrier,
+          TreatyReinsurer,
           GlMapping,
           JournalEntryBatch,
           JournalEntry,
@@ -117,6 +131,10 @@ import { TestBalanceModule } from './modules/test-balance/test-balance.module';
     GlMappingsModule,
     JournalEntriesModule,
     TestBalanceModule,
+    WorkbookModule,
+    ReportsModule,
+    ReservesModule,
+    DatabaseSeederModule,
   ],
   providers: [],
 })

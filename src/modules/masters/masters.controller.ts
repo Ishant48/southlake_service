@@ -534,4 +534,14 @@ export class MastersController {
   deleteTreaty(@Param('id') id: string) {
     return this.service.deleteTreaty(id);
   }
+
+  @Post('mgas/:id/add-to-treaties')
+  @ApiOperation({ summary: 'Add MGA to multiple treaties' })
+  async addMgaToTreaties(
+    @Param('id') id: string,
+    @Body('treaty_ids') treatyIds: string[],
+    @CurrentUser() user: User,
+  ) {
+    return this.service.addMgaToTreaties(id, treatyIds, user.id);
+  }
 }

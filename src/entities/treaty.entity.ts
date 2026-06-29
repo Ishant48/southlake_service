@@ -14,6 +14,8 @@ import { RiskCompany } from './risk-company.entity';
 import { TreatyLob } from './treaty-lob.entity';
 import { TreatyState } from './treaty-state.entity';
 import { TreatyMga } from './treaty-mga.entity';
+import { TreatyCarrier } from './treaty-carrier.entity';
+import { TreatyReinsurer } from './treaty-reinsurer.entity';
 
 export class ColumnNumericTransformer {
   to(data: number | null): number | null {
@@ -105,6 +107,12 @@ export class Treaty {
 
   @OneToMany(() => TreatyMga, (tm) => tm.treaty, { cascade: true })
   treatyMgas: TreatyMga[];
+
+  @OneToMany(() => TreatyCarrier, (tc) => tc.treaty, { cascade: true })
+  treatyCarriers: TreatyCarrier[];
+
+  @OneToMany(() => TreatyReinsurer, (tr) => tr.treaty, { cascade: true })
+  treatyReinsurers: TreatyReinsurer[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

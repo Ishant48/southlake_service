@@ -22,6 +22,26 @@ export class TreatyLobDto {
   cob_ids?: string[];
 }
 
+export class TreatyCarrierDto {
+  @IsUUID()
+  @IsNotEmpty()
+  risk_company_id: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  retention_pct: number;
+}
+
+export class TreatyReinsurerDto {
+  @IsUUID()
+  @IsNotEmpty()
+  reinsurer_id: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  cession_pct: number;
+}
+
 export class CreateTreatyDto {
   @IsString()
   @IsNotEmpty()
@@ -110,6 +130,18 @@ export class CreateTreatyDto {
   @Type(() => TreatyLobDto)
   @IsOptional()
   lobs?: TreatyLobDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TreatyCarrierDto)
+  @IsOptional()
+  carriers?: TreatyCarrierDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TreatyReinsurerDto)
+  @IsOptional()
+  reinsurers?: TreatyReinsurerDto[];
 }
 
 export class UpdateTreatyDto {
@@ -200,4 +232,16 @@ export class UpdateTreatyDto {
   @Type(() => TreatyLobDto)
   @IsOptional()
   lobs?: TreatyLobDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TreatyCarrierDto)
+  @IsOptional()
+  carriers?: TreatyCarrierDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TreatyReinsurerDto)
+  @IsOptional()
+  reinsurers?: TreatyReinsurerDto[];
 }

@@ -15,6 +15,8 @@ import { TreatyState } from '../../entities/treaty-state.entity';
 import { StateDocument } from '../../entities/state-document.entity';
 import { RiskCompanyDocument } from '../../entities/risk-company-document.entity';
 import { TreatyMga } from '../../entities/treaty-mga.entity';
+import { TreatyCarrier } from '../../entities/treaty-carrier.entity';
+import { TreatyReinsurer } from '../../entities/treaty-reinsurer.entity';
 
 import { CreateStateDto, UpdateStateDto } from './dto/state.dto';
 import { CreateMgaDto, UpdateMgaDto } from './dto/mga.dto';
@@ -498,6 +500,10 @@ export class MastersService {
         'treatyStates.state',
         'treatyMgas',
         'treatyMgas.mga',
+        'treatyCarriers',
+        'treatyCarriers.riskCompany',
+        'treatyReinsurers',
+        'treatyReinsurers.reinsurer',
       ],
       order: { treatyCode: 'ASC' },
     });
@@ -518,6 +524,10 @@ export class MastersService {
         'treatyStates.state',
         'treatyMgas',
         'treatyMgas.mga',
+        'treatyCarriers',
+        'treatyCarriers.riskCompany',
+        'treatyReinsurers',
+        'treatyReinsurers.reinsurer',
       ],
     });
     if (!treaty) throw new NotFoundException('Treaty not found');
@@ -527,6 +537,16 @@ export class MastersService {
   async createTreaty(dto: CreateTreatyDto, userId: string): Promise<Treaty> {
     const exists = await this.treatyRepo.findOne({ where: { treatyCode: dto.treaty_code } });
     if (exists) throw new BadRequestException(`Treaty code ${dto.treaty_code} already exists`);
+
+    if (!dto.carriers && dto.risk_company_id) {
+      dto.carriers = [{ risk_company_id: dto.risk_company_id, retention_pct: dto.carrier_retention_pct ?? 100 }];
+    }
+    if (!dto.reinsurers && dto.reinsurer_id) {
+      dto.reinsurers = [{ reinsurer_id: dto.reinsurer_id, cession_pct: dto.reinsurer_cession_pct ?? 100 }];
+    }
+
+    const firstCarrier = dto.carriers && dto.carriers.length > 0 ? dto.carriers[0] : null;
+    const firstReinsurer = dto.reinsurers && dto.reinsurers.length > 0 ? dto.reinsurers[0] : null;
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -538,8 +558,8 @@ export class MastersService {
         treatyCode: dto.treaty_code,
         name: dto.name,
         mgaId: firstMgaId,
-        reinsurerId: dto.reinsurer_id || null,
-        riskCompanyId: dto.risk_company_id || null,
+        reinsurerId: firstReinsurer ? firstReinsurer.reinsurer_id : (dto.reinsurer_id || null),
+        riskCompanyId: firstCarrier ? firstCarrier.risk_company_id : (dto.risk_company_id || null),
         effectiveDate: dto.effective_date ? new Date(dto.effective_date) : null,
         expirationDate: dto.expiration_date ? new Date(dto.expiration_date) : null,
         qsPct: dto.qs_pct ?? null,
@@ -550,14 +570,36 @@ export class MastersService {
         xolPct: dto.xol_pct ?? null,
         lrCapPct: dto.lr_cap_pct ?? null,
         ibnrPct: dto.ibnr_pct ?? null,
-        carrierRetentionPct: dto.carrier_retention_pct ?? null,
-        reinsurerCessionPct: dto.reinsurer_cession_pct ?? null,
+        carrierRetentionPct: firstCarrier ? firstCarrier.retention_pct : (dto.carrier_retention_pct ?? null),
+        reinsurerCessionPct: firstReinsurer ? firstReinsurer.cession_pct : (dto.reinsurer_cession_pct ?? null),
         isActive: dto.is_active ?? true,
         createdBy: userId,
         updatedBy: userId,
       });
 
       const savedTreaty = await queryRunner.manager.save(Treaty, treaty);
+
+      if (dto.carriers && dto.carriers.length > 0) {
+        const carriers = dto.carriers.map(c => {
+          return queryRunner.manager.create(TreatyCarrier, {
+            treatyId: savedTreaty.id,
+            riskCompanyId: c.risk_company_id,
+            retentionPct: c.retention_pct,
+          });
+        });
+        await queryRunner.manager.save(TreatyCarrier, carriers);
+      }
+
+      if (dto.reinsurers && dto.reinsurers.length > 0) {
+        const reinsurers = dto.reinsurers.map(r => {
+          return queryRunner.manager.create(TreatyReinsurer, {
+            treatyId: savedTreaty.id,
+            reinsurerId: r.reinsurer_id,
+            cessionPct: r.cession_pct,
+          });
+        });
+        await queryRunner.manager.save(TreatyReinsurer, reinsurers);
+      }
 
       if (dto.mga_ids && dto.mga_ids.length > 0) {
         const treatyMgas = dto.mga_ids.map(mgaId => {
@@ -630,12 +672,42 @@ export class MastersService {
         updateMgaId = dto.mga_id;
       }
 
+      let updateRiskCompanyId = treaty.riskCompanyId;
+      let updateCarrierRetention = treaty.carrierRetentionPct;
+      if (dto.carriers !== undefined) {
+        if (dto.carriers.length > 0) {
+          updateRiskCompanyId = dto.carriers[0].risk_company_id;
+          updateCarrierRetention = dto.carriers[0].retention_pct;
+        } else {
+          updateRiskCompanyId = null;
+          updateCarrierRetention = null;
+        }
+      } else if (dto.risk_company_id !== undefined) {
+        updateRiskCompanyId = dto.risk_company_id;
+        updateCarrierRetention = dto.carrier_retention_pct !== undefined ? dto.carrier_retention_pct : treaty.carrierRetentionPct;
+      }
+
+      let updateReinsurerId = treaty.reinsurerId;
+      let updateReinsurerCession = treaty.reinsurerCessionPct;
+      if (dto.reinsurers !== undefined) {
+        if (dto.reinsurers.length > 0) {
+          updateReinsurerId = dto.reinsurers[0].reinsurer_id;
+          updateReinsurerCession = dto.reinsurers[0].cession_pct;
+        } else {
+          updateReinsurerId = null;
+          updateReinsurerCession = null;
+        }
+      } else if (dto.reinsurer_id !== undefined) {
+        updateReinsurerId = dto.reinsurer_id;
+        updateReinsurerCession = dto.reinsurer_cession_pct !== undefined ? dto.reinsurer_cession_pct : treaty.reinsurerCessionPct;
+      }
+
       Object.assign(treaty, {
         treatyCode: dto.treaty_code !== undefined ? dto.treaty_code : treaty.treatyCode,
         name: dto.name !== undefined ? dto.name : treaty.name,
         mgaId: updateMgaId,
-        reinsurerId: dto.reinsurer_id !== undefined ? dto.reinsurer_id : treaty.reinsurerId,
-        riskCompanyId: dto.risk_company_id !== undefined ? dto.risk_company_id : treaty.riskCompanyId,
+        reinsurerId: updateReinsurerId,
+        riskCompanyId: updateRiskCompanyId,
         effectiveDate: dto.effective_date !== undefined ? (dto.effective_date ? new Date(dto.effective_date) : null) : treaty.effectiveDate,
         expirationDate: dto.expiration_date !== undefined ? (dto.expiration_date ? new Date(dto.expiration_date) : null) : treaty.expirationDate,
         qsPct: dto.qs_pct !== undefined ? dto.qs_pct : treaty.qsPct,
@@ -646,13 +718,41 @@ export class MastersService {
         xolPct: dto.xol_pct !== undefined ? dto.xol_pct : treaty.xolPct,
         lrCapPct: dto.lr_cap_pct !== undefined ? dto.lr_cap_pct : treaty.lrCapPct,
         ibnrPct: dto.ibnr_pct !== undefined ? dto.ibnr_pct : treaty.ibnrPct,
-        carrierRetentionPct: dto.carrier_retention_pct !== undefined ? dto.carrier_retention_pct : treaty.carrierRetentionPct,
-        reinsurerCessionPct: dto.reinsurer_cession_pct !== undefined ? dto.reinsurer_cession_pct : treaty.reinsurerCessionPct,
+        carrierRetentionPct: updateCarrierRetention,
+        reinsurerCessionPct: updateReinsurerCession,
         isActive: dto.is_active !== undefined ? dto.is_active : treaty.isActive,
         updatedBy: userId,
       });
 
       await queryRunner.manager.save(Treaty, treaty);
+
+      if (dto.carriers !== undefined) {
+        await queryRunner.manager.delete(TreatyCarrier, { treatyId: id });
+        if (dto.carriers.length > 0) {
+          const carriers = dto.carriers.map(c => {
+            return queryRunner.manager.create(TreatyCarrier, {
+              treatyId: id,
+              riskCompanyId: c.risk_company_id,
+              retentionPct: c.retention_pct,
+            });
+          });
+          await queryRunner.manager.save(TreatyCarrier, carriers);
+        }
+      }
+
+      if (dto.reinsurers !== undefined) {
+        await queryRunner.manager.delete(TreatyReinsurer, { treatyId: id });
+        if (dto.reinsurers.length > 0) {
+          const reinsurers = dto.reinsurers.map(r => {
+            return queryRunner.manager.create(TreatyReinsurer, {
+              treatyId: id,
+              reinsurerId: r.reinsurer_id,
+              cessionPct: r.cession_pct,
+            });
+          });
+          await queryRunner.manager.save(TreatyReinsurer, reinsurers);
+        }
+      }
 
       if (dto.mga_ids !== undefined) {
         await queryRunner.manager.delete(TreatyMga, { treatyId: id });
@@ -817,5 +917,29 @@ export class MastersService {
     const doc = await this.riskCompanyDocRepo.findOne({ where: { id } });
     if (!doc) throw new NotFoundException('Document not found');
     await this.riskCompanyDocRepo.delete(id);
+  }
+
+  async addMgaToTreaties(mgaId: string, treatyIds: string[], userId: string): Promise<{ success: boolean }> {
+    const mga = await this.mgaRepo.findOne({ where: { id: mgaId } });
+    if (!mga) throw new NotFoundException('MGA not found');
+
+    for (const treatyId of treatyIds) {
+      const treaty = await this.treatyRepo.findOne({ where: { id: treatyId } });
+      if (!treaty) continue;
+
+      const exists = await this.treatyMgaRepo.findOne({ where: { treatyId, mgaId } });
+      if (!exists) {
+        const link = this.treatyMgaRepo.create({ treatyId, mgaId });
+        await this.treatyMgaRepo.save(link);
+      }
+
+      if (!treaty.mgaId) {
+        treaty.mgaId = mgaId;
+        treaty.updatedBy = userId;
+        await this.treatyRepo.save(treaty);
+      }
+    }
+
+    return { success: true };
   }
 }
