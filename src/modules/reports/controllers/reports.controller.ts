@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, ParseIntPipe, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, ParseIntPipe, UploadedFile, UseInterceptors, Query, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ReportsService } from '../services/reports.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -38,8 +38,9 @@ export class ReportsController {
   async postToJournalEntries(
     @Param('id', ParseIntPipe) id: number,
     @Param('stateCode') stateCode: string,
+    @Body() body?: { customRows?: any[] },
   ) {
-    return this.reportsService.postToJournalEntries(id, stateCode.toUpperCase());
+    return this.reportsService.postToJournalEntries(id, stateCode.toUpperCase(), undefined, body?.customRows);
   }
 
   @Get(':id/cash-settlement-calculations')
