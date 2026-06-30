@@ -863,13 +863,30 @@ export class ReportsService {
     const batchNumber = `RE-${workbook.id}-${stateCode.toUpperCase()}`;
     let batch = await this.batchRepo.findOne({ where: { batchNumber } });
 
+    let agentName = workbook.program;
+    const treatyRows = await this.coaRepo.query(
+      'SELECT mga_id FROM treaties WHERE name = $1',
+      [workbook.program]
+    );
+    if (treatyRows && treatyRows.length > 0 && treatyRows[0].mga_id) {
+      const mgaRows = await this.coaRepo.query(
+        'SELECT name FROM mga_master WHERE id = $1',
+        [treatyRows[0].mga_id]
+      );
+      if (mgaRows && mgaRows.length > 0) {
+        agentName = mgaRows[0].name;
+      }
+    }
+
     if (batch) {
       await this.entryRepo.delete({ batchId: batch.id });
+      batch.agentName = agentName;
+      await this.batchRepo.save(batch);
     } else {
       batch = this.batchRepo.create({
         batchNumber,
         period: workbook.monthLabel,
-        agentName: workbook.program,
+        agentName,
         totalAmount: 0,
         count: 0,
         createdBy: userId || null,
