@@ -110,6 +110,14 @@ export class CreateTreatyDto {
 
   @IsNumber()
   @IsOptional()
+  lae_dcc_pct?: number;
+
+  @IsNumber()
+  @IsOptional()
+  lae_aoe_pct?: number;
+
+  @IsNumber()
+  @IsOptional()
   carrier_retention_pct?: number;
 
   @IsNumber()
@@ -209,6 +217,14 @@ export class UpdateTreatyDto {
   @IsNumber()
   @IsOptional()
   ibnr_pct?: number;
+
+  @IsNumber()
+  @IsOptional()
+  lae_dcc_pct?: number;
+
+  @IsNumber()
+  @IsOptional()
+  lae_aoe_pct?: number;
 
   @IsNumber()
   @IsOptional()

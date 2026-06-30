@@ -35,8 +35,8 @@ export class WorkbookService {
         comm: t.commPct !== null ? Number(t.commPct) : undefined,
         ulae: t.ulaePct !== null ? Number(t.ulaePct) : undefined,
         lossPick: t.ibnrPct !== null ? Number(t.ibnrPct) : undefined,
-        laeDcc: t.ulaePct !== null ? Number(t.ulaePct) : undefined,
-        laeAoe: t.ulaePct !== null ? Number(t.ulaePct) : undefined,
+        laeDcc: t.laeDccPct !== null ? Number(t.laeDccPct) : undefined,
+        laeAoe: t.laeAoePct !== null ? Number(t.laeAoePct) : undefined,
         boardsCharge: t.bbPct !== null ? Number(t.bbPct) : undefined,
         lossRatioCap: t.lrCapPct !== null ? Number(t.lrCapPct) : undefined,
         qs: t.qsPct !== null ? Number(t.qsPct) : undefined,
@@ -78,19 +78,19 @@ export class WorkbookService {
     if (treaty) {
       workbook.rates = {
         ...workbook.rates,
-        qs: treaty.qsPct !== null ? Number(treaty.qsPct) : (workbook.rates?.qs ?? 100),
-        cf: treaty.cfPct !== null ? Number(treaty.cfPct) : (workbook.rates?.cf ?? 5),
-        comm: treaty.commPct !== null ? Number(treaty.commPct) : (workbook.rates?.comm ?? 29),
-        bb: treaty.bbPct !== null ? Number(treaty.bbPct) : (workbook.rates?.bb ?? 0.4),
-        ulae: treaty.ulaePct !== null ? Number(treaty.ulaePct) : (workbook.rates?.ulae ?? 7),
-        xol: treaty.xolPct !== null ? Number(treaty.xolPct) : (workbook.rates?.xol ?? 0),
-        lr: treaty.lrCapPct !== null ? Number(treaty.lrCapPct) : (workbook.rates?.lr ?? 2.0),
+        qs: workbook.rates?.qs !== undefined ? workbook.rates.qs : (treaty.qsPct !== null ? Number(treaty.qsPct) : 100),
+        cf: workbook.rates?.cf !== undefined ? workbook.rates.cf : (treaty.cfPct !== null ? Number(treaty.cfPct) : 5),
+        comm: workbook.rates?.comm !== undefined ? workbook.rates.comm : (treaty.commPct !== null ? Number(treaty.commPct) : 29),
+        bb: workbook.rates?.bb !== undefined ? workbook.rates.bb : (treaty.bbPct !== null ? Number(treaty.bbPct) : 0.4),
+        ulae: workbook.rates?.ulae !== undefined ? workbook.rates.ulae : (treaty.ulaePct !== null ? Number(treaty.ulaePct) : 7),
+        xol: workbook.rates?.xol !== undefined ? workbook.rates.xol : (treaty.xolPct !== null ? Number(treaty.xolPct) : 0),
+        lr: workbook.rates?.lr !== undefined ? workbook.rates.lr : (treaty.lrCapPct !== null ? Number(treaty.lrCapPct) : 2.0),
         
-        lossPick: treaty.ibnrPct !== null ? Number(treaty.ibnrPct) : (workbook.rates?.lossPick ?? 5.0),
-        boardsCharge: treaty.bbPct !== null ? Number(treaty.bbPct) : (workbook.rates?.boardsCharge ?? 0.4),
-        lossRatioCap: treaty.lrCapPct !== null ? Number(treaty.lrCapPct) : (workbook.rates?.lossRatioCap ?? 2.0),
-        laeDcc: workbook.rates?.laeDcc ?? 6.2,
-        laeAoe: workbook.rates?.laeAoe ?? 0.0,
+        lossPick: workbook.rates?.lossPick !== undefined ? workbook.rates.lossPick : (treaty.ibnrPct !== null ? Number(treaty.ibnrPct) : 5.0),
+        boardsCharge: workbook.rates?.boardsCharge !== undefined ? workbook.rates.boardsCharge : (treaty.bbPct !== null ? Number(treaty.bbPct) : 0.4),
+        lossRatioCap: workbook.rates?.lossRatioCap !== undefined ? workbook.rates.lossRatioCap : (treaty.lrCapPct !== null ? Number(treaty.lrCapPct) : 2.0),
+        laeDcc: treaty.laeDccPct !== null ? Number(treaty.laeDccPct) : (workbook.rates?.laeDcc !== undefined ? workbook.rates.laeDcc : 6.2),
+        laeAoe: treaty.laeAoePct !== null ? Number(treaty.laeAoePct) : (workbook.rates?.laeAoe !== undefined ? workbook.rates.laeAoe : 0.0),
       };
     }
   }

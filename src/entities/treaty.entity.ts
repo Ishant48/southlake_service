@@ -89,6 +89,12 @@ export class Treaty {
   @Column({ name: 'ibnr_pct', type: 'decimal', precision: 6, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
   ibnrPct: number | null;
 
+  @Column({ name: 'lae_dcc_pct', type: 'decimal', precision: 6, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
+  laeDccPct: number | null;
+
+  @Column({ name: 'lae_aoe_pct', type: 'decimal', precision: 6, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
+  laeAoePct: number | null;
+
   // Split
   @Column({ name: 'carrier_retention_pct', type: 'decimal', precision: 6, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
   carrierRetentionPct: number | null;
