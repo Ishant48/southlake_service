@@ -26,7 +26,7 @@ export class JournalEntriesService {
     }
 
     if (agentName) {
-      queryBuilder.andWhere('batch.agent_name = :agentName', { agentName });
+      queryBuilder.andWhere('batch.agent_name ILIKE :agentName', { agentName: `%${agentName}%` });
     }
 
     if (search) {
