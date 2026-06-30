@@ -356,8 +356,8 @@ export class ExcelParserService {
       comm: dbProgram.commPct !== null ? Number(dbProgram.commPct) : undefined,
       ulae: dbProgram.ulaePct !== null ? Number(dbProgram.ulaePct) : undefined,
       lossPick: dbProgram.ibnrPct !== null ? Number(dbProgram.ibnrPct) : undefined,
-      laeDcc: dbProgram.ulaePct !== null ? Number(dbProgram.ulaePct) : undefined,
-      laeAoe: dbProgram.ulaePct !== null ? Number(dbProgram.ulaePct) : undefined,
+      laeDcc: undefined,
+      laeAoe: undefined,
       boardsCharge: dbProgram.bbPct !== null ? Number(dbProgram.bbPct) : undefined,
       lossRatioCap: dbProgram.lrCapPct !== null ? Number(dbProgram.lrCapPct) : undefined,
       qs: dbProgram.qsPct !== null ? Number(dbProgram.qsPct) : undefined,
@@ -366,6 +366,30 @@ export class ExcelParserService {
       lr: dbProgram.lrCapPct !== null ? Number(dbProgram.lrCapPct) : undefined,
     } : null;
 
+    // Try to parse actuarial rates dynamically from first state sheet (if exists)
+    let parsedLossPick: number | undefined;
+    let parsedLaeDcc: number | undefined;
+    let parsedLaeAoe: number | undefined;
+
+    const stateSheetName = sheetNames.find(name => name.trim().length === 2 || name.trim().startsWith('MTHLY-'));
+    if (stateSheetName) {
+      const stateSheet = workbook.Sheets[stateSheetName];
+      const lpRow = this.findRowIndexByExactLabel(stateSheet, 'Loss Pick');
+      const dccRow = this.findRowIndexByExactLabel(stateSheet, 'LAE - DCC');
+      const aoeRow = this.findRowIndexByExactLabel(stateSheet, 'LAE - AOE');
+
+      // Column D is index 3
+      if (lpRow !== -1) {
+        parsedLossPick = this.getNumericValue(stateSheet, lpRow, 3) * 100;
+      }
+      if (dccRow !== -1) {
+        parsedLaeDcc = this.getNumericValue(stateSheet, dccRow, 3) * 100;
+      }
+      if (aoeRow !== -1) {
+        parsedLaeAoe = this.getNumericValue(stateSheet, aoeRow, 3) * 100;
+      }
+    }
+
     // Parse Cash Settlement Rates & Ledger
     const csSheet = workbook.Sheets['Cash Settlement'];
     const defaultRates = this.getDefaultRates(program);
@@ -373,6 +397,13 @@ export class ExcelParserService {
       ...defaultRates,
       ...(dbRates || {}),
     };
+
+    // Override with dynamically parsed state rates
+    if (parsedLossPick !== undefined && (rates.lossPick === undefined || rates.lossPick === 0)) {
+      rates.lossPick = parsedLossPick;
+    }
+    rates.laeDcc = parsedLaeDcc !== undefined ? parsedLaeDcc : (program.includes('APD') ? 0.0 : 6.2);
+    rates.laeAoe = parsedLaeAoe !== undefined ? parsedLaeAoe : (program.includes('APD') ? 3.4 : 0.0);
 
     if (dbRates?.boardsCharge !== undefined) {
       rates.bb = dbRates.boardsCharge;

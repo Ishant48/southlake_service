@@ -231,21 +231,27 @@ export class ReportsService {
       throw new NotFoundException(`State exhibit for ${stateCode} not found in workbook ${workbook.id}`);
     }
 
-    const sum = (arr: number[]) => arr ? arr.reduce((s, v) => s + Number(v || 0), 0) : 0;
-    const val = (arr: number[]) => {
+    const getVal = (ex: StateExhibit, field: string, mode: 'current' | 'cumulative') => {
+      const arr = (ex as any)[field];
       if (!arr) return 0;
-      if (arr.length > 1) {
-        return Number(arr[1] ?? 0);
+      const source = ex.workbook?.source || workbook.source;
+      if (source === 'FUT') {
+        if (mode === 'current') {
+          return Number(arr[1] ?? 0);
+        } else {
+          return Number(arr[2] ?? 0); // YTD / Cumulative
+        }
       }
-      return Number(arr[0] ?? 0);
+      return Number(arr[1] ?? 0);
     };
 
-    const pw = val(activeStateEx.pw);
-    const currUEP = val(activeStateEx.uep);
-    const lossesPaid = val(activeStateEx.lp);
+    const pw = getVal(activeStateEx, 'pw', 'current');
+    const currUEP = getVal(activeStateEx, 'uep', 'current');
+    const lossesPaid = getVal(activeStateEx, 'lp', 'current');
 
     console.log(`[ReportsService] calculateCedingValues for ${stateCode}:`);
     console.log(`  Active exhibit source: ${workbook.source}, has prevStateEx: ${!!prevStateEx}`);
+    console.log(`  Active rates: ${JSON.stringify(workbook.rates)}`);
     console.log(`  Active loss_ibnr: ${JSON.stringify(activeStateEx.loss_ibnr)}, lae_ibnr_dcc: ${JSON.stringify(activeStateEx.lae_ibnr_dcc)}, ulae_ibnr: ${JSON.stringify(activeStateEx.ulae_ibnr)}`);
     if (prevStateEx) {
       console.log(`  Prev loss_ibnr: ${JSON.stringify(prevStateEx.loss_ibnr)}, lae_ibnr_dcc: ${JSON.stringify(prevStateEx.lae_ibnr_dcc)}, ulae_ibnr: ${JSON.stringify(prevStateEx.ulae_ibnr)}`);
@@ -266,7 +272,7 @@ export class ReportsService {
     let dccPaid = 0;
     let aoePaid = 0;
     if (workbook.source === 'FUT') {
-      const rawLaep = val(activeStateEx.laep);
+      const rawLaep = getVal(activeStateEx, 'laep', 'current');
       if (isDccActive) {
         dccPaid = rawLaep;
         aoePaid = 0;
@@ -278,8 +284,8 @@ export class ReportsService {
         aoePaid = 0;
       }
     } else {
-      const rawLaep = val(activeStateEx.laep);
-      const rawAePaid = val(activeStateEx.ae_paid);
+      const rawLaep = getVal(activeStateEx, 'laep', 'current');
+      const rawAePaid = getVal(activeStateEx, 'ae_paid', 'current');
       if (isDccActive) {
         dccPaid = rawLaep + rawAePaid;
         aoePaid = 0;
@@ -302,7 +308,7 @@ export class ReportsService {
     let prevULAEIBNR = 0;
 
     if (prevStateEx) {
-      prevUEP = val(prevStateEx.uep);
+      prevUEP = getVal(prevStateEx, 'uep', 'cumulative');
       const prevSource = prevStateEx.workbook?.source;
 
       if (prevSource === 'FUT') {
@@ -314,22 +320,22 @@ export class ReportsService {
         );
 
         if (hasPrevDetailedReserves) {
-          prevLossReserves = prevStateEx.loss_reserves ? val(prevStateEx.loss_reserves) : 0;
-          prevLossIBNR = prevStateEx.loss_ibnr ? val(prevStateEx.loss_ibnr) : 0;
-          prevULAEIBNR = prevStateEx.ulae_ibnr ? val(prevStateEx.ulae_ibnr) : 0;
+          prevLossReserves = prevStateEx.loss_reserves ? getVal(prevStateEx, 'loss_reserves', 'cumulative') : 0;
+          prevLossIBNR = prevStateEx.loss_ibnr ? getVal(prevStateEx, 'loss_ibnr', 'cumulative') : 0;
+          prevULAEIBNR = prevStateEx.ulae_ibnr ? getVal(prevStateEx, 'ulae_ibnr', 'cumulative') : 0;
 
           if (isDccActive) {
-            prevDCCReserves = (prevStateEx.lae_reserves_dcc ? val(prevStateEx.lae_reserves_dcc) : 0) +
-                              (prevStateEx.lae_reserves_aoe ? val(prevStateEx.lae_reserves_aoe) : 0);
-            prevDCCIBNR = (prevStateEx.lae_ibnr_dcc ? val(prevStateEx.lae_ibnr_dcc) : 0) +
-                          (prevStateEx.lae_ibnr_aoe ? val(prevStateEx.lae_ibnr_aoe) : 0);
+            prevDCCReserves = (prevStateEx.lae_reserves_dcc ? getVal(prevStateEx, 'lae_reserves_dcc', 'cumulative') : 0) +
+                              (prevStateEx.lae_reserves_aoe ? getVal(prevStateEx, 'lae_reserves_aoe', 'cumulative') : 0);
+            prevDCCIBNR = (prevStateEx.lae_ibnr_dcc ? getVal(prevStateEx, 'lae_ibnr_dcc', 'cumulative') : 0) +
+                          (prevStateEx.lae_ibnr_aoe ? getVal(prevStateEx, 'lae_ibnr_aoe', 'cumulative') : 0);
             prevAOEReserves = 0;
             prevAOEIBNR = 0;
           } else if (isAoeActive) {
-            prevAOEReserves = (prevStateEx.lae_reserves_aoe ? val(prevStateEx.lae_reserves_aoe) : 0) +
-                              (prevStateEx.lae_reserves_dcc ? val(prevStateEx.lae_reserves_dcc) : 0);
-            prevAOEIBNR = (prevStateEx.lae_ibnr_aoe ? val(prevStateEx.lae_ibnr_aoe) : 0) +
-                          (prevStateEx.lae_ibnr_dcc ? val(prevStateEx.lae_ibnr_dcc) : 0);
+            prevAOEReserves = (prevStateEx.lae_reserves_aoe ? getVal(prevStateEx, 'lae_reserves_aoe', 'cumulative') : 0) +
+                              (prevStateEx.lae_reserves_dcc ? getVal(prevStateEx, 'lae_reserves_dcc', 'cumulative') : 0);
+            prevAOEIBNR = (prevStateEx.lae_ibnr_aoe ? getVal(prevStateEx, 'lae_ibnr_aoe', 'cumulative') : 0) +
+                          (prevStateEx.lae_ibnr_dcc ? getVal(prevStateEx, 'lae_ibnr_dcc', 'cumulative') : 0);
             prevDCCReserves = 0;
             prevDCCIBNR = 0;
           } else {
@@ -340,17 +346,17 @@ export class ReportsService {
           }
         } else {
           prevLossReserves = 0;
-          prevLossIBNR = prevStateEx.lu ? val(prevStateEx.lu) : 0;
-          prevULAEIBNR = prevStateEx.aeu ? val(prevStateEx.aeu) : 0;
+          prevLossIBNR = prevStateEx.lu ? getVal(prevStateEx, 'lu', 'cumulative') : 0;
+          prevULAEIBNR = prevStateEx.aeu ? getVal(prevStateEx, 'aeu', 'cumulative') : 0;
 
           if (isDccActive) {
             prevDCCReserves = 0;
-            prevDCCIBNR = prevStateEx.laeu ? val(prevStateEx.laeu) : 0;
+            prevDCCIBNR = prevStateEx.laeu ? getVal(prevStateEx, 'laeu', 'cumulative') : 0;
             prevAOEReserves = 0;
             prevAOEIBNR = 0;
           } else if (isAoeActive) {
             prevAOEReserves = 0;
-            prevAOEIBNR = prevStateEx.laeu ? val(prevStateEx.laeu) : 0;
+            prevAOEIBNR = prevStateEx.laeu ? getVal(prevStateEx, 'laeu', 'cumulative') : 0;
             prevDCCReserves = 0;
             prevDCCIBNR = 0;
           } else {
@@ -361,22 +367,22 @@ export class ReportsService {
           }
         }
       } else {
-        prevLossReserves = prevStateEx.loss_reserves ? val(prevStateEx.loss_reserves) : 0;
-        prevLossIBNR = prevStateEx.loss_ibnr ? val(prevStateEx.loss_ibnr) : 0;
-        prevULAEIBNR = prevStateEx.ulae_ibnr ? val(prevStateEx.ulae_ibnr) : 0;
+        prevLossReserves = prevStateEx.loss_reserves ? getVal(prevStateEx, 'loss_reserves', 'cumulative') : 0;
+        prevLossIBNR = prevStateEx.loss_ibnr ? getVal(prevStateEx, 'loss_ibnr', 'cumulative') : 0;
+        prevULAEIBNR = prevStateEx.ulae_ibnr ? getVal(prevStateEx, 'ulae_ibnr', 'cumulative') : 0;
 
         if (isDccActive) {
-          prevDCCReserves = (prevStateEx.lae_reserves_dcc ? val(prevStateEx.lae_reserves_dcc) : 0) +
-                            (prevStateEx.lae_reserves_aoe ? val(prevStateEx.lae_reserves_aoe) : 0);
-          prevDCCIBNR = (prevStateEx.lae_ibnr_dcc ? val(prevStateEx.lae_ibnr_dcc) : 0) +
-                        (prevStateEx.lae_ibnr_aoe ? val(prevStateEx.lae_ibnr_aoe) : 0);
+          prevDCCReserves = (prevStateEx.lae_reserves_dcc ? getVal(prevStateEx, 'lae_reserves_dcc', 'cumulative') : 0) +
+                            (prevStateEx.lae_reserves_aoe ? getVal(prevStateEx, 'lae_reserves_aoe', 'cumulative') : 0);
+          prevDCCIBNR = (prevStateEx.lae_ibnr_dcc ? getVal(prevStateEx, 'lae_ibnr_dcc', 'cumulative') : 0) +
+                        (prevStateEx.lae_ibnr_aoe ? getVal(prevStateEx, 'lae_ibnr_aoe', 'cumulative') : 0);
           prevAOEReserves = 0;
           prevAOEIBNR = 0;
         } else if (isAoeActive) {
-          prevAOEReserves = (prevStateEx.lae_reserves_aoe ? val(prevStateEx.lae_reserves_aoe) : 0) +
-                            (prevStateEx.lae_reserves_dcc ? val(prevStateEx.lae_reserves_dcc) : 0);
-          prevAOEIBNR = (prevStateEx.lae_ibnr_aoe ? val(prevStateEx.lae_ibnr_aoe) : 0) +
-                        (prevStateEx.lae_ibnr_dcc ? val(prevStateEx.lae_ibnr_dcc) : 0);
+          prevAOEReserves = (prevStateEx.lae_reserves_aoe ? getVal(prevStateEx, 'lae_reserves_aoe', 'cumulative') : 0) +
+                            (prevStateEx.lae_reserves_dcc ? getVal(prevStateEx, 'lae_reserves_dcc', 'cumulative') : 0);
+          prevAOEIBNR = (prevStateEx.lae_ibnr_aoe ? getVal(prevStateEx, 'lae_ibnr_aoe', 'cumulative') : 0) +
+                        (prevStateEx.lae_ibnr_dcc ? getVal(prevStateEx, 'lae_ibnr_dcc', 'cumulative') : 0);
           prevDCCReserves = 0;
           prevDCCIBNR = 0;
         } else {
@@ -387,22 +393,22 @@ export class ReportsService {
         }
       }
     } else if (workbook.source === 'ITD') {
-      prevLossReserves = activeStateEx.loss_reserves ? val(activeStateEx.loss_reserves) : 0;
-      prevLossIBNR = activeStateEx.loss_ibnr ? val(activeStateEx.loss_ibnr) : 0;
-      prevULAEIBNR = activeStateEx.ulae_ibnr ? val(activeStateEx.ulae_ibnr) : 0;
+      prevLossReserves = activeStateEx.loss_reserves ? getVal(activeStateEx, 'loss_reserves', 'cumulative') : 0;
+      prevLossIBNR = activeStateEx.loss_ibnr ? getVal(activeStateEx, 'loss_ibnr', 'cumulative') : 0;
+      prevULAEIBNR = activeStateEx.ulae_ibnr ? getVal(activeStateEx, 'ulae_ibnr', 'cumulative') : 0;
 
       if (isDccActive) {
-        prevDCCReserves = (activeStateEx.lae_reserves_dcc ? val(activeStateEx.lae_reserves_dcc) : 0) +
-                          (activeStateEx.lae_reserves_aoe ? val(activeStateEx.lae_reserves_aoe) : 0);
-        prevDCCIBNR = (activeStateEx.lae_ibnr_dcc ? val(activeStateEx.lae_ibnr_dcc) : 0) +
-                      (activeStateEx.lae_ibnr_aoe ? val(activeStateEx.lae_ibnr_aoe) : 0);
+        prevDCCReserves = (activeStateEx.lae_reserves_dcc ? getVal(activeStateEx, 'lae_reserves_dcc', 'cumulative') : 0) +
+                          (activeStateEx.lae_reserves_aoe ? getVal(activeStateEx, 'lae_reserves_aoe', 'cumulative') : 0);
+        prevDCCIBNR = (activeStateEx.lae_ibnr_dcc ? getVal(activeStateEx, 'lae_ibnr_dcc', 'cumulative') : 0) +
+                      (activeStateEx.lae_ibnr_aoe ? getVal(activeStateEx, 'lae_ibnr_aoe', 'cumulative') : 0);
         prevAOEReserves = 0;
         prevAOEIBNR = 0;
       } else if (isAoeActive) {
-        prevAOEReserves = (activeStateEx.lae_reserves_aoe ? val(activeStateEx.lae_reserves_aoe) : 0) +
-                          (activeStateEx.lae_reserves_dcc ? val(activeStateEx.lae_reserves_dcc) : 0);
-        prevAOEIBNR = (activeStateEx.lae_ibnr_aoe ? val(activeStateEx.lae_ibnr_aoe) : 0) +
-                      (activeStateEx.lae_ibnr_dcc ? val(activeStateEx.lae_ibnr_dcc) : 0);
+        prevAOEReserves = (activeStateEx.lae_reserves_aoe ? getVal(activeStateEx, 'lae_reserves_aoe', 'cumulative') : 0) +
+                          (activeStateEx.lae_reserves_dcc ? getVal(activeStateEx, 'lae_reserves_dcc', 'cumulative') : 0);
+        prevAOEIBNR = (activeStateEx.lae_ibnr_aoe ? getVal(activeStateEx, 'lae_ibnr_aoe', 'cumulative') : 0) +
+                      (activeStateEx.lae_ibnr_dcc ? getVal(activeStateEx, 'lae_ibnr_dcc', 'cumulative') : 0);
         prevDCCReserves = 0;
         prevDCCIBNR = 0;
       } else {
@@ -413,22 +419,22 @@ export class ReportsService {
       }
     } else if (workbook.source === 'Starlight') {
       prevUEP = Number(activeStateEx.tax[1] || 0);
-      prevLossReserves = activeStateEx.loss_reserves ? val(activeStateEx.loss_reserves) : 0;
-      prevLossIBNR = activeStateEx.loss_ibnr ? val(activeStateEx.loss_ibnr) : 0;
-      prevULAEIBNR = activeStateEx.ulae_ibnr ? val(activeStateEx.ulae_ibnr) : 0;
+      prevLossReserves = activeStateEx.loss_reserves ? getVal(activeStateEx, 'loss_reserves', 'cumulative') : 0;
+      prevLossIBNR = activeStateEx.loss_ibnr ? getVal(activeStateEx, 'loss_ibnr', 'cumulative') : 0;
+      prevULAEIBNR = activeStateEx.ulae_ibnr ? getVal(activeStateEx, 'ulae_ibnr', 'cumulative') : 0;
 
       if (isDccActive) {
-        prevDCCReserves = (activeStateEx.lae_reserves_dcc ? val(activeStateEx.lae_reserves_dcc) : 0) +
-                          (activeStateEx.lae_reserves_aoe ? val(activeStateEx.lae_reserves_aoe) : 0);
-        prevDCCIBNR = (activeStateEx.lae_ibnr_dcc ? val(activeStateEx.lae_ibnr_dcc) : 0) +
-                      (activeStateEx.lae_ibnr_aoe ? val(activeStateEx.lae_ibnr_aoe) : 0);
+        prevDCCReserves = (activeStateEx.lae_reserves_dcc ? getVal(activeStateEx, 'lae_reserves_dcc', 'cumulative') : 0) +
+                          (activeStateEx.lae_reserves_aoe ? getVal(activeStateEx, 'lae_reserves_aoe', 'cumulative') : 0);
+        prevDCCIBNR = (activeStateEx.lae_ibnr_dcc ? getVal(activeStateEx, 'lae_ibnr_dcc', 'cumulative') : 0) +
+                      (activeStateEx.lae_ibnr_aoe ? getVal(activeStateEx, 'lae_ibnr_aoe', 'cumulative') : 0);
         prevAOEReserves = 0;
         prevAOEIBNR = 0;
       } else if (isAoeActive) {
-        prevAOEReserves = (activeStateEx.lae_reserves_aoe ? val(activeStateEx.lae_reserves_aoe) : 0) +
-                          (activeStateEx.lae_reserves_dcc ? val(activeStateEx.lae_reserves_dcc) : 0);
-        prevAOEIBNR = (activeStateEx.lae_ibnr_aoe ? val(activeStateEx.lae_ibnr_aoe) : 0) +
-                      (activeStateEx.lae_ibnr_dcc ? val(activeStateEx.lae_ibnr_dcc) : 0);
+        prevAOEReserves = (activeStateEx.lae_reserves_aoe ? getVal(activeStateEx, 'lae_reserves_aoe', 'cumulative') : 0) +
+                          (activeStateEx.lae_reserves_dcc ? getVal(activeStateEx, 'lae_reserves_dcc', 'cumulative') : 0);
+        prevAOEIBNR = (activeStateEx.lae_ibnr_aoe ? getVal(activeStateEx, 'lae_ibnr_aoe', 'cumulative') : 0) +
+                      (activeStateEx.lae_ibnr_dcc ? getVal(activeStateEx, 'lae_ibnr_dcc', 'cumulative') : 0);
         prevDCCReserves = 0;
         prevDCCIBNR = 0;
       } else {
@@ -449,23 +455,23 @@ export class ReportsService {
     const commissionEarned = cedingCommission + commissionUEP;
 
     // Determine if we have direct reserve entries in the current active exhibit
-    const hasReserves = sum(activeStateEx.loss_reserves) !== 0 ||
-                        sum(activeStateEx.loss_ibnr) !== 0 ||
-                        sum(activeStateEx.lae_reserves_dcc) !== 0 ||
-                        sum(activeStateEx.lae_ibnr_dcc) !== 0 ||
-                        sum(activeStateEx.lae_reserves_aoe) !== 0 ||
-                        sum(activeStateEx.lae_ibnr_aoe) !== 0 ||
-                        sum(activeStateEx.ulae_ibnr) !== 0;
+    const hasReserves = getVal(activeStateEx, 'loss_reserves', 'current') !== 0 ||
+                        getVal(activeStateEx, 'loss_ibnr', 'current') !== 0 ||
+                        getVal(activeStateEx, 'lae_reserves_dcc', 'current') !== 0 ||
+                        getVal(activeStateEx, 'lae_ibnr_dcc', 'current') !== 0 ||
+                        getVal(activeStateEx, 'lae_reserves_aoe', 'current') !== 0 ||
+                        getVal(activeStateEx, 'lae_ibnr_aoe', 'current') !== 0 ||
+                        getVal(activeStateEx, 'ulae_ibnr', 'current') !== 0;
 
     // Also consider reserves present if we have a valid previous workbook with reserve data
     const hasPrevReserves = prevStateEx !== null && (
-      sum(prevStateEx.loss_ibnr) !== 0 ||
-      sum(prevStateEx.loss_reserves) !== 0 ||
-      sum(prevStateEx.lae_ibnr_dcc) !== 0 ||
-      sum(prevStateEx.lae_reserves_dcc) !== 0 ||
-      sum(prevStateEx.lae_ibnr_aoe) !== 0 ||
-      sum(prevStateEx.lae_reserves_aoe) !== 0 ||
-      sum(prevStateEx.ulae_ibnr) !== 0
+      getVal(prevStateEx, 'loss_ibnr', 'cumulative') !== 0 ||
+      getVal(prevStateEx, 'loss_reserves', 'cumulative') !== 0 ||
+      getVal(prevStateEx, 'lae_ibnr_dcc', 'cumulative') !== 0 ||
+      getVal(prevStateEx, 'lae_reserves_dcc', 'cumulative') !== 0 ||
+      getVal(prevStateEx, 'lae_ibnr_aoe', 'cumulative') !== 0 ||
+      getVal(prevStateEx, 'lae_reserves_aoe', 'cumulative') !== 0 ||
+      getVal(prevStateEx, 'ulae_ibnr', 'cumulative') !== 0
     );
 
     let currLossReserves = 0;
@@ -492,12 +498,12 @@ export class ReportsService {
     let ulaeIncurred = 0;
 
     if (workbook.source === 'FUT') {
-      currLossReserves = val(activeStateEx.lu);
+      currLossReserves = getVal(activeStateEx, 'lu', 'current');
       if (isDccActive) {
-        currDCCReserves = val(activeStateEx.laeu) + val(activeStateEx.aeu);
+        currDCCReserves = getVal(activeStateEx, 'laeu', 'current') + getVal(activeStateEx, 'aeu', 'current');
         currAOEReserves = 0;
       } else if (isAoeActive) {
-        currAOEReserves = val(activeStateEx.laeu) + val(activeStateEx.aeu);
+        currAOEReserves = getVal(activeStateEx, 'laeu', 'current') + getVal(activeStateEx, 'aeu', 'current');
         currDCCReserves = 0;
       } else {
         currDCCReserves = 0;
@@ -527,18 +533,18 @@ export class ReportsService {
       currULAEIBNR = prevULAEIBNR + changeULAEIBNR;
       ulaeIncurred = ulaePaid + changeULAEIBNR;
     } else if (hasReserves || hasPrevReserves) {
-      currLossReserves = val(activeStateEx.loss_reserves);
-      currLossIBNR = val(activeStateEx.loss_ibnr);
-      currULAEIBNR = val(activeStateEx.ulae_ibnr);
+      currLossReserves = getVal(activeStateEx, 'loss_reserves', 'current');
+      currLossIBNR = getVal(activeStateEx, 'loss_ibnr', 'current');
+      currULAEIBNR = getVal(activeStateEx, 'ulae_ibnr', 'current');
 
       if (isDccActive) {
-        currDCCReserves = val(activeStateEx.lae_reserves_dcc) + val(activeStateEx.lae_reserves_aoe);
-        currDCCIBNR = val(activeStateEx.lae_ibnr_dcc) + val(activeStateEx.lae_ibnr_aoe);
+        currDCCReserves = getVal(activeStateEx, 'lae_reserves_dcc', 'current') + getVal(activeStateEx, 'lae_reserves_aoe', 'current');
+        currDCCIBNR = getVal(activeStateEx, 'lae_ibnr_dcc', 'current') + getVal(activeStateEx, 'lae_ibnr_aoe', 'current');
         currAOEReserves = 0;
         currAOEIBNR_val = 0;
       } else if (isAoeActive) {
-        currAOEReserves = val(activeStateEx.lae_reserves_aoe) + val(activeStateEx.lae_reserves_dcc);
-        currAOEIBNR_val = val(activeStateEx.lae_ibnr_aoe) + val(activeStateEx.lae_ibnr_dcc);
+        currAOEReserves = getVal(activeStateEx, 'lae_reserves_aoe', 'current') + getVal(activeStateEx, 'lae_reserves_dcc', 'current');
+        currAOEIBNR_val = getVal(activeStateEx, 'lae_ibnr_aoe', 'current') + getVal(activeStateEx, 'lae_ibnr_dcc', 'current');
         currDCCReserves = 0;
         currDCCIBNR = 0;
       } else {
