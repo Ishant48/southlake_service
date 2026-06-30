@@ -918,7 +918,7 @@ export class ExcelParserService {
     return ws;
   }
 
-  private getDefaultMappings(program: string) {
+  getDefaultMappings(program: string) {
     let mga = '1201';
     let lob = '000171';
     let lineDescSuffix = 'FUT Starlight T1 Excess';
