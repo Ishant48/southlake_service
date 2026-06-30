@@ -704,7 +704,27 @@ export class ReportsService {
   private async getPreviousStateExhibit(workbook: Workbook, stateCode: string): Promise<StateExhibit | null> {
     const prevWb = await this.workbookService.findPreviousWorkbookFor(workbook);
     if (!prevWb || !prevWb.stateExhibits) return null;
-    const ex = prevWb.stateExhibits.find(e => e.stateCode === stateCode) || null;
+
+    let ex = prevWb.stateExhibits.find(e => e.stateCode === stateCode) || null;
+    if (ex) {
+      ex.workbook = prevWb;
+      return ex;
+    }
+
+    try {
+      const stateRes = await this.coaRepo.query(
+        'SELECT state_code, state_abbr FROM state_master WHERE state_abbr = $1 OR state_code::text = $2',
+        [stateCode, stateCode]
+      );
+      if (stateRes.length > 0) {
+        const stateObj = stateRes[0];
+        const altCode = stateCode === stateObj.state_abbr ? String(stateObj.state_code) : stateObj.state_abbr;
+        ex = prevWb.stateExhibits.find(e => String(e.stateCode) === altCode) || null;
+      }
+    } catch (err) {
+      console.error('Error matching state code in getPreviousStateExhibit:', err);
+    }
+
     if (ex) {
       ex.workbook = prevWb;
     }
