@@ -116,4 +116,9 @@ export class WorkbookController {
     });
     res.end(buffer);
   }
+
+  @Post('manual-itd')
+  async createManualITD(@Body() body: any) {
+    return this.workbookService.createManualITD(body);
+  }
 }

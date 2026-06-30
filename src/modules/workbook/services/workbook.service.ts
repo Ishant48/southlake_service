@@ -566,4 +566,62 @@ export class WorkbookService {
 
     await this.stateExhibitRepo.save(totalExhibit);
   }
+
+  async createManualITD(dto: any): Promise<Workbook> {
+    const { program, monthKey, monthLabel, rates, exhibits } = dto;
+    const source = 'ITD';
+
+    // Check if workbook exists
+    const existing = await this.workbookRepo.findOne({
+      where: { program, monthKey, source },
+    });
+    if (existing) {
+      await this.workbookRepo.remove(existing);
+    }
+
+    const workbook = this.workbookRepo.create({
+      program,
+      monthKey,
+      monthLabel,
+      source,
+      rates,
+      ...this.excelParserService.getDefaultMappings(program),
+    });
+
+    const savedWorkbook = await this.workbookRepo.save(workbook);
+
+    const savedExhibits: StateExhibit[] = [];
+    for (const ex of exhibits) {
+      const stateEx = this.stateExhibitRepo.create({
+        workbookId: savedWorkbook.id,
+        stateCode: ex.state_code.toUpperCase(),
+        pw: ex.pw || [0, 0, 0],
+        pfw: ex.pfw || [0, 0, 0],
+        pc: ex.pc || [0, 0, 0],
+        pfc: ex.pfc || [0, 0, 0],
+        tax: ex.tax || [0, 0, 0],
+        lp: ex.lp || [0, 0, 0],
+        laep: ex.laep || [0, 0, 0],
+        ae_paid: ex.ae_paid || [0, 0, 0],
+        pe: ex.pe || [0, 0, 0],
+        pfe: ex.pfe || [0, 0, 0],
+        uep: ex.uep || [0, 0, 0],
+        lu: ex.lu || [0, 0, 0],
+        laeu: ex.laeu || [0, 0, 0],
+        aeu: ex.aeu || [0, 0, 0],
+        loss_reserves: ex.loss_reserves || [0, 0, 0],
+        loss_ibnr: ex.loss_ibnr || [0, 0, 0],
+        lae_reserves_dcc: ex.lae_reserves_dcc || [0, 0, 0],
+        lae_ibnr_dcc: ex.lae_ibnr_dcc || [0, 0, 0],
+        lae_reserves_aoe: ex.lae_reserves_aoe || [0, 0, 0],
+        lae_ibnr_aoe: ex.lae_ibnr_aoe || [0, 0, 0],
+        ulae_ibnr: ex.ulae_ibnr || [0, 0, 0],
+      });
+      savedExhibits.push(stateEx);
+    }
+    await this.stateExhibitRepo.save(savedExhibits);
+    await this.recalculateTotalExhibit(savedWorkbook.id);
+
+    return this.findOne(savedWorkbook.id);
+  }
 }
