@@ -383,6 +383,13 @@ export class WorkbookService {
 
     await this.populateWorkbookRates(workbook);
 
+    const stateMaster = await this.workbookRepo.query('SELECT state_code, state_abbr FROM state_master');
+    const stateMap = new Map<string, string>();
+    for (const row of stateMaster) {
+      stateMap.set(String(row.state_code), String(row.state_abbr));
+      stateMap.set(String(row.state_abbr), String(row.state_code));
+    }
+
     const prevWb = await this.findPreviousWorkbookFor(workbook);
     const prevSource = prevWb?.source;
     const prevStateExhibits = prevWb?.stateExhibits || [];
@@ -398,7 +405,11 @@ export class WorkbookService {
     const nonTotalExhibits = workbook.stateExhibits.filter((e) => e.stateCode !== 'TOTAL');
 
     for (const ex of nonTotalExhibits) {
-      const prevEx = prevStateExhibits.find((pe) => pe.stateCode === ex.stateCode);
+      const prevEx = prevStateExhibits.find((pe) => {
+        if (pe.stateCode === ex.stateCode) return true;
+        const mapped = stateMap.get(pe.stateCode);
+        return mapped && mapped === ex.stateCode;
+      });
 
       const pw = ex.pw || [0, 0, 0];
       const uep = ex.uep || [0, 0, 0];
