@@ -73,7 +73,7 @@ export class MastersService {
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }
-    return this.stateRepo.find({ where: where.length > 1 ? where : where[0], order: { stateAbbr: 'ASC' } });
+    return this.stateRepo.find({ where: where.length > 1 ? where : where[0], order: { stateCode: { direction: 'ASC', nulls: 'LAST' } } });
   }
 
   async findOneState(id: string): Promise<StateMaster & { documents: StateDocument[] }> {
