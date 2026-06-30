@@ -29,7 +29,7 @@ const STATES = [
     "name": "Arizona"
   },
   {
-    "state_code": null,
+    "state_code": 5,
     "state_abbr": "CA",
     "name": "California"
   },
@@ -59,7 +59,7 @@ const STATES = [
     "name": "Delaware"
   },
   {
-    "state_code": null,
+    "state_code": 9,
     "state_abbr": "FL",
     "name": "Florida"
   },
@@ -84,14 +84,14 @@ const STATES = [
     "name": "Idaho"
   },
   {
-    "state_code": null,
+    "state_code": 13,
     "state_abbr": "IL",
     "name": "Illinois"
   },
   {
-    "state_code": null,
+    "state_code": 14,
     "state_abbr": "IN",
-    "name": "India"
+    "name": "Indiana"
   },
   {
     "state_code": 16,
@@ -184,7 +184,7 @@ const STATES = [
     "name": "Nevada"
   },
   {
-    "state_code": null,
+    "state_code": 32,
     "state_abbr": "NY",
     "name": "New York"
   },
@@ -229,7 +229,7 @@ const STATES = [
     "name": "Tennessee"
   },
   {
-    "state_code": null,
+    "state_code": 43,
     "state_abbr": "TX",
     "name": "Texas"
   },
