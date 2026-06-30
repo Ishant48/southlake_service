@@ -826,9 +826,14 @@ export class ReportsService {
     return rows;
   }
 
-  async postToJournalEntries(workbookId: number, stateCode: string, userId?: string) {
+  async postToJournalEntries(workbookId: number, stateCode: string, userId?: string, customRows?: any[]) {
     const workbook = await this.workbookService.findOne(workbookId);
-    const glRows = await this.getGLJournalEntries(workbookId, stateCode);
+    let glRows = await this.getGLJournalEntries(workbookId, stateCode);
+
+    if (customRows && Array.isArray(customRows)) {
+      glRows = customRows;
+    }
+
     if (glRows.length === 0) {
       throw new BadRequestException('No journal entries generated for this workbook/state combination.');
     }
