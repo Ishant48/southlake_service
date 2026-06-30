@@ -2,10 +2,10 @@ import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateJournalBatchDto {
-  @ApiProperty({ description: 'Batch number' })
-  @IsNotEmpty()
+  @ApiPropertyOptional({ description: 'Batch number' })
+  @IsOptional()
   @IsString()
-  batch_number: string;
+  batch_number?: string;
 
   @ApiProperty({ description: 'Process period (e.g. June 2026)' })
   @IsNotEmpty()

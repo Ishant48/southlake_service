@@ -72,6 +72,29 @@ export class WorkbookService {
     });
   }
 
+  private async populateWorkbookRates(workbook: Workbook): Promise<void> {
+    if (!workbook) return;
+    const treaty = await this.treatyRepo.findOne({ where: { name: workbook.program } });
+    if (treaty) {
+      workbook.rates = {
+        ...workbook.rates,
+        qs: treaty.qsPct !== null ? Number(treaty.qsPct) : (workbook.rates?.qs ?? 100),
+        cf: treaty.cfPct !== null ? Number(treaty.cfPct) : (workbook.rates?.cf ?? 5),
+        comm: treaty.commPct !== null ? Number(treaty.commPct) : (workbook.rates?.comm ?? 29),
+        bb: treaty.bbPct !== null ? Number(treaty.bbPct) : (workbook.rates?.bb ?? 0.4),
+        ulae: treaty.ulaePct !== null ? Number(treaty.ulaePct) : (workbook.rates?.ulae ?? 7),
+        xol: treaty.xolPct !== null ? Number(treaty.xolPct) : (workbook.rates?.xol ?? 0),
+        lr: treaty.lrCapPct !== null ? Number(treaty.lrCapPct) : (workbook.rates?.lr ?? 2.0),
+        
+        lossPick: treaty.ibnrPct !== null ? Number(treaty.ibnrPct) : (workbook.rates?.lossPick ?? 5.0),
+        boardsCharge: treaty.bbPct !== null ? Number(treaty.bbPct) : (workbook.rates?.boardsCharge ?? 0.4),
+        lossRatioCap: treaty.lrCapPct !== null ? Number(treaty.lrCapPct) : (workbook.rates?.lossRatioCap ?? 2.0),
+        laeDcc: workbook.rates?.laeDcc ?? 6.2,
+        laeAoe: workbook.rates?.laeAoe ?? 0.0,
+      };
+    }
+  }
+
   async findOne(id: number): Promise<Workbook> {
     let workbook = await this.workbookRepo.findOne({
       where: { id },
@@ -81,6 +104,8 @@ export class WorkbookService {
       throw new NotFoundException(`Workbook with ID ${id} not found`);
     }
 
+    await this.populateWorkbookRates(workbook);
+
     if (workbook.source === 'FUT') {
       await this.recalculateFUTReserves(id);
       const reloaded = await this.workbookRepo.findOne({
@@ -89,6 +114,7 @@ export class WorkbookService {
       });
       if (reloaded) {
         workbook = reloaded;
+        await this.populateWorkbookRates(workbook);
       }
     }
 
@@ -109,7 +135,9 @@ export class WorkbookService {
   async updateStatus(id: number, status: string): Promise<Workbook> {
     const workbook = await this.findOne(id);
     workbook.status = status;
-    return this.workbookRepo.save(workbook);
+    const saved = await this.workbookRepo.save(workbook);
+    await this.populateWorkbookRates(saved);
+    return saved;
   }
 
   async uploadWorkbook(fileBuffer: Buffer, filename: string, forceOverwrite: boolean = false, program?: string): Promise<any> {
@@ -353,6 +381,8 @@ export class WorkbookService {
       return;
     }
 
+    await this.populateWorkbookRates(workbook);
+
     const prevWb = await this.findPreviousWorkbookFor(workbook);
     const prevSource = prevWb?.source;
     const prevStateExhibits = prevWb?.stateExhibits || [];
@@ -568,7 +598,7 @@ export class WorkbookService {
   }
 
   async createManualITD(dto: any): Promise<Workbook> {
-    const { program, monthKey, monthLabel, rates, exhibits } = dto;
+    const { program, monthKey, monthLabel, exhibits } = dto;
     const source = 'ITD';
 
     // Check if workbook exists
@@ -578,6 +608,23 @@ export class WorkbookService {
     if (existing) {
       await this.workbookRepo.remove(existing);
     }
+
+    const treaty = await this.treatyRepo.findOne({ where: { name: program } });
+    const rates = {
+      qs: treaty?.qsPct !== null ? Number(treaty.qsPct) : 100,
+      cf: treaty?.cfPct !== null ? Number(treaty.cfPct) : 5,
+      comm: treaty?.commPct !== null ? Number(treaty.commPct) : 29,
+      bb: treaty?.bbPct !== null ? Number(treaty.bbPct) : 0.4,
+      ulae: treaty?.ulaePct !== null ? Number(treaty.ulaePct) : 7,
+      xol: treaty?.xolPct !== null ? Number(treaty.xolPct) : 0,
+      lr: treaty?.lrCapPct !== null ? Number(treaty.lrCapPct) : 2.0,
+      
+      lossPick: treaty?.ibnrPct !== null ? Number(treaty.ibnrPct) : 5.0,
+      boardsCharge: treaty?.bbPct !== null ? Number(treaty.bbPct) : 0.4,
+      lossRatioCap: treaty?.lrCapPct !== null ? Number(treaty.lrCapPct) : 2.0,
+      laeDcc: 6.2,
+      laeAoe: 0.0,
+    };
 
     const workbook = this.workbookRepo.create({
       program,

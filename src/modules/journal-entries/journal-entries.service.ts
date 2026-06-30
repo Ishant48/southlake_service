@@ -49,13 +49,27 @@ export class JournalEntriesService {
   }
 
   async createBatch(dto: CreateJournalBatchDto, userId?: string): Promise<JournalEntryBatch> {
-    const existing = await this.batchRepo.findOne({ where: { batchNumber: dto.batch_number } });
-    if (existing) {
-      throw new BadRequestException(`Batch number '${dto.batch_number}' already exists`);
+    let nextBatchNumber = dto.batch_number;
+
+    if (!nextBatchNumber) {
+      const allBatches = await this.batchRepo.find();
+      let maxNum = 10000;
+      for (const b of allBatches) {
+        const num = parseInt(b.batchNumber, 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+      nextBatchNumber = (maxNum + 1).toString();
+    } else {
+      const existing = await this.batchRepo.findOne({ where: { batchNumber: nextBatchNumber } });
+      if (existing) {
+        throw new BadRequestException(`Batch number '${nextBatchNumber}' already exists`);
+      }
     }
 
     const batch = this.batchRepo.create({
-      batchNumber: dto.batch_number,
+      batchNumber: nextBatchNumber,
       period: dto.period,
       agentName: dto.agent_name,
       totalAmount: 0.00,
