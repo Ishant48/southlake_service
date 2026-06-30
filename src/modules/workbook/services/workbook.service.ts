@@ -411,6 +411,22 @@ export class WorkbookService {
         return mapped && mapped === ex.stateCode;
       });
 
+      const getPrevYTD = (arr: number[]) => {
+        if (!arr) return 0;
+        if (arr.length > 2) return Number(arr[2] ?? 0);
+        if (arr.length > 1) return Number(arr[1] ?? 0);
+        return Number(arr[0] ?? 0);
+      };
+
+      const prev_uep_val = getPrevYTD(prevEx?.uep);
+      const prev_loss_reserves_val = getPrevYTD(prevEx?.loss_reserves);
+      const prev_loss_ibnr_val = getPrevYTD(prevEx?.loss_ibnr) || getPrevYTD(prevEx?.lu);
+      const prev_lae_reserves_dcc_val = getPrevYTD(prevEx?.lae_reserves_dcc);
+      const prev_lae_ibnr_dcc_val = getPrevYTD(prevEx?.lae_ibnr_dcc) || getPrevYTD(prevEx?.laeu);
+      const prev_lae_reserves_aoe_val = getPrevYTD(prevEx?.lae_reserves_aoe);
+      const prev_lae_ibnr_aoe_val = getPrevYTD(prevEx?.lae_ibnr_aoe);
+      const prev_ulae_ibnr_val = getPrevYTD(prevEx?.ulae_ibnr) || getPrevYTD(prevEx?.aeu);
+
       const pw = ex.pw || [0, 0, 0];
       const uep = ex.uep || [0, 0, 0];
       const lp = ex.lp || [0, 0, 0];
@@ -419,149 +435,89 @@ export class WorkbookService {
       const laeu = ex.laeu || [0, 0, 0];
       const aeu = ex.aeu || [0, 0, 0];
 
-      const prev_uep = prevEx?.uep || [0, 0, 0];
-      const prev_lu = prevEx?.lu || [0, 0, 0];
-      const prev_laeu = prevEx?.laeu || [0, 0, 0];
-      const prev_aeu = prevEx?.aeu || [0, 0, 0];
+      // Prior values (index 0)
+      uep[0] = prev_uep_val;
+      
+      const loss_reserves = [prev_loss_reserves_val, 0, 0];
+      const loss_ibnr = [prev_loss_ibnr_val, 0, 0];
+      const lae_reserves_dcc = [prev_lae_reserves_dcc_val, 0, 0];
+      const lae_ibnr_dcc = [prev_lae_ibnr_dcc_val, 0, 0];
+      const lae_reserves_aoe = [prev_lae_reserves_aoe_val, 0, 0];
+      const lae_ibnr_aoe = [prev_lae_ibnr_aoe_val, 0, 0];
+      const ulae_ibnr = [prev_ulae_ibnr_val, 0, 0];
 
-      const loss_reserves = [0, 0, 0];
-      const loss_ibnr = [0, 0, 0];
-      const lae_reserves_dcc = [0, 0, 0];
-      const lae_ibnr_dcc = [0, 0, 0];
-      const lae_reserves_aoe = [0, 0, 0];
-      const lae_ibnr_aoe = [0, 0, 0];
-      const ulae_ibnr = [0, 0, 0];
+      // Current activity (index 1)
+      const pwVal = Number(pw[1] || 0);
+      const currUEP = Number(uep[1] || 0);
+      const lossesPaid = Number(lp[1] || 0);
 
-      for (let c = 0; c < 3; c++) {
-        const pwVal = Number(pw[c] || 0);
-        const currUEP = Number(uep[c] || 0);
-        const lossesPaid = Number(lp[c] || 0);
-
-        let dccPaid = 0;
-        let aoePaid = 0;
-        const rawLaep = Number(laep[c] || 0);
-        if (isDccActive) {
-          dccPaid = rawLaep;
-          aoePaid = 0;
-        } else if (isAoeActive) {
-          aoePaid = rawLaep;
-          dccPaid = 0;
-        }
-
-        let prevUEPVal = 0;
-        let prevLossReservesVal = 0;
-        let prevLossIBNRVal = 0;
-        let prevDCCReservesVal = 0;
-        let prevDCCIBNRVal = 0;
-        let prevAOEReservesVal = 0;
-        let prevAOEIBNRVal = 0;
-        let prevULAEIBNRVal = 0;
-
-        if (prevEx) {
-          prevUEPVal = Number(prev_uep[c] || 0);
-          if (prevSource === 'FUT') {
-            const hasPrevDetailedReserves = prevEx && (
-              prevEx.loss_ibnr?.some(v => Number(v) !== 0) ||
-              prevEx.lae_ibnr_dcc?.some(v => Number(v) !== 0) ||
-              prevEx.lae_ibnr_aoe?.some(v => Number(v) !== 0) ||
-              prevEx.ulae_ibnr?.some(v => Number(v) !== 0)
-            );
-
-            if (hasPrevDetailedReserves) {
-              prevLossReservesVal = Number(prevEx.loss_reserves?.[c] || 0);
-              prevLossIBNRVal = Number(prevEx.loss_ibnr?.[c] || 0);
-              prevULAEIBNRVal = Number(prevEx.ulae_ibnr?.[c] || 0);
-
-              if (isDccActive) {
-                prevDCCReservesVal = Number(prevEx.lae_reserves_dcc?.[c] || 0) + Number(prevEx.lae_reserves_aoe?.[c] || 0);
-                prevDCCIBNRVal = Number(prevEx.lae_ibnr_dcc?.[c] || 0) + Number(prevEx.lae_ibnr_aoe?.[c] || 0);
-                prevAOEReservesVal = 0;
-                prevAOEIBNRVal = 0;
-              } else if (isAoeActive) {
-                prevAOEReservesVal = Number(prevEx.lae_reserves_aoe?.[c] || 0) + Number(prevEx.lae_reserves_dcc?.[c] || 0);
-                prevAOEIBNRVal = Number(prevEx.lae_ibnr_aoe?.[c] || 0) + Number(prevEx.lae_ibnr_dcc?.[c] || 0);
-                prevDCCReservesVal = 0;
-                prevDCCIBNRVal = 0;
-              }
-            } else {
-              prevLossReservesVal = 0;
-              prevLossIBNRVal = Number(prev_lu[c] || 0);
-              prevULAEIBNRVal = Number(prev_aeu[c] || 0);
-
-              if (isDccActive) {
-                prevDCCReservesVal = 0;
-                prevDCCIBNRVal = Number(prev_laeu[c] || 0);
-                prevAOEReservesVal = 0;
-                prevAOEIBNRVal = 0;
-              } else if (isAoeActive) {
-                prevAOEReservesVal = 0;
-                prevAOEIBNRVal = Number(prev_laeu[c] || 0);
-                prevDCCReservesVal = 0;
-                prevDCCIBNRVal = 0;
-              }
-            }
-          } else {
-            prevLossReservesVal = Number(prevEx.loss_reserves?.[c] || 0);
-            prevLossIBNRVal = Number(prevEx.loss_ibnr?.[c] || 0);
-            prevULAEIBNRVal = Number(prevEx.ulae_ibnr?.[c] || 0);
-
-            if (isDccActive) {
-              prevDCCReservesVal = Number(prevEx.lae_reserves_dcc?.[c] || 0) + Number(prevEx.lae_reserves_aoe?.[c] || 0);
-              prevDCCIBNRVal = Number(prevEx.lae_ibnr_dcc?.[c] || 0) + Number(prevEx.lae_ibnr_aoe?.[c] || 0);
-              prevAOEReservesVal = 0;
-              prevAOEIBNRVal = 0;
-            } else if (isAoeActive) {
-              prevAOEReservesVal = Number(prevEx.lae_reserves_aoe?.[c] || 0) + Number(prevEx.lae_reserves_dcc?.[c] || 0);
-              prevAOEIBNRVal = Number(prevEx.lae_ibnr_aoe?.[c] || 0) + Number(prevEx.lae_ibnr_dcc?.[c] || 0);
-              prevDCCReservesVal = 0;
-              prevDCCIBNRVal = 0;
-            }
-          }
-        }
-
-        const changeUEP = prevUEPVal - currUEP;
-        const premiumsEarned = pwVal + changeUEP;
-
-        const currLossReservesVal = Number(lu[c] || 0);
-        let currDCCReservesVal = 0;
-        let currAOEReservesVal = 0;
-
-        if (isDccActive) {
-          currDCCReservesVal = Number(laeu[c] || 0) + Number(aeu[c] || 0);
-          currAOEReservesVal = 0;
-        } else if (isAoeActive) {
-          currAOEReservesVal = Number(laeu[c] || 0) + Number(aeu[c] || 0);
-          currDCCReservesVal = 0;
-        }
-
-        const ultimateLoss = premiumsEarned * (lossPick / 100);
-        const ultimateLAEDcc = premiumsEarned * (laeDcc / 100);
-        const ultimateLAEAoe = premiumsEarned * (laeAoe / 100);
-
-        const changeLossReserves = currLossReservesVal - prevLossReservesVal;
-        const changeLossIBNR = ultimateLoss - lossesPaid - changeLossReserves;
-        const currLossIBNRVal = prevLossIBNRVal + changeLossIBNR;
-
-        const changeDCCReserves = currDCCReservesVal - prevDCCReservesVal;
-        const changeDCCIBNR = ultimateLAEDcc - dccPaid - changeDCCReserves;
-        const currDCCIBNRVal = prevDCCIBNRVal + changeDCCIBNR;
-
-        const changeAOEReserves = currAOEReservesVal - prevAOEReservesVal;
-        const changeAOEIBNR = ultimateLAEAoe - aoePaid - changeAOEReserves;
-        const currAOEIBNRVal = prevAOEIBNRVal + changeAOEIBNR;
-
-        const changeULAEIBNR = (0.5 * changeLossReserves + changeLossIBNR) * 0.005;
-        const currULAEIBNRVal = prevULAEIBNRVal + changeULAEIBNR;
-
-        loss_reserves[c] = Number(currLossReservesVal.toFixed(2));
-        loss_ibnr[c] = Number(currLossIBNRVal.toFixed(2));
-        lae_reserves_dcc[c] = Number((isDccActive ? currDCCReservesVal : 0).toFixed(2));
-        lae_ibnr_dcc[c] = Number((isDccActive ? currDCCIBNRVal : 0).toFixed(2));
-        lae_reserves_aoe[c] = Number((isAoeActive ? currAOEReservesVal : 0).toFixed(2));
-        lae_ibnr_aoe[c] = Number((isAoeActive ? currAOEIBNRVal : 0).toFixed(2));
-        ulae_ibnr[c] = Number(currULAEIBNRVal.toFixed(2));
+      let dccPaid = 0;
+      let aoePaid = 0;
+      const rawLaep = Number(laep[1] || 0);
+      if (isDccActive) {
+        dccPaid = rawLaep;
+        aoePaid = 0;
+      } else if (isAoeActive) {
+        aoePaid = rawLaep;
+        dccPaid = 0;
       }
 
+      const changeUEP = prev_uep_val - currUEP;
+      const premiumsEarned = pwVal + changeUEP;
+
+      const currLossReservesVal = Number(lu[1] || 0);
+      let currDCCReservesVal = 0;
+      let currAOEReservesVal = 0;
+
+      if (isDccActive) {
+        currDCCReservesVal = Number(laeu[1] || 0) + Number(aeu[1] || 0);
+        currAOEReservesVal = 0;
+      } else if (isAoeActive) {
+        currAOEReservesVal = Number(laeu[1] || 0) + Number(aeu[1] || 0);
+        currDCCReservesVal = 0;
+      }
+
+      const ultimateLoss = premiumsEarned * (lossPick / 100);
+      const ultimateLAEDcc = premiumsEarned * (laeDcc / 100);
+      const ultimateLAEAoe = premiumsEarned * (laeAoe / 100);
+
+      const changeLossReserves = currLossReservesVal - prev_loss_reserves_val;
+      const changeLossIBNR = ultimateLoss - lossesPaid - changeLossReserves;
+      const currLossIBNRVal = prev_loss_ibnr_val + changeLossIBNR;
+
+      const changeDCCReserves = currDCCReservesVal - prev_lae_reserves_dcc_val;
+      const changeDCCIBNR = ultimateLAEDcc - dccPaid - changeDCCReserves;
+      const currDCCIBNRVal = prev_lae_ibnr_dcc_val + changeDCCIBNR;
+
+      const changeAOEReserves = currAOEReservesVal - prev_lae_reserves_aoe_val;
+      const changeAOEIBNR = ultimateLAEAoe - aoePaid - changeAOEReserves;
+      const currAOEIBNRVal = prev_lae_ibnr_aoe_val + changeAOEIBNR;
+
+      const changeULAEIBNR = (0.5 * changeLossReserves + changeLossIBNR) * 0.005;
+      const currULAEIBNRVal = prev_ulae_ibnr_val + changeULAEIBNR;
+
+      loss_reserves[1] = Number(currLossReservesVal.toFixed(2));
+      loss_ibnr[1] = Number(currLossIBNRVal.toFixed(2));
+      lae_reserves_dcc[1] = Number((isDccActive ? currDCCReservesVal : 0).toFixed(2));
+      lae_ibnr_dcc[1] = Number((isDccActive ? currDCCIBNRVal : 0).toFixed(2));
+      lae_reserves_aoe[1] = Number((isAoeActive ? currAOEReservesVal : 0).toFixed(2));
+      lae_ibnr_aoe[1] = Number((isAoeActive ? currAOEIBNRVal : 0).toFixed(2));
+      ulae_ibnr[1] = Number(currULAEIBNRVal.toFixed(2));
+
+      // YTD values (index 2 = Prior + Current)
+      loss_reserves[2] = Number((loss_reserves[0] + loss_reserves[1]).toFixed(2));
+      loss_ibnr[2] = Number((loss_ibnr[0] + loss_ibnr[1]).toFixed(2));
+      lae_reserves_dcc[2] = Number((lae_reserves_dcc[0] + lae_reserves_dcc[1]).toFixed(2));
+      lae_ibnr_dcc[2] = Number((lae_ibnr_dcc[0] + lae_ibnr_dcc[1]).toFixed(2));
+      lae_reserves_aoe[2] = Number((lae_reserves_aoe[0] + lae_reserves_aoe[1]).toFixed(2));
+      lae_ibnr_aoe[2] = Number((lae_ibnr_aoe[0] + lae_ibnr_aoe[1]).toFixed(2));
+      ulae_ibnr[2] = Number((ulae_ibnr[0] + ulae_ibnr[1]).toFixed(2));
+
+      // UEP YTD value is the end-of-month value
+      uep[2] = uep[1];
+
+      ex.pw = pw;
+      ex.uep = uep;
       ex.loss_reserves = loss_reserves;
       ex.loss_ibnr = loss_ibnr;
       ex.lae_reserves_dcc = lae_reserves_dcc;
@@ -569,9 +525,10 @@ export class WorkbookService {
       ex.lae_reserves_aoe = lae_reserves_aoe;
       ex.lae_ibnr_aoe = lae_ibnr_aoe;
       ex.ulae_ibnr = ulae_ibnr;
+
+      await this.stateExhibitRepo.save(ex);
     }
 
-    await this.stateExhibitRepo.save(nonTotalExhibits);
     await this.recalculateTotalExhibit(workbookId);
   }
 
