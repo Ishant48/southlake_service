@@ -34,6 +34,24 @@ export async function seedJournalEntries(): Promise<void> {
       return;
     }
 
+    // 0. Ensure Futuristic Underwriters LLC MGA exists in mga_master
+    console.log('Checking Futuristic Underwriters LLC MGA...');
+    const resMGA = await queryRunner.query(
+      "SELECT id FROM mga_master WHERE name = 'Futuristic Underwriters LLC' OR mga_code = 'MGA-100'"
+    );
+    if (resMGA.length === 0) {
+      console.log('Inserting Futuristic Underwriters LLC MGA...');
+      await queryRunner.query(`
+        INSERT INTO mga_master (mga_code, name, tax_payable_inhouse, is_active, ledger_amount)
+        VALUES ('MGA-100', 'Futuristic Underwriters LLC', false, true, 0.00)
+      `);
+    } else {
+      await queryRunner.query(
+        "UPDATE mga_master SET name = 'Futuristic Underwriters LLC', mga_code = 'MGA-100' WHERE id = $1",
+        [resMGA[0].id]
+      );
+    }
+
     // Clear existing journal entries and batches in southlake to start fresh
     console.log('Clearing existing journal entries and batches in southlake...');
     await queryRunner.query('DELETE FROM journal_entries');
