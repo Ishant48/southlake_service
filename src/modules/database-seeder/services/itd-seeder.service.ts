@@ -88,7 +88,7 @@ export class ItdSeederService {
         }
       },
       {
-        program: 'APD Local',
+        program: 'APD (Local)',
         mga: '1202',
         lob: '000212',
         lineDescSuffix: 'FUT Starlight T2 APD Local',
