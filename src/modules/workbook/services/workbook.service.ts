@@ -413,6 +413,9 @@ export class WorkbookService {
 
       const getPrevYTD = (arr: number[]) => {
         if (!arr) return 0;
+        if (prevSource === 'ITD') {
+          return Number(arr[1] ?? 0);
+        }
         if (arr.length > 2) return Number(arr[2] ?? 0);
         if (arr.length > 1) return Number(arr[1] ?? 0);
         return Number(arr[0] ?? 0);
@@ -504,14 +507,14 @@ export class WorkbookService {
       lae_ibnr_aoe[1] = Number((isAoeActive ? currAOEIBNRVal : 0).toFixed(2));
       ulae_ibnr[1] = Number(currULAEIBNRVal.toFixed(2));
 
-      // YTD values (index 2 = Prior + Current)
-      loss_reserves[2] = Number((loss_reserves[0] + loss_reserves[1]).toFixed(2));
-      loss_ibnr[2] = Number((loss_ibnr[0] + loss_ibnr[1]).toFixed(2));
-      lae_reserves_dcc[2] = Number((lae_reserves_dcc[0] + lae_reserves_dcc[1]).toFixed(2));
-      lae_ibnr_dcc[2] = Number((lae_ibnr_dcc[0] + lae_ibnr_dcc[1]).toFixed(2));
-      lae_reserves_aoe[2] = Number((lae_reserves_aoe[0] + lae_reserves_aoe[1]).toFixed(2));
-      lae_ibnr_aoe[2] = Number((lae_ibnr_aoe[0] + lae_ibnr_aoe[1]).toFixed(2));
-      ulae_ibnr[2] = Number((ulae_ibnr[0] + ulae_ibnr[1]).toFixed(2));
+      // YTD values for reserves (balance sheet items) are simply the end-of-month (current) values
+      loss_reserves[2] = loss_reserves[1];
+      loss_ibnr[2] = loss_ibnr[1];
+      lae_reserves_dcc[2] = lae_reserves_dcc[1];
+      lae_ibnr_dcc[2] = lae_ibnr_dcc[1];
+      lae_reserves_aoe[2] = lae_reserves_aoe[1];
+      lae_ibnr_aoe[2] = lae_ibnr_aoe[1];
+      ulae_ibnr[2] = ulae_ibnr[1];
 
       // UEP YTD value is the end-of-month value
       uep[2] = uep[1];
