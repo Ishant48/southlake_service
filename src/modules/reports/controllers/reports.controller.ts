@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ReportsService } from '../services/reports.service';
 import { Public } from '../../../common/decorators/public.decorator';
 
-@Controller('api/workbooks')
+@Controller('workbooks')
 @Public()
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}

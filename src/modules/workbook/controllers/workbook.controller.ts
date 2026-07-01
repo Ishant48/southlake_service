@@ -22,7 +22,7 @@ import { UpdateCashSettlementDto } from '../dto/update-cash-settlement.dto';
 import { UpdateMappingsDto } from '../dto/update-mappings.dto';
 import { Public } from '../../../common/decorators/public.decorator';
 
-@Controller('api/workbooks')
+@Controller('workbooks')
 @Public()
 export class WorkbookController {
   constructor(private readonly workbookService: WorkbookService) {}
