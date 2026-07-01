@@ -190,6 +190,7 @@ export class ExcelParserService {
           });
         }
         // Delete old one and cascade details
+        await this.deleteAssociatedBatches(workbookEntity.id);
         await this.workbookRepo.remove(workbookEntity);
       }
 
@@ -479,6 +480,7 @@ export class ExcelParserService {
           message: `A workbook for program "${program}" and month "${monthLabel}" already exists.`
         });
       }
+      await this.deleteAssociatedBatches(workbookEntity.id);
       await this.workbookRepo.remove(workbookEntity);
     }
 
@@ -1034,5 +1036,19 @@ export class ExcelParserService {
         lossRatioCap: 2.0,
       };
     }
+  }
+
+  private async deleteAssociatedBatches(workbookId: number): Promise<void> {
+    const idStr = String(workbookId);
+    await this.workbookRepo.query(
+      `DELETE FROM journal_entries WHERE batch_id IN (
+        SELECT id FROM journal_entry_batches WHERE batch_number LIKE 'RE-' || $1 || '-%'
+      )`,
+      [idStr]
+    );
+    await this.workbookRepo.query(
+      `DELETE FROM journal_entry_batches WHERE batch_number LIKE 'RE-' || $1 || '-%'`,
+      [idStr]
+    );
   }
 }
