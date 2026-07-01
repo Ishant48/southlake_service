@@ -13,7 +13,7 @@ export async function seedPermissions(): Promise<void> {
   try {
     console.log('Connected to database. Seeding module-specific permissions...');
 
-    const modules = ['chart_of_accounts', 'master_data', 'journal_entry'];
+    const modules = ['chart_of_accounts', 'master_data', 'journal_entry', 'reinsurance'];
     const actions = ['view', 'create', 'edit', 'approve', 'export', 'post', 'file', 'lock', 'override', 'reconcile', 'void', 'reverse'];
 
     // 1. Insert permissions
