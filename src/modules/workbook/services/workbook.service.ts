@@ -569,13 +569,11 @@ export class WorkbookService {
     const { program, monthKey, monthLabel, exhibits } = dto;
     const source = 'ITD';
 
-    // Check if workbook exists
-    const existing = await this.workbookRepo.findOne({
+    // Find if workbook exists
+    let workbook = await this.workbookRepo.findOne({
       where: { program, monthKey, source },
+      relations: { stateExhibits: true },
     });
-    if (existing) {
-      await this.workbookRepo.remove(existing);
-    }
 
     const treaty = await this.treatyRepo.findOne({ where: { name: program } });
     const rates = {
@@ -590,53 +588,76 @@ export class WorkbookService {
       lossPick: treaty?.ibnrPct !== null ? Number(treaty.ibnrPct) : 5.0,
       boardsCharge: treaty?.bbPct !== null ? Number(treaty.bbPct) : 0.4,
       lossRatioCap: treaty?.lrCapPct !== null ? Number(treaty.lrCapPct) : 2.0,
-      laeDcc: 6.2,
-      laeAoe: 0.0,
+      laeDcc: treaty?.laeDccPct !== null ? Number(treaty.laeDccPct) : 0.0,
+      laeAoe: treaty?.laeAoePct !== null ? Number(treaty.laeAoePct) : 3.4,
     };
 
-    const workbook = this.workbookRepo.create({
-      program,
-      monthKey,
-      monthLabel,
-      source,
-      rates,
-      ...this.excelParserService.getDefaultMappings(program),
-    });
-
-    const savedWorkbook = await this.workbookRepo.save(workbook);
+    if (!workbook) {
+      workbook = this.workbookRepo.create({
+        program,
+        monthKey,
+        monthLabel,
+        source,
+        rates,
+        ...this.excelParserService.getDefaultMappings(program),
+      });
+      workbook = await this.workbookRepo.save(workbook);
+      workbook.stateExhibits = [];
+    } else {
+      workbook.rates = rates;
+      workbook = await this.workbookRepo.save(workbook);
+    }
 
     const savedExhibits: StateExhibit[] = [];
     for (const ex of exhibits) {
-      const stateEx = this.stateExhibitRepo.create({
-        workbookId: savedWorkbook.id,
-        stateCode: ex.state_code.toUpperCase(),
-        pw: ex.pw || [0, 0, 0],
-        pfw: ex.pfw || [0, 0, 0],
-        pc: ex.pc || [0, 0, 0],
-        pfc: ex.pfc || [0, 0, 0],
-        tax: ex.tax || [0, 0, 0],
-        lp: ex.lp || [0, 0, 0],
-        laep: ex.laep || [0, 0, 0],
-        ae_paid: ex.ae_paid || [0, 0, 0],
-        pe: ex.pe || [0, 0, 0],
-        pfe: ex.pfe || [0, 0, 0],
-        uep: ex.uep || [0, 0, 0],
-        lu: ex.lu || [0, 0, 0],
-        laeu: ex.laeu || [0, 0, 0],
-        aeu: ex.aeu || [0, 0, 0],
-        loss_reserves: ex.loss_reserves || [0, 0, 0],
-        loss_ibnr: ex.loss_ibnr || [0, 0, 0],
-        lae_reserves_dcc: ex.lae_reserves_dcc || [0, 0, 0],
-        lae_ibnr_dcc: ex.lae_ibnr_dcc || [0, 0, 0],
-        lae_reserves_aoe: ex.lae_reserves_aoe || [0, 0, 0],
-        lae_ibnr_aoe: ex.lae_ibnr_aoe || [0, 0, 0],
-        ulae_ibnr: ex.ulae_ibnr || [0, 0, 0],
-      });
+      let stateEx = workbook.stateExhibits.find(se => se.stateCode === ex.state_code.toUpperCase());
+
+      const getArrayValue = (payloadVal: any, currentVal: number[] | null): number[] => {
+        if (payloadVal !== undefined && payloadVal !== null) {
+          const num = Number(payloadVal);
+          return [0, num, num];
+        }
+        return currentVal || [0, 0, 0];
+      };
+
+      if (stateEx) {
+        stateEx.uep = getArrayValue(ex.uep, stateEx.uep);
+        stateEx.loss_ibnr = getArrayValue(ex.loss_ibnr, stateEx.loss_ibnr);
+        stateEx.lae_ibnr_dcc = getArrayValue(ex.lae_ibnr_dcc, stateEx.lae_ibnr_dcc);
+        stateEx.lae_ibnr_aoe = getArrayValue(ex.lae_ibnr_aoe, stateEx.lae_ibnr_aoe);
+        stateEx.ulae_ibnr = getArrayValue(ex.ulae_ibnr, stateEx.ulae_ibnr);
+      } else {
+        stateEx = this.stateExhibitRepo.create({
+          workbookId: workbook.id,
+          stateCode: ex.state_code.toUpperCase(),
+          pw: [0, 0, 0],
+          pfw: [0, 0, 0],
+          pc: [0, 0, 0],
+          pfc: [0, 0, 0],
+          tax: [0, 0, 0],
+          lp: [0, 0, 0],
+          laep: [0, 0, 0],
+          ae_paid: [0, 0, 0],
+          pe: [0, 0, 0],
+          pfe: [0, 0, 0],
+          uep: getArrayValue(ex.uep, null),
+          lu: [0, 0, 0],
+          laeu: [0, 0, 0],
+          aeu: [0, 0, 0],
+          loss_reserves: [0, 0, 0],
+          loss_ibnr: getArrayValue(ex.loss_ibnr, null),
+          lae_reserves_dcc: [0, 0, 0],
+          lae_ibnr_dcc: getArrayValue(ex.lae_ibnr_dcc, null),
+          lae_reserves_aoe: [0, 0, 0],
+          lae_ibnr_aoe: getArrayValue(ex.lae_ibnr_aoe, null),
+          ulae_ibnr: getArrayValue(ex.ulae_ibnr, null),
+        });
+      }
       savedExhibits.push(stateEx);
     }
     await this.stateExhibitRepo.save(savedExhibits);
-    await this.recalculateTotalExhibit(savedWorkbook.id);
+    await this.recalculateTotalExhibit(workbook.id);
 
-    return this.findOne(savedWorkbook.id);
+    return this.findOne(workbook.id);
   }
 }
