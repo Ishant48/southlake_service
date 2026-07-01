@@ -128,7 +128,22 @@ export class WorkbookService {
     return workbook;
   }
 
+  private async deleteAssociatedBatches(workbookId: number): Promise<void> {
+    const idStr = String(workbookId);
+    await this.workbookRepo.query(
+      `DELETE FROM journal_entries WHERE batch_id IN (
+        SELECT id FROM journal_entry_batches WHERE batch_number LIKE 'RE-' || $1 || '-%'
+      )`,
+      [idStr]
+    );
+    await this.workbookRepo.query(
+      `DELETE FROM journal_entry_batches WHERE batch_number LIKE 'RE-' || $1 || '-%'`,
+      [idStr]
+    );
+  }
+
   async delete(id: number): Promise<void> {
+    await this.deleteAssociatedBatches(id);
     await this.workbookRepo.delete(id);
   }
 
