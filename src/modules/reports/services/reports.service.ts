@@ -231,12 +231,14 @@ export class ReportsService {
       throw new NotFoundException(`State exhibit for ${stateCode} not found in workbook ${workbook.id}`);
     }
 
-    const getVal = (ex: StateExhibit, field: string, mode: 'current' | 'cumulative') => {
+    const getVal = (ex: StateExhibit, field: string, mode: 'current' | 'cumulative' | 'baseline' = 'current') => {
       const arr = (ex as any)[field];
       if (!arr) return 0;
       const source = ex.workbook?.source || workbook.source;
       if (source === 'FUT') {
-        if (mode === 'current') {
+        if (mode === 'baseline') {
+          return Number(arr[0] ?? 0);
+        } else if (mode === 'current') {
           return Number(arr[1] ?? 0);
         } else {
           return Number(arr[2] ?? 0); // YTD / Cumulative
@@ -509,6 +511,10 @@ export class ReportsService {
         currDCCReserves = 0;
         currAOEReserves = 0;
       }
+
+      if (prevLossReserves === 0) prevLossReserves = getVal(activeStateEx, 'lu', 'baseline');
+      if (prevDCCReserves === 0 && isDccActive) prevDCCReserves = getVal(activeStateEx, 'laeu', 'baseline') + getVal(activeStateEx, 'aeu', 'baseline');
+      if (prevAOEReserves === 0 && isAoeActive) prevAOEReserves = getVal(activeStateEx, 'laeu', 'baseline') + getVal(activeStateEx, 'aeu', 'baseline');
 
       const ultimateLoss = premiumsEarned * (lossPick / 100);
       const ultimateLAEDcc = premiumsEarned * (laeDcc / 100);
