@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, DataSource } from 'typeorm';
+import { Repository, Like, ILike, DataSource } from 'typeorm';
+import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { StateMaster } from '../../entities/state-master.entity';
 import { MgaMaster } from '../../entities/mga-master.entity';
 import { MgaDocument } from '../../entities/mga-document.entity';
@@ -17,6 +18,9 @@ import { RiskCompanyDocument } from '../../entities/risk-company-document.entity
 import { TreatyMga } from '../../entities/treaty-mga.entity';
 import { TreatyCarrier } from '../../entities/treaty-carrier.entity';
 import { TreatyReinsurer } from '../../entities/treaty-reinsurer.entity';
+import { Broker } from '../../entities/broker.entity';
+import { Product } from '../../entities/product.entity';
+import { LockedPeriod } from '../../entities/locked-period.entity';
 
 import { CreateStateDto, UpdateStateDto } from './dto/state.dto';
 import { CreateMgaDto, UpdateMgaDto } from './dto/mga.dto';
@@ -25,6 +29,9 @@ import { CreateRiskCompanyDto, UpdateRiskCompanyDto } from './dto/risk-company.d
 import { CreateLobDto, UpdateLobDto } from './dto/lob.dto';
 import { CreateCobDto, UpdateCobDto } from './dto/cob.dto';
 import { CreateTreatyDto, UpdateTreatyDto } from './dto/treaty.dto';
+import { CreateBrokerDto, UpdateBrokerDto } from './dto/broker.dto';
+import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { CreateLockedPeriodDto, UpdateLockedPeriodDto } from './dto/locked-period.dto';
 
 @Injectable()
 export class MastersService {
@@ -57,7 +64,18 @@ export class MastersService {
     private readonly riskCompanyDocRepo: Repository<RiskCompanyDocument>,
     @InjectRepository(TreatyMga)
     private readonly treatyMgaRepo: Repository<TreatyMga>,
+    @InjectRepository(Broker)
+    private readonly brokerRepo: Repository<Broker>,
+    @InjectRepository(Product)
+    private readonly productRepo: Repository<Product>,
+    @InjectRepository(LockedPeriod)
+    private readonly lockedPeriodRepo: Repository<LockedPeriod>,
+    @InjectRepository(TreatyCarrier)
+    private readonly treatyCarrierRepo: Repository<TreatyCarrier>,
+    @InjectRepository(TreatyReinsurer)
+    private readonly treatyReinsurerRepo: Repository<TreatyReinsurer>,
     private readonly dataSource: DataSource,
+    private readonly activityLogsService: ActivityLogsService,
   ) {}
 
   // ==========================================
@@ -66,8 +84,8 @@ export class MastersService {
   async findAllStates(search?: string, isActive?: boolean): Promise<StateMaster[]> {
     const where: any = [];
     if (search) {
-      where.push({ name: Like(`%${search}%`), isActive });
-      where.push({ stateAbbr: Like(`%${search}%`), isActive });
+      where.push({ name: ILike(`%${search}%`), isActive });
+      where.push({ stateAbbr: ILike(`%${search}%`), isActive });
     } else {
       const obj: any = {};
       if (isActive !== undefined) obj.isActive = isActive;
@@ -103,7 +121,16 @@ export class MastersService {
       createdBy: userId,
       updatedBy: userId,
     });
-    return this.stateRepo.save(state);
+    const saved = await this.stateRepo.save(state);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'create',
+      entityType: 'state',
+      entityId: saved.id,
+      description: `Created state master ${saved.name} (${saved.stateAbbr})`,
+    });
+    return saved;
   }
 
   async updateState(id: string, dto: UpdateStateDto, userId: string): Promise<StateMaster> {
@@ -127,27 +154,46 @@ export class MastersService {
       isActive: dto.is_active !== undefined ? dto.is_active : state.isActive,
       updatedBy: userId,
     });
-    return this.stateRepo.save(state);
+    const saved = await this.stateRepo.save(state);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'edit',
+      entityType: 'state',
+      entityId: saved.id,
+      description: `Updated state master ${saved.name} (${saved.stateAbbr})`,
+    });
+    return saved;
   }
 
-  async deleteState(id: string): Promise<void> {
+  async deleteState(id: string, userId?: string): Promise<void> {
     const state = await this.stateRepo.findOne({ where: { id } });
     if (!state) throw new NotFoundException('State not found');
     await this.stateRepo.delete(id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'delete',
+      entityType: 'state',
+      entityId: id,
+      description: `Deleted state master ${state.name} (${state.stateAbbr})`,
+    });
   }
 
   // ==========================================
   // MGA MASTER OPERATIONS
   // ==========================================
   async findAllMgas(search?: string, isActive?: boolean): Promise<MgaMaster[]> {
-    const where: any = {};
+    const where: any = [];
     if (search) {
-      where.name = Like(`%${search}%`);
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ mgaCode: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
     }
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
-    return this.mgaRepo.find({ where, order: { mgaCode: 'ASC' } });
+    return this.mgaRepo.find({ where: where.length > 1 ? where : where[0], order: { mgaCode: 'ASC' } });
   }
 
   async findOneMga(id: string): Promise<MgaMaster & { documents: MgaDocument[] }> {
@@ -177,10 +223,23 @@ export class MastersService {
       openItem: dto.open_item ?? false,
       opStartDate: dto.op_start_date ?? null,
       otherNames: dto.other_names ?? null,
+      naicsCode: dto.naics_code ?? null,
+      contactName: dto.contact_name ?? null,
+      contactEmail: dto.contact_email ?? null,
+      contactPhone: dto.contact_phone ?? null,
       createdBy: userId,
       updatedBy: userId,
     });
-    return this.mgaRepo.save(mga);
+    const saved = await this.mgaRepo.save(mga);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'create',
+      entityType: 'mga',
+      entityId: saved.id,
+      description: `Created MGA master ${saved.name} (${saved.mgaCode})`,
+    });
+    return saved;
   }
 
   async updateMga(id: string, dto: UpdateMgaDto, userId: string): Promise<MgaMaster> {
@@ -208,29 +267,52 @@ export class MastersService {
       openItem: dto.open_item !== undefined ? dto.open_item : mga.openItem,
       opStartDate: dto.op_start_date !== undefined ? dto.op_start_date : mga.opStartDate,
       otherNames: dto.other_names !== undefined ? dto.other_names : mga.otherNames,
+      naicsCode: dto.naics_code !== undefined ? dto.naics_code : mga.naicsCode,
+      contactName: dto.contact_name !== undefined ? dto.contact_name : mga.contactName,
+      contactEmail: dto.contact_email !== undefined ? dto.contact_email : mga.contactEmail,
+      contactPhone: dto.contact_phone !== undefined ? dto.contact_phone : mga.contactPhone,
       updatedBy: userId,
     });
-    return this.mgaRepo.save(mga);
+    const saved = await this.mgaRepo.save(mga);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'edit',
+      entityType: 'mga',
+      entityId: saved.id,
+      description: `Updated MGA master ${saved.name} (${saved.mgaCode})`,
+    });
+    return saved;
   }
 
-  async deleteMga(id: string): Promise<void> {
+  async deleteMga(id: string, userId?: string): Promise<void> {
     const mga = await this.mgaRepo.findOne({ where: { id } });
     if (!mga) throw new NotFoundException('MGA not found');
     await this.mgaRepo.delete(id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'delete',
+      entityType: 'mga',
+      entityId: id,
+      description: `Deleted MGA master ${mga.name} (${mga.mgaCode})`,
+    });
   }
 
   // ==========================================
   // REINSURER COMPANY OPERATIONS
   // ==========================================
   async findAllReinsurers(search?: string, isActive?: boolean): Promise<ReinsurerCompany[]> {
-    const where: any = {};
+    const where: any = [];
     if (search) {
-      where.name = Like(`%${search}%`);
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ reinsurerCompanyId: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
     }
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
-    return this.reinsurerRepo.find({ where, order: { reinsurerCompanyId: 'ASC' } });
+    return this.reinsurerRepo.find({ where: where.length > 1 ? where : where[0], order: { reinsurerCompanyId: 'ASC' } });
   }
 
   async createReinsurer(dto: CreateReinsurerDto, userId: string): Promise<ReinsurerCompany> {
@@ -277,9 +359,9 @@ export class MastersService {
   async findAllRiskCompanies(search?: string, isActive?: boolean): Promise<RiskCompany[]> {
     const where: any = [];
     if (search) {
-      where.push({ name: Like(`%${search}%`), isActive });
-      where.push({ riskCompanyId: Like(`%${search}%`), isActive });
-      where.push({ idName: Like(`%${search}%`), isActive });
+      where.push({ name: ILike(`%${search}%`), isActive });
+      where.push({ riskCompanyId: ILike(`%${search}%`), isActive });
+      where.push({ idName: ILike(`%${search}%`), isActive });
     } else {
       const obj: any = {};
       if (isActive !== undefined) obj.isActive = isActive;
@@ -355,14 +437,16 @@ export class MastersService {
   // LOB OPERATIONS
   // ==========================================
   async findAllLobs(search?: string, isActive?: boolean): Promise<LineOfBusiness[]> {
-    const where: any = {};
+    const where: any = [];
     if (search) {
-      where.name = Like(`%${search}%`);
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ lobCode: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
     }
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
-    return this.lobRepo.find({ where, order: { lobCode: 'ASC' } });
+    return this.lobRepo.find({ where: where.length > 1 ? where : where[0], order: { lobCode: 'ASC' } });
   }
 
   async createLob(dto: CreateLobDto, userId: string): Promise<LineOfBusiness> {
@@ -417,14 +501,16 @@ export class MastersService {
   // COB OPERATIONS
   // ==========================================
   async findAllCobs(search?: string, isActive?: boolean): Promise<CobMaster[]> {
-    const where: any = {};
+    const where: any = [];
     if (search) {
-      where.name = Like(`%${search}%`);
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ cobCode: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
     }
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
-    return this.cobRepo.find({ where, order: { cobCode: 'ASC' } });
+    return this.cobRepo.find({ where: where.length > 1 ? where : where[0], order: { cobCode: 'ASC' } });
   }
 
   async createCob(dto: CreateCobDto, userId: string): Promise<CobMaster> {
@@ -479,15 +565,17 @@ export class MastersService {
   // TREATY MASTER OPERATIONS
   // ==========================================
   async findAllTreaties(search?: string, isActive?: boolean): Promise<Treaty[]> {
-    const where: any = {};
+    const where: any = [];
     if (search) {
-      where.name = Like(`%${search}%`);
-    }
-    if (isActive !== undefined) {
-      where.isActive = isActive;
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ treatyCode: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
     }
     return this.treatyRepo.find({
-      where,
+      where: where.length > 1 ? where : where[0],
       relations: [
         'mga',
         'reinsurer',
@@ -526,8 +614,12 @@ export class MastersService {
         'treatyMgas.mga',
         'treatyCarriers',
         'treatyCarriers.riskCompany',
+        'treatyCarriers.state',
+        'treatyCarriers.broker',
         'treatyReinsurers',
         'treatyReinsurers.reinsurer',
+        'treatyReinsurers.state',
+        'treatyReinsurers.broker',
       ],
     });
     if (!treaty) throw new NotFoundException('Treaty not found');
@@ -574,6 +666,16 @@ export class MastersService {
         laeAoePct: dto.lae_aoe_pct ?? null,
         carrierRetentionPct: firstCarrier ? firstCarrier.retention_pct : (dto.carrier_retention_pct ?? null),
         reinsurerCessionPct: firstReinsurer ? firstReinsurer.cession_pct : (dto.reinsurer_cession_pct ?? null),
+        treatyType: dto.treaty_type || 'Quota Share',
+        ulaeType: dto.ulae_type || 'percentage',
+        ulaeBasis: dto.ulae_basis || null,
+        ulaeFlatAmount: dto.ulae_flat_amount || null,
+        policySeqPrefix: dto.policy_seq_prefix || null,
+        policySeqStart: dto.policy_seq_start || null,
+        policySeqNext: dto.policy_seq_next || dto.policy_seq_start || null,
+        claimSeqPrefix: dto.claim_seq_prefix || null,
+        claimSeqStart: dto.claim_seq_start || null,
+        claimSeqNext: dto.claim_seq_next || dto.claim_seq_start || null,
         isActive: dto.is_active ?? true,
         createdBy: userId,
         updatedBy: userId,
@@ -587,6 +689,8 @@ export class MastersService {
             treatyId: savedTreaty.id,
             riskCompanyId: c.risk_company_id,
             retentionPct: c.retention_pct,
+            stateId: c.state_id || null,
+            brokerId: c.broker_id || null,
           });
         });
         await queryRunner.manager.save(TreatyCarrier, carriers);
@@ -598,6 +702,8 @@ export class MastersService {
             treatyId: savedTreaty.id,
             reinsurerId: r.reinsurer_id,
             cessionPct: r.cession_pct,
+            stateId: r.state_id || null,
+            brokerId: r.broker_id || null,
           });
         });
         await queryRunner.manager.save(TreatyReinsurer, reinsurers);
@@ -724,6 +830,16 @@ export class MastersService {
         laeAoePct: dto.lae_aoe_pct !== undefined ? dto.lae_aoe_pct : treaty.laeAoePct,
         carrierRetentionPct: updateCarrierRetention,
         reinsurerCessionPct: updateReinsurerCession,
+        treatyType: dto.treaty_type !== undefined ? dto.treaty_type : treaty.treatyType,
+        ulaeType: dto.ulae_type !== undefined ? dto.ulae_type : treaty.ulaeType,
+        ulaeBasis: dto.ulae_basis !== undefined ? dto.ulae_basis : treaty.ulaeBasis,
+        ulaeFlatAmount: dto.ulae_flat_amount !== undefined ? dto.ulae_flat_amount : treaty.ulaeFlatAmount,
+        policySeqPrefix: dto.policy_seq_prefix !== undefined ? dto.policy_seq_prefix : treaty.policySeqPrefix,
+        policySeqStart: dto.policy_seq_start !== undefined ? dto.policy_seq_start : treaty.policySeqStart,
+        policySeqNext: dto.policy_seq_next !== undefined ? dto.policy_seq_next : treaty.policySeqNext,
+        claimSeqPrefix: dto.claim_seq_prefix !== undefined ? dto.claim_seq_prefix : treaty.claimSeqPrefix,
+        claimSeqStart: dto.claim_seq_start !== undefined ? dto.claim_seq_start : treaty.claimSeqStart,
+        claimSeqNext: dto.claim_seq_next !== undefined ? dto.claim_seq_next : treaty.claimSeqNext,
         isActive: dto.is_active !== undefined ? dto.is_active : treaty.isActive,
         updatedBy: userId,
       });
@@ -738,6 +854,8 @@ export class MastersService {
               treatyId: id,
               riskCompanyId: c.risk_company_id,
               retentionPct: c.retention_pct,
+              stateId: c.state_id || null,
+              brokerId: c.broker_id || null,
             });
           });
           await queryRunner.manager.save(TreatyCarrier, carriers);
@@ -752,6 +870,8 @@ export class MastersService {
               treatyId: id,
               reinsurerId: r.reinsurer_id,
               cessionPct: r.cession_pct,
+              stateId: r.state_id || null,
+              brokerId: r.broker_id || null,
             });
           });
           await queryRunner.manager.save(TreatyReinsurer, reinsurers);
@@ -831,6 +951,7 @@ export class MastersService {
     mgaId: string,
     fileName: string,
     fileUrl: string,
+    documentType: string,
     userId: string,
   ): Promise<MgaDocument> {
     const mga = await this.mgaRepo.findOne({ where: { id: mgaId } });
@@ -840,6 +961,7 @@ export class MastersService {
       mgaId,
       fileName,
       fileUrl,
+      documentType,
       uploadedBy: userId,
     });
     return this.mgaDocRepo.save(doc);
@@ -864,6 +986,7 @@ export class MastersService {
     stateId: string,
     fileName: string,
     fileUrl: string,
+    documentType: string,
     userId: string,
   ): Promise<StateDocument> {
     const state = await this.stateRepo.findOne({ where: { id: stateId } });
@@ -873,6 +996,7 @@ export class MastersService {
       stateId,
       fileName,
       fileUrl,
+      documentType,
       uploadedBy: userId,
     });
     return this.stateDocRepo.save(doc);
@@ -897,6 +1021,7 @@ export class MastersService {
     riskCompanyId: string,
     fileName: string,
     fileUrl: string,
+    documentType: string,
     userId: string,
   ): Promise<RiskCompanyDocument> {
     const rc = await this.riskCompanyRepo.findOne({ where: { id: riskCompanyId } });
@@ -906,6 +1031,7 @@ export class MastersService {
       riskCompanyId,
       fileName,
       fileUrl,
+      documentType,
       uploadedBy: userId,
     });
     return this.riskCompanyDocRepo.save(doc);
@@ -945,5 +1071,256 @@ export class MastersService {
     }
 
     return { success: true };
+  }
+
+  // ==========================================
+  // BROKER MASTER OPERATIONS
+  // ==========================================
+  async findAllBrokers(search?: string, isActive?: boolean): Promise<Broker[]> {
+    const where: any = [];
+    if (search) {
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ brokerCode: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
+    }
+    return this.brokerRepo.find({ where: where.length > 1 ? where : where[0], order: { brokerCode: 'ASC' } });
+  }
+
+  async findOneBroker(id: string): Promise<Broker> {
+    const broker = await this.brokerRepo.findOne({ where: { id } });
+    if (!broker) throw new NotFoundException('Broker not found');
+    return broker;
+  }
+
+  async createBroker(dto: CreateBrokerDto, userId?: string): Promise<Broker> {
+    const exists = await this.brokerRepo.findOne({ where: { brokerCode: dto.broker_code } });
+    if (exists) throw new BadRequestException(`Broker code ${dto.broker_code} already exists`);
+
+    const broker = this.brokerRepo.create({
+      brokerCode: dto.broker_code,
+      name: dto.name,
+      contactName: dto.contact_name || null,
+      contactEmail: dto.contact_email || null,
+      contactPhone: dto.contact_phone || null,
+      isActive: dto.is_active ?? true,
+    });
+    const saved = await this.brokerRepo.save(broker);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'create',
+      entityType: 'broker',
+      entityId: saved.id,
+      description: `Created Broker ${saved.name} (${saved.brokerCode})`,
+    });
+    return saved;
+  }
+
+  async updateBroker(id: string, dto: UpdateBrokerDto, userId?: string): Promise<Broker> {
+    const broker = await this.findOneBroker(id);
+    if (dto.broker_code !== undefined && dto.broker_code !== broker.brokerCode) {
+      const exists = await this.brokerRepo.findOne({ where: { brokerCode: dto.broker_code } });
+      if (exists) throw new BadRequestException(`Broker code ${dto.broker_code} already exists`);
+    }
+
+    Object.assign(broker, {
+      brokerCode: dto.broker_code !== undefined ? dto.broker_code : broker.brokerCode,
+      name: dto.name !== undefined ? dto.name : broker.name,
+      contactName: dto.contact_name !== undefined ? dto.contact_name : broker.contactName,
+      contactEmail: dto.contact_email !== undefined ? dto.contact_email : broker.contactEmail,
+      contactPhone: dto.contact_phone !== undefined ? dto.contact_phone : broker.contactPhone,
+      isActive: dto.is_active !== undefined ? dto.is_active : broker.isActive,
+    });
+    const saved = await this.brokerRepo.save(broker);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'edit',
+      entityType: 'broker',
+      entityId: saved.id,
+      description: `Updated Broker ${saved.name} (${saved.brokerCode})`,
+    });
+    return saved;
+  }
+
+  async deleteBroker(id: string, userId?: string): Promise<void> {
+    const broker = await this.findOneBroker(id);
+    await this.brokerRepo.delete(id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'delete',
+      entityType: 'broker',
+      entityId: id,
+      description: `Deleted Broker ${broker.name} (${broker.brokerCode})`,
+    });
+  }
+
+  // ==========================================
+  // PRODUCT MASTER OPERATIONS
+  // ==========================================
+  async findAllProducts(search?: string, isActive?: boolean): Promise<Product[]> {
+    const where: any = [];
+    if (search) {
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ productId: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
+    }
+    return this.productRepo.find({
+      where: where.length > 1 ? where : where[0],
+      relations: ['lob', 'cob'],
+      order: { productId: 'ASC' }
+    });
+  }
+
+  async findOneProduct(id: string): Promise<Product> {
+    const product = await this.productRepo.findOne({
+      where: { id },
+      relations: ['lob', 'cob']
+    });
+    if (!product) throw new NotFoundException('Product not found');
+    return product;
+  }
+
+  async createProduct(dto: CreateProductDto, userId?: string): Promise<Product> {
+    const exists = await this.productRepo.findOne({ where: { productId: dto.product_id } });
+    if (exists) throw new BadRequestException(`Product ID ${dto.product_id} already exists`);
+
+    const product = this.productRepo.create({
+      productId: dto.product_id,
+      lobId: dto.lob_id,
+      cobId: dto.cob_id,
+      name: dto.name,
+      description: dto.description || null,
+      isActive: dto.is_active ?? true,
+    });
+    const saved = await this.productRepo.save(product);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'create',
+      entityType: 'product',
+      entityId: saved.id,
+      description: `Created Product ${saved.name} (${saved.productId})`,
+    });
+    return this.findOneProduct(saved.id);
+  }
+
+  async updateProduct(id: string, dto: UpdateProductDto, userId?: string): Promise<Product> {
+    const product = await this.findOneProduct(id);
+    if (dto.product_id !== undefined && dto.product_id !== product.productId) {
+      const exists = await this.productRepo.findOne({ where: { productId: dto.product_id } });
+      if (exists) throw new BadRequestException(`Product ID ${dto.product_id} already exists`);
+    }
+
+    Object.assign(product, {
+      productId: dto.product_id !== undefined ? dto.product_id : product.productId,
+      lobId: dto.lob_id !== undefined ? dto.lob_id : product.lobId,
+      cobId: dto.cob_id !== undefined ? dto.cob_id : product.cobId,
+      name: dto.name !== undefined ? dto.name : product.name,
+      description: dto.description !== undefined ? dto.description : product.description,
+      isActive: dto.is_active !== undefined ? dto.is_active : product.isActive,
+    });
+    const saved = await this.productRepo.save(product);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'edit',
+      entityType: 'product',
+      entityId: saved.id,
+      description: `Updated Product ${saved.name} (${saved.productId})`,
+    });
+    return this.findOneProduct(saved.id);
+  }
+
+  async deleteProduct(id: string, userId?: string): Promise<void> {
+    const product = await this.findOneProduct(id);
+    await this.productRepo.delete(id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'delete',
+      entityType: 'product',
+      entityId: id,
+      description: `Deleted Product ${product.name} (${product.productId})`,
+    });
+  }
+
+  // ==========================================
+  // LOCKED PERIODS (MONTH-END CLOSING) OPERATIONS
+  // ==========================================
+  async findAllLockedPeriods(search?: string): Promise<LockedPeriod[]> {
+    const where: any = {};
+    if (search) {
+      where.period = ILike(`%${search}%`);
+    }
+    return this.lockedPeriodRepo.find({
+      where,
+      relations: ['user'],
+      order: { period: 'DESC' }
+    });
+  }
+
+  async findOneLockedPeriod(id: string): Promise<LockedPeriod> {
+    const lp = await this.lockedPeriodRepo.findOne({
+      where: { id },
+      relations: ['user']
+    });
+    if (!lp) throw new NotFoundException('Locked period record not found');
+    return lp;
+  }
+
+  async lockPeriod(period: string, userId?: string): Promise<LockedPeriod> {
+    let lp = await this.lockedPeriodRepo.findOne({ where: { period } });
+    if (lp) {
+      lp.isLocked = true;
+      lp.lockedBy = userId || null;
+      await this.lockedPeriodRepo.save(lp);
+    } else {
+      lp = this.lockedPeriodRepo.create({
+        period,
+        isLocked: true,
+        lockedBy: userId || null,
+      });
+      await this.lockedPeriodRepo.save(lp);
+    }
+    const saved = await this.findOneLockedPeriod(lp.id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'lock',
+      entityType: 'locked_period',
+      entityId: saved.id,
+      description: `Locked period ${period}`,
+    });
+    return saved;
+  }
+
+  async unlockPeriod(period: string, userId?: string): Promise<LockedPeriod> {
+    const lp = await this.lockedPeriodRepo.findOne({ where: { period } });
+    if (!lp) throw new NotFoundException(`Period ${period} is not locked`);
+    lp.isLocked = false;
+    await this.lockedPeriodRepo.save(lp);
+    const saved = await this.findOneLockedPeriod(lp.id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'override',
+      entityType: 'locked_period',
+      entityId: saved.id,
+      description: `Unlocked period ${period}`,
+    });
+    return saved;
+  }
+
+  async isPeriodLocked(period: string): Promise<boolean> {
+    const lp = await this.lockedPeriodRepo.findOne({ where: { period } });
+    return lp ? lp.isLocked : false;
   }
 }

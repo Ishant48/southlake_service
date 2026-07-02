@@ -58,6 +58,22 @@ export class CreateMgaDto {
   @IsArray()
   @IsOptional()
   other_names?: { state: string; displayName: string }[];
+
+  @IsString()
+  @IsOptional()
+  naics_code?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_name?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_email?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_phone?: string;
 }
 
 export class UpdateMgaDto {
@@ -118,4 +134,20 @@ export class UpdateMgaDto {
   @IsArray()
   @IsOptional()
   other_names?: { state: string; displayName: string }[];
+
+  @IsString()
+  @IsOptional()
+  naics_code?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_name?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_email?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_phone?: string;
 }

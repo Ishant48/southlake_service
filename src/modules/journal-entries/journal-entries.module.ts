@@ -6,12 +6,15 @@ import { ChartOfAccount } from '../../entities/chart-of-account.entity';
 import { JournalEntriesService } from './journal-entries.service';
 import { JournalEntriesController } from './journal-entries.controller';
 
+import { LockedPeriod } from '../../entities/locked-period.entity';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       JournalEntryBatch,
       JournalEntry,
       ChartOfAccount,
+      LockedPeriod,
     ]),
   ],
   controllers: [JournalEntriesController],

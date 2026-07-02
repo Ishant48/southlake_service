@@ -7,10 +7,13 @@ import { ReservesModule } from '../reserves/reserves.module';
 import { ChartOfAccount } from '../../entities/chart-of-account.entity';
 import { JournalEntryBatch } from '../../entities/journal-entry-batch.entity';
 import { JournalEntry } from '../../entities/journal-entry.entity';
+import { Treaty } from '../../entities/treaty.entity';
+
+import { LockedPeriod } from '../../entities/locked-period.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChartOfAccount, JournalEntryBatch, JournalEntry]),
+    TypeOrmModule.forFeature([ChartOfAccount, JournalEntryBatch, JournalEntry, Treaty, LockedPeriod]),
     WorkbookModule,
     ReservesModule,
   ],

@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, ILike } from 'typeorm';
 import { ChartOfAccount } from '../../entities/chart-of-account.entity';
 import { ChartOfAccountDocument } from '../../entities/chart-of-account-document.entity';
 import { CreateChartOfAccountDto } from './dto/create-chart-of-account.dto';
 import { UpdateChartOfAccountDto } from './dto/update-chart-of-account.dto';
+import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 
 @Injectable()
 export class ChartOfAccountsService {
@@ -13,6 +14,7 @@ export class ChartOfAccountsService {
     private readonly coaRepo: Repository<ChartOfAccount>,
     @InjectRepository(ChartOfAccountDocument)
     private readonly docRepo: Repository<ChartOfAccountDocument>,
+    private readonly activityLogsService: ActivityLogsService,
   ) {}
 
   async findAll(search?: string, isActive?: boolean): Promise<ChartOfAccount[]> {
@@ -21,7 +23,7 @@ export class ChartOfAccountsService {
       if (!isNaN(Number(search))) {
         where.accountCode = Number(search);
       } else {
-        where.description = Like(`%${search}%`);
+        where.description = ILike(`%${search}%`);
       }
     }
     if (isActive !== undefined) {
@@ -120,6 +122,15 @@ export class ChartOfAccountsService {
       }
     }
 
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'chart_of_accounts',
+      action: 'create',
+      entityType: 'chart_of_account',
+      entityId: saved.id,
+      description: `Created Chart of Account ${saved.description} (${saved.accountCode})`,
+    });
+
     return saved;
   }
 
@@ -150,6 +161,16 @@ export class ChartOfAccountsService {
       }
     }
 
+    if (parentId) {
+      const parent = await this.coaRepo.findOne({ where: { id: parentId } });
+      if (!parent) {
+        throw new NotFoundException(`Parent account not found`);
+      }
+      if (!parent.isParent) {
+        throw new BadRequestException(`Parent account must have is_parent = true`);
+      }
+    }
+
     Object.assign(coa, {
       accountCode: accountCode !== undefined ? accountCode : coa.accountCode,
       key: dto.key !== undefined ? dto.key : coa.key,
@@ -164,10 +185,21 @@ export class ChartOfAccountsService {
       updatedAt: new Date(),
     });
 
-    return this.coaRepo.save(coa);
+    const saved = await this.coaRepo.save(coa);
+
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'chart_of_accounts',
+      action: 'edit',
+      entityType: 'chart_of_account',
+      entityId: saved.id,
+      description: `Updated Chart of Account ${saved.description} (${saved.accountCode})`,
+    });
+
+    return saved;
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, userId?: string): Promise<void> {
     const coa = await this.coaRepo.findOne({ where: { id } });
     if (!coa) {
       throw new NotFoundException(`Chart of Account not found`);
@@ -180,6 +212,15 @@ export class ChartOfAccountsService {
     }
 
     await this.coaRepo.delete(id);
+
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'chart_of_accounts',
+      action: 'delete',
+      entityType: 'chart_of_account',
+      entityId: id,
+      description: `Deleted Chart of Account ${coa.description} (${coa.accountCode})`,
+    });
   }
 
   // ==========================================
@@ -189,6 +230,7 @@ export class ChartOfAccountsService {
     coaId: string,
     fileName: string,
     fileUrl: string,
+    documentType: string,
     userId: string,
   ): Promise<ChartOfAccountDocument> {
     const coa = await this.coaRepo.findOne({ where: { id: coaId } });
@@ -200,6 +242,7 @@ export class ChartOfAccountsService {
       coaId,
       fileName,
       fileUrl,
+      documentType,
       uploadedBy: userId,
     });
 

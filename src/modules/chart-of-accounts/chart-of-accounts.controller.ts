@@ -91,8 +91,8 @@ export class ChartOfAccountsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a chart of account' })
   @ApiResponse({ status: 200, description: 'Account deleted' })
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  delete(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.delete(id, user.id);
   }
 
   // ==========================================
@@ -127,13 +127,17 @@ export class ChartOfAccountsController {
   uploadDocument(
     @Param('id') id: string,
     @UploadedFile() file: any,
+    @Body('document_type') documentType: string,
     @CurrentUser() user: User,
   ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
+    if (!documentType) {
+      throw new BadRequestException('Document Type is required');
+    }
     const fileUrl = `/api/chart-of-accounts/documents/download/${file.filename}`;
-    return this.service.addDocument(id, file.originalname, file.filename, user.id);
+    return this.service.addDocument(id, file.originalname, file.filename, documentType, user.id);
   }
 
   @Get('documents/download/:filename')

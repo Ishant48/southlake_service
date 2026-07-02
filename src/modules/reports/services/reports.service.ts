@@ -6,10 +6,13 @@ import { StateExhibit } from '../../../entities/state-exhibit.entity';
 import { ChartOfAccount } from '../../../entities/chart-of-account.entity';
 import { JournalEntryBatch } from '../../../entities/journal-entry-batch.entity';
 import { JournalEntry } from '../../../entities/journal-entry.entity';
+import { Treaty } from '../../../entities/treaty.entity';
 import { WorkbookService } from '../../workbook/services/workbook.service';
 import { LossIbnrService } from '../../reserves/services/loss-ibnr.service';
 import { LaeIbnrService } from '../../reserves/services/lae-ibnr.service';
 import { UlaeIbnrService } from '../../reserves/services/ulae-ibnr.service';
+
+import { LockedPeriod } from '../../../entities/locked-period.entity';
 
 @Injectable()
 export class ReportsService {
@@ -24,72 +27,84 @@ export class ReportsService {
     private readonly batchRepo: Repository<JournalEntryBatch>,
     @InjectRepository(JournalEntry)
     private readonly entryRepo: Repository<JournalEntry>,
+    @InjectRepository(Treaty)
+    private readonly treatyRepo: Repository<Treaty>,
+    @InjectRepository(LockedPeriod)
+    private readonly lockedPeriodRepo: Repository<LockedPeriod>,
   ) {}
 
   async getReinsuranceStatement(workbookId: number, stateCode: string) {
     const workbook = await this.workbookService.findOne(workbookId);
     const prevStateEx = await this.getPreviousStateExhibit(workbook, stateCode);
-    const v = this.calculateCedingValues(workbook, stateCode, prevStateEx);
+    const treaty = await this.treatyRepo.findOne({ where: { name: workbook.program } });
+    const v = this.calculateCedingValues(workbook, stateCode, prevStateEx, treaty);
 
     const rateComm = workbook.rates.comm ?? 32.0;
     const rateUlae = workbook.rates.ulae ?? 1.0;
     const rateBoards = workbook.rates.boardsCharge ?? 0.40;
     const rateLossCap = workbook.rates.lossRatioCap ?? 2.0;
 
-    return [
-      { label: 'Premiums Written', value: v.premiumWritten, isBold: true },
-      { label: 'Change in UEP', value: v.changeUEP, formula: 'Previous UEP - Current UEP' },
-      { label: 'Premiums Earned', value: v.premiumsEarned, isBold: true, borderClass: 'single-underline', formula: 'Premiums Written + Change in UEP' },
-      { label: 'Less:', isHeader: true },
-      { label: `Ceding Commissions at ${rateComm}%`, value: v.cedingCommission, formula: 'Premiums Written * Ceding Commission %' },
-      { label: 'Ceding Commissions on UEP', value: v.commissionUEP, formula: 'Change in UEP * Ceding Commission %' },
-      { label: 'Ceding Commissions Earned', value: v.commissionEarned, isBold: true, borderClass: 'single-underline', formula: 'Ceding Commissions + Ceding Commissions on UEP' },
-      { label: 'Losses Paid (net of salvage & subro)', value: v.lossesPaid },
-      { label: 'Change in Loss Reserves', value: v.changeLossReserves, formula: 'Current Loss Reserves - Previous Loss Reserves' },
-      { label: 'Change in Loss IBNR Reserves', value: v.changeLossIBNR, formula: 'Ultimate Loss - Losses Paid - Change in Loss Reserves' },
-      { label: 'Losses Incurred', value: v.lossesIncurred, isBold: true, borderClass: 'single-underline', formula: 'Losses Paid + Change in Loss Reserves + Change in Loss IBNR' },
-      { label: 'Defense and Cost Containment Expense Paid (DCC)', value: v.dccPaid },
-      { label: 'Change in DCC Reserves', value: v.changeDCCReserves, formula: 'Current DCC Reserves - Previous DCC Reserves' },
-      { label: 'Change in DCC IBNR Reserves', value: v.changeDCCIBNR, formula: 'Ultimate DCC - DCC Paid - Change in DCC Reserves' },
-      { label: 'Adjusting & Other Expense Paid (AOE)', value: v.aoePaid },
-      { label: 'Change in AOE Reserves', value: v.changeAOEReserves, formula: 'Current AOE Reserves - Previous AOE Reserves' },
-      { label: 'Change in AOE IBNR Reserves', value: v.changeAOEIBNR, formula: 'Ultimate AOE - AOE Paid - Change in AOE Reserves' },
-      { label: `Unallocated Loss Adjustment Expense at ${rateUlae}%`, value: v.ulaePaid, isBold: true, formula: 'Premiums Written * ULAE Ceding %' },
-      { label: 'Change in ULAE IBNR Reserves', value: v.changeULAEIBNR, formula: '(0.5 * Change in Loss Reserves + Change in Loss IBNR) * 0.005' },
-      { label: 'Loss Adjustment Expenses Incurred', value: v.laeIncurred, isBold: true, borderClass: 'single-underline', formula: 'DCC Incurred + AOE Incurred + ULAE Incurred' },
-      { label: `Boards & Bureaus / ISO Charge at ${rateBoards}%`, value: v.boardsCharge, formula: 'Premiums Written * Boards Charge %' },
-      { label: `Boards & Bureaus / ISO Charge at ${rateBoards}% on UEP`, value: v.boardsUEP, formula: 'Change in UEP * Boards Charge %' },
-      { label: `Loss Ratio Cap Charge at ${rateLossCap}%`, value: v.lossRatioCap, formula: 'Premiums Written * Loss Ratio Cap %' },
-      { label: 'Loss Ratio Cap on UEP', value: v.lossRatioCapUEP, formula: 'Change in UEP * Loss Ratio Cap %' },
-      { label: 'Other Expenses Incurred', value: v.otherExpenses, isBold: true, borderClass: 'single-underline', formula: 'Boards Charge + Boards UEP + Loss Ratio Cap + Loss Ratio Cap UEP' },
-      { label: 'Total Profit (Loss)', value: v.totalProfit, isBold: true, borderClass: 'double-underline', formula: 'Premiums Earned - Commission Earned - Losses Incurred - LAE Incurred - Other Expenses Incurred' },
-      { label: 'Reinsurance Brokerage Fee', value: 0 },
-      { label: 'Net Settlement due to/(from) Reinsurer', value: v.netSettlement, isBold: true, borderClass: 'double-underline', formula: 'PW - Ceding Commissions - Losses Paid - DCC Paid - AOE Paid - ULAE Paid - Boards Charge - Loss Ratio Cap' },
-      { label: 'Loss Funding', value: 0 },
-      { label: 'Net Settlement due from NTA', value: v.netSettlementFuturistic, isBold: true, borderClass: 'double-underline', formula: 'PW - Ceding Commissions - Losses Paid - DCC Paid - AOE Paid - ULAE Paid' },
-      { label: 'Fronting Fee @ 5% (paid by separate wire from NTA)', value: v.frontingFee, formula: 'Premiums Written * 5%' },
-      { label: 'Fronting Fee on UEP', value: v.frontingFeeUEP, formula: 'Change in UEP * 5%' },
-      { label: 'Total Fees Earned - SSIC', value: v.totalFeesEarned, isBold: true, borderClass: 'double-underline', formula: 'Boards Charge + Boards UEP + Loss Ratio Cap + Loss Ratio Cap UEP + Fronting Fee + Fronting Fee UEP' },
-      { label: 'Unearned Premium Reserve', value: v.currUEP, isBold: true },
-      { label: 'Loss Reserves', value: v.currLossReserves },
-      { label: 'Loss IBNR Reserves', value: v.currLossIBNR },
-      { label: 'LAE Reserves - DCC', value: v.currDCCReserves },
-      { label: 'LAE IBNR Reserves - DCC', value: v.currDCCIBNR },
-      { label: 'LAE Reserves - AOE', value: v.currAOEReserves },
-      { label: 'LAE IBNR Reserves - AOE', value: v.currAOEIBNR_val },
-      { label: 'ULAE IBNR Reserves', value: v.currULAEIBNR },
-      { label: 'Loss Pick', value: v.lossPick, isRatio: true },
-      { label: 'LAE - DCC', value: v.laeDcc, isRatio: true },
-      { label: 'LAE - AOE', value: v.laeAoe, isRatio: true },
-      { label: 'Total Loss Pick', value: v.totalLossPick, isRatio: true, isBold: true, borderClass: 'single-underline', formula: 'Loss Pick % + LAE DCC % + LAE AOE %' },
-      { label: 'Ultimate Loss', value: v.ultimateLoss, formula: 'Premiums Earned * Loss Pick %' },
-      { label: 'Ultimate LAE - DCC', value: v.ultimateLAEDcc, formula: 'Premiums Earned * LAE DCC %' },
-      { label: 'Ultimate LAE - AOE', value: v.ultimateLAEAoe, formula: 'Premiums Earned * LAE AOE %' },
-      { label: 'Ultimate ULAE', value: v.ultimateULAE, formula: 'ULAE Paid + Change in ULAE IBNR' },
-      { label: '', value: v.totalUltimateLossLAE, borderClass: 'single-underline', formula: 'Ultimate Loss + Ultimate DCC + Ultimate AOE + Ultimate ULAE' },
-      { label: 'Loss & LAE Reserves (including IBNR)', value: v.lossLAEReserves, isBold: true, borderClass: 'single-underline', formula: 'Loss Reserves + Loss IBNR + DCC Reserves + DCC IBNR + AOE Reserves + AOE IBNR + ULAE IBNR' },
-      { label: 'Required Collateral at 115%', value: v.requiredCollateral, isBold: true, borderClass: 'double-underline', formula: 'Loss & LAE Reserves * 1.15' },
-    ];
+    const batchNumber = `RE-${workbook.id}-${stateCode.toUpperCase()}`;
+    const batch = await this.batchRepo.findOne({ where: { batchNumber } });
+    const isPosted = !!batch;
+
+    return {
+      isPosted,
+      rows: [
+        { label: 'Premiums Written', value: v.premiumWritten, isBold: true },
+        { label: 'Change in UEP', value: v.changeUEP, formula: 'Previous UEP - Current UEP' },
+        { label: 'Premiums Earned', value: v.premiumsEarned, isBold: true, borderClass: 'single-underline', formula: 'Premiums Written + Change in UEP' },
+        { label: 'Less:', isHeader: true },
+        { label: `Ceding Commissions at ${rateComm}%`, value: v.cedingCommission, formula: 'Premiums Written * Ceding Commission %' },
+        { label: 'Ceding Commissions on UEP', value: v.commissionUEP, formula: 'Change in UEP * Ceding Commission %' },
+        { label: 'Ceding Commissions Earned', value: v.commissionEarned, isBold: true, borderClass: 'single-underline', formula: 'Ceding Commissions + Ceding Commissions on UEP' },
+        { label: 'Losses Paid (net of salvage & subro)', value: v.lossesPaid },
+        { label: 'Change in Loss Reserves', value: v.changeLossReserves, formula: 'Current Loss Reserves - Previous Loss Reserves' },
+        { label: 'Change in Loss IBNR Reserves', value: v.changeLossIBNR, formula: 'Ultimate Loss - Losses Paid - Change in Loss Reserves' },
+        { label: 'Losses Incurred', value: v.lossesIncurred, isBold: true, borderClass: 'single-underline', formula: 'Losses Paid + Change in Loss Reserves + Change in Loss IBNR' },
+        { label: 'Defense and Cost Containment Expense Paid (DCC)', value: v.dccPaid },
+        { label: 'Change in DCC Reserves', value: v.changeDCCReserves, formula: 'Current DCC Reserves - Previous DCC Reserves' },
+        { label: 'Change in DCC IBNR Reserves', value: v.changeDCCIBNR, formula: 'Ultimate DCC - DCC Paid - Change in DCC Reserves' },
+        { label: 'Adjusting & Other Expense Paid (AOE)', value: v.aoePaid },
+        { label: 'Change in AOE Reserves', value: v.changeAOEReserves, formula: 'Current AOE Reserves - Previous AOE Reserves' },
+        { label: 'Change in AOE IBNR Reserves', value: v.changeAOEIBNR, formula: 'Ultimate AOE - AOE Paid - Change in AOE Reserves' },
+        { label: `Unallocated Loss Adjustment Expense at ${rateUlae}%`, value: v.ulaePaid, isBold: true, formula: 'Premiums Written * ULAE Ceding %' },
+        { label: 'Change in ULAE IBNR Reserves', value: v.changeULAEIBNR, formula: '(0.5 * Change in Loss Reserves + Change in Loss IBNR) * 0.005' },
+        { label: 'Loss Adjustment Expenses Incurred', value: v.laeIncurred, isBold: true, borderClass: 'single-underline', formula: 'DCC Incurred + AOE Incurred + ULAE Incurred' },
+        { label: `Boards & Bureaus / ISO Charge at ${rateBoards}%`, value: v.boardsCharge, formula: 'Premiums Written * Boards Charge %' },
+        { label: `Boards & Bureaus / ISO Charge at ${rateBoards}% on UEP`, value: v.boardsUEP, formula: 'Change in UEP * Boards Charge %' },
+        { label: `Loss Ratio Cap Charge at ${rateLossCap}%`, value: v.lossRatioCap, formula: 'Premiums Written * Loss Ratio Cap %' },
+        { label: 'Loss Ratio Cap on UEP', value: v.lossRatioCapUEP, formula: 'Change in UEP * Loss Ratio Cap %' },
+        { label: 'Other Expenses Incurred', value: v.otherExpenses, isBold: true, borderClass: 'single-underline', formula: 'Boards Charge + Boards UEP + Loss Ratio Cap + Loss Ratio Cap UEP' },
+        { label: 'Total Profit (Loss)', value: v.totalProfit, isBold: true, borderClass: 'double-underline', formula: 'Premiums Earned - Commission Earned - Losses Incurred - LAE Incurred - Other Expenses Incurred' },
+        { label: 'Reinsurance Brokerage Fee', value: 0 },
+        { label: 'Net Settlement due to/(from) Reinsurer', value: v.netSettlement, isBold: true, borderClass: 'double-underline', formula: 'PW - Ceding Commissions - Losses Paid - DCC Paid - AOE Paid - ULAE Paid - Boards Charge - Loss Ratio Cap' },
+        { label: 'Loss Funding', value: 0 },
+        { label: 'Net Settlement due from NTA', value: v.netSettlementFuturistic, isBold: true, borderClass: 'double-underline', formula: 'PW - Ceding Commissions - Losses Paid - DCC Paid - AOE Paid - ULAE Paid' },
+        { label: 'Fronting Fee @ 5% (paid by separate wire from NTA)', value: v.frontingFee, formula: 'Premiums Written * 5%' },
+        { label: 'Fronting Fee on UEP', value: v.frontingFeeUEP, formula: 'Change in UEP * 5%' },
+        { label: 'Total Fees Earned - SSIC', value: v.totalFeesEarned, isBold: true, borderClass: 'double-underline', formula: 'Boards Charge + Boards UEP + Loss Ratio Cap + Loss Ratio Cap UEP + Fronting Fee + Fronting Fee UEP' },
+        { label: 'Unearned Premium Reserve', value: v.currUEP, isBold: true },
+        { label: 'Loss Reserves', value: v.currLossReserves },
+        { label: 'Loss IBNR Reserves', value: v.currLossIBNR },
+        { label: 'LAE Reserves - DCC', value: v.currDCCReserves },
+        { label: 'LAE IBNR Reserves - DCC', value: v.currDCCIBNR },
+        { label: 'LAE Reserves - AOE', value: v.currAOEReserves },
+        { label: 'LAE IBNR Reserves - AOE', value: v.currAOEIBNR_val },
+        { label: 'ULAE IBNR Reserves', value: v.currULAEIBNR },
+        { label: 'Loss Pick', value: v.lossPick, isRatio: true },
+        { label: 'LAE - DCC', value: v.laeDcc, isRatio: true },
+        { label: 'LAE - AOE', value: v.laeAoe, isRatio: true },
+        { label: 'Total Loss Pick', value: v.totalLossPick, isRatio: true, isBold: true, borderClass: 'single-underline', formula: 'Loss Pick % + LAE DCC % + LAE AOE %' },
+        { label: 'Ultimate Loss', value: v.ultimateLoss, formula: 'Premiums Earned * Loss Pick %' },
+        { label: 'Ultimate LAE - DCC', value: v.ultimateLAEDcc, formula: 'Premiums Earned * LAE DCC %' },
+        { label: 'Ultimate LAE - AOE', value: v.ultimateLAEAoe, formula: 'Premiums Earned * LAE AOE %' },
+        { label: 'Ultimate ULAE', value: v.ultimateULAE, formula: 'ULAE Paid + Change in ULAE IBNR' },
+        { label: '', value: v.totalUltimateLossLAE, borderClass: 'single-underline', formula: 'Ultimate Loss + Ultimate DCC + Ultimate AOE + Ultimate ULAE' },
+        { label: 'Loss & LAE Reserves (including IBNR)', value: v.lossLAEReserves, isBold: true, borderClass: 'single-underline', formula: 'Loss Reserves + Loss IBNR + DCC Reserves + DCC IBNR + AOE Reserves + AOE IBNR + ULAE IBNR' },
+        { label: 'Required Collateral at 115%', value: v.requiredCollateral, isBold: true, borderClass: 'double-underline', formula: 'Loss & LAE Reserves * 1.15' },
+      ]
+    };
   }
 
   async getCashSettlementCalculations(workbookId: number) {
@@ -225,7 +240,7 @@ export class ReportsService {
     };
   }
 
-  calculateCedingValues(workbook: Workbook, stateCode: string, prevStateEx: StateExhibit | null) {
+  calculateCedingValues(workbook: Workbook, stateCode: string, prevStateEx: StateExhibit | null, treaty?: Treaty | null) {
     const activeStateEx = workbook.stateExhibits.find(e => e.stateCode === stateCode);
     if (!activeStateEx) {
       throw new NotFoundException(`State exhibit for ${stateCode} not found in workbook ${workbook.id}`);
@@ -492,7 +507,21 @@ export class ReportsService {
     let changeAOEIBNR = 0;
     let aoeIncurred = 0;
 
-    let ulaePaid = pw * (rateUlae / 100);
+    let ulaePaid = 0;
+    if (treaty && treaty.ulaeType === 'flat_rate') {
+      if (treaty.ulaeFlatAmount !== null && Number(treaty.ulaeFlatAmount) > 0) {
+        ulaePaid = Number(treaty.ulaeFlatAmount);
+      } else {
+        const basis = treaty.ulaeBasis || 'earned_premium';
+        if (basis === 'unearned_premium') {
+          ulaePaid = currUEP * (rateUlae / 100);
+        } else {
+          ulaePaid = premiumsEarned * (rateUlae / 100);
+        }
+      }
+    } else {
+      ulaePaid = pw * (rateUlae / 100);
+    }
     let currULAEIBNR = 0;
     let changeULAEIBNR = 0;
     let ulaeIncurred = 0;
@@ -854,6 +883,10 @@ export class ReportsService {
 
   async postToJournalEntries(workbookId: number, stateCode: string, userId?: string, customRows?: any[]) {
     const workbook = await this.workbookService.findOne(workbookId);
+    const locked = await this.lockedPeriodRepo.findOne({ where: { period: workbook.monthLabel, isLocked: true } });
+    if (locked) {
+      throw new BadRequestException(`Accounting period '${workbook.monthLabel}' is locked. Cannot post entries.`);
+    }
     let glRows = await this.getGLJournalEntries(workbookId, stateCode);
 
     if (customRows && Array.isArray(customRows)) {

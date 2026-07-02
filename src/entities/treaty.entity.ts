@@ -95,12 +95,41 @@ export class Treaty {
   @Column({ name: 'lae_aoe_pct', type: 'decimal', precision: 6, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
   laeAoePct: number | null;
 
-  // Split
   @Column({ name: 'carrier_retention_pct', type: 'decimal', precision: 6, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
   carrierRetentionPct: number | null;
 
   @Column({ name: 'reinsurer_cession_pct', type: 'decimal', precision: 6, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
   reinsurerCessionPct: number | null;
+
+  @Column({ name: 'treaty_type', type: 'varchar', default: 'Quota Share' })
+  treatyType: string;
+
+  @Column({ name: 'ulae_type', type: 'varchar', default: 'percentage' })
+  ulaeType: string;
+
+  @Column({ name: 'ulae_basis', type: 'varchar', nullable: true })
+  ulaeBasis: string | null;
+
+  @Column({ name: 'ulae_flat_amount', type: 'decimal', precision: 15, scale: 2, transformer: new ColumnNumericTransformer(), nullable: true })
+  ulaeFlatAmount: number | null;
+
+  @Column({ name: 'policy_seq_prefix', type: 'varchar', nullable: true })
+  policySeqPrefix: string | null;
+
+  @Column({ name: 'policy_seq_start', type: 'integer', nullable: true })
+  policySeqStart: number | null;
+
+  @Column({ name: 'policy_seq_next', type: 'integer', nullable: true })
+  policySeqNext: number | null;
+
+  @Column({ name: 'claim_seq_prefix', type: 'varchar', nullable: true })
+  claimSeqPrefix: string | null;
+
+  @Column({ name: 'claim_seq_start', type: 'integer', nullable: true })
+  claimSeqStart: number | null;
+
+  @Column({ name: 'claim_seq_next', type: 'integer', nullable: true })
+  claimSeqNext: number | null;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;

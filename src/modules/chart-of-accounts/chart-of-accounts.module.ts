@@ -5,8 +5,13 @@ import { ChartOfAccountDocument } from '../../entities/chart-of-account-document
 import { ChartOfAccountsService } from './chart-of-accounts.service';
 import { ChartOfAccountsController } from './chart-of-accounts.controller';
 
+import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([ChartOfAccount, ChartOfAccountDocument])],
+  imports: [
+    TypeOrmModule.forFeature([ChartOfAccount, ChartOfAccountDocument]),
+    ActivityLogsModule,
+  ],
   controllers: [ChartOfAccountsController],
   providers: [ChartOfAccountsService],
   exports: [ChartOfAccountsService],

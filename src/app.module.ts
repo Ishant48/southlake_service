@@ -55,9 +55,13 @@ import { WorkbookModule } from './modules/workbook/workbook.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ReservesModule } from './modules/reserves/reserves.module';
 import { DatabaseSeederModule } from './modules/database-seeder/database-seeder.module';
+import { FinancialReportsModule } from './modules/financial-reports/financial-reports.module';
 import { Workbook } from './entities/workbook.entity';
 import { StateExhibit } from './entities/state-exhibit.entity';
 import { CashSettlement } from './entities/cash-settlement.entity';
+import { Broker } from './entities/broker.entity';
+import { Product } from './entities/product.entity';
+import { LockedPeriod } from './entities/locked-period.entity';
 
 @Module({
   imports: [
@@ -113,6 +117,9 @@ import { CashSettlement } from './entities/cash-settlement.entity';
           JournalEntry,
           StateDocument,
           RiskCompanyDocument,
+          Broker,
+          Product,
+          LockedPeriod,
         ],
         synchronize: false,
         logging: process.env.NODE_ENV !== 'production',
@@ -135,6 +142,7 @@ import { CashSettlement } from './entities/cash-settlement.entity';
     ReportsModule,
     ReservesModule,
     DatabaseSeederModule,
+    FinancialReportsModule,
   ],
   providers: [],
 })

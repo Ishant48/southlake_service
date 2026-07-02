@@ -27,6 +27,9 @@ export class ChartOfAccountDocument {
   @Column({ name: 'file_url', type: 'varchar' })
   fileUrl: string;
 
+  @Column({ name: 'document_type', type: 'varchar', nullable: true })
+  documentType: string | null;
+
   @CreateDateColumn({ name: 'uploaded_at', type: 'timestamp' })
   uploadedAt: Date;
 

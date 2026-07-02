@@ -7,6 +7,8 @@ import {
 } from 'typeorm';
 import { Treaty } from './treaty.entity';
 import { RiskCompany } from './risk-company.entity';
+import { StateMaster } from './state-master.entity';
+import { Broker } from './broker.entity';
 
 export class ColumnNumericTransformer {
   to(data: number | null): number | null {
@@ -44,4 +46,18 @@ export class TreatyCarrier {
     transformer: new ColumnNumericTransformer(),
   })
   retentionPct: number;
+
+  @Column({ name: 'state_id', type: 'uuid', nullable: true })
+  stateId: string | null;
+
+  @ManyToOne(() => StateMaster, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'state_id' })
+  state: StateMaster | null;
+
+  @Column({ name: 'broker_id', type: 'uuid', nullable: true })
+  brokerId: string | null;
+
+  @ManyToOne(() => Broker, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'broker_id' })
+  broker: Broker | null;
 }

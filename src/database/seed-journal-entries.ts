@@ -1,15 +1,20 @@
 import { AppDataSource } from './data-source';
 import { Client } from 'pg';
+import { QueryRunner } from 'typeorm';
 
-export async function seedJournalEntries(): Promise<void> {
+export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Promise<void> {
   const isInitialized = AppDataSource.isInitialized;
-  if (!isInitialized) {
-    await AppDataSource.initialize();
-  }
+  const useExternal = !!externalQueryRunner;
 
-  const queryRunner = AppDataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
+  const queryRunner = externalQueryRunner || AppDataSource.createQueryRunner();
+
+  if (!useExternal) {
+    if (!isInitialized) {
+      await AppDataSource.initialize();
+    }
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+  }
 
   // Connect to starlight db
   const starlightClient = new Client({
@@ -200,17 +205,23 @@ export async function seedJournalEntries(): Promise<void> {
       );
     }
 
-    await queryRunner.commitTransaction();
-    console.log('Successfully completed migrating starlight data to southlake!');
+    if (!useExternal) {
+      await queryRunner.commitTransaction();
+      console.log('Successfully completed migrating starlight data to southlake!');
+    }
   } catch (err: any) {
     console.error('Error during migration seeder:', err);
-    await queryRunner.rollbackTransaction();
+    if (!useExternal) {
+      await queryRunner.rollbackTransaction();
+    }
     throw err;
   } finally {
     await starlightClient.end();
-    await queryRunner.release();
-    if (!isInitialized) {
-      await AppDataSource.destroy();
+    if (!useExternal) {
+      await queryRunner.release();
+      if (!isInitialized) {
+        await AppDataSource.destroy();
+      }
     }
   }
 }

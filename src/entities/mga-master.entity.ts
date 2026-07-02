@@ -56,6 +56,18 @@ export class MgaMaster {
   @Column({ name: 'other_names', type: 'jsonb', nullable: true })
   otherNames: { state: string; displayName: string }[] | null;
 
+  @Column({ name: 'naics_code', type: 'varchar', nullable: true })
+  naicsCode: string | null;
+
+  @Column({ name: 'contact_name', type: 'varchar', nullable: true })
+  contactName: string | null;
+
+  @Column({ name: 'contact_email', type: 'varchar', nullable: true })
+  contactEmail: string | null;
+
+  @Column({ name: 'contact_phone', type: 'varchar', nullable: true })
+  contactPhone: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 

@@ -2893,29 +2893,38 @@ const CHILDREN = [
   }
 ];
 
-export async function seedCoa(): Promise<void> {
-  console.log('Initializing DataSource for COA seeding...');
-  const isInitialized = AppDataSource.isInitialized;
-  if (!isInitialized) {
-    await AppDataSource.initialize();
-  }
-  console.log('DataSource initialized.');
+import { QueryRunner } from 'typeorm';
 
-  const queryRunner = AppDataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
+export async function seedCoa(externalQueryRunner?: QueryRunner): Promise<void> {
+  const isInitialized = AppDataSource.isInitialized;
+  const useExternal = !!externalQueryRunner;
+
+  const queryRunner = externalQueryRunner || AppDataSource.createQueryRunner();
+
+  if (!useExternal) {
+    console.log('Initializing DataSource for COA seeding...');
+    if (!isInitialized) {
+      await AppDataSource.initialize();
+    }
+    console.log('DataSource initialized.');
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+  }
 
   try {
-    console.log('Clearing existing chart of accounts documents...');
-    await queryRunner.query('DELETE FROM "chart_of_account_documents"');
-    console.log('Clearing existing chart of accounts...');
-    await queryRunner.query('DELETE FROM "chart_of_accounts"');
+    if (!useExternal) {
+      console.log('Clearing existing chart of accounts documents...');
+      await queryRunner.query('DELETE FROM "chart_of_account_documents"');
+      console.log('Clearing existing chart of accounts...');
+      await queryRunner.query('DELETE FROM "chart_of_accounts"');
+    }
 
     console.log('Seeding root parent COA accounts...');
     for (const p of PARENTS) {
       await queryRunner.query(`
         INSERT INTO "chart_of_accounts" ("id", "account_code", "key", "description", "notes", "is_parent", "normal_balance", "next_number", "is_active")
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO NOTHING
       `, [p.id, p.account_code, p.key, p.description, p.notes, p.is_parent, p.normal_balance, p.next_number, p.is_active]);
     }
 
@@ -2924,19 +2933,26 @@ export async function seedCoa(): Promise<void> {
       await queryRunner.query(`
         INSERT INTO "chart_of_accounts" ("id", "account_code", "key", "description", "notes", "parent_id", "is_parent", "normal_balance", "next_number", "is_active")
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO NOTHING
       `, [c.id, c.account_code, c.key, c.description, c.notes, c.parent_id, c.is_parent, c.normal_balance, c.next_number, c.is_active]);
     }
 
-    await queryRunner.commitTransaction();
-    console.log('COA seeding transaction committed successfully!');
+    if (!useExternal) {
+      await queryRunner.commitTransaction();
+      console.log('COA seeding transaction committed successfully!');
+    }
   } catch (error) {
     console.error('Error during COA seeding, rolling back...', error);
-    await queryRunner.rollbackTransaction();
+    if (!useExternal) {
+      await queryRunner.rollbackTransaction();
+    }
     throw error;
   } finally {
-    await queryRunner.release();
-    if (!isInitialized) {
-      await AppDataSource.destroy();
+    if (!useExternal) {
+      await queryRunner.release();
+      if (!isInitialized) {
+        await AppDataSource.destroy();
+      }
     }
   }
 }

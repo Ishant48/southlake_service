@@ -17,6 +17,13 @@ import { TreatyState } from '../../entities/treaty-state.entity';
 import { StateDocument } from '../../entities/state-document.entity';
 import { RiskCompanyDocument } from '../../entities/risk-company-document.entity';
 import { TreatyMga } from '../../entities/treaty-mga.entity';
+import { Broker } from '../../entities/broker.entity';
+import { Product } from '../../entities/product.entity';
+import { LockedPeriod } from '../../entities/locked-period.entity';
+import { TreatyCarrier } from '../../entities/treaty-carrier.entity';
+import { TreatyReinsurer } from '../../entities/treaty-reinsurer.entity';
+
+import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
 
 @Module({
   imports: [
@@ -35,7 +42,13 @@ import { TreatyMga } from '../../entities/treaty-mga.entity';
       TreatyMga,
       StateDocument,
       RiskCompanyDocument,
+      Broker,
+      Product,
+      LockedPeriod,
+      TreatyCarrier,
+      TreatyReinsurer,
     ]),
+    ActivityLogsModule,
   ],
   controllers: [MastersController],
   providers: [MastersService],

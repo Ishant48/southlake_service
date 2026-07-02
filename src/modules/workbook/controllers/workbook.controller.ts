@@ -21,6 +21,8 @@ import { UpdateRatesDto } from '../dto/update-rates.dto';
 import { UpdateCashSettlementDto } from '../dto/update-cash-settlement.dto';
 import { UpdateMappingsDto } from '../dto/update-mappings.dto';
 import { Public } from '../../../common/decorators/public.decorator';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { User } from '../../../entities/user.entity';
 
 @Controller('api/workbooks')
 @Public()
@@ -52,8 +54,8 @@ export class WorkbookController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id', ParseIntPipe) id: number) {
-    await this.workbookService.delete(id);
+  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
+    await this.workbookService.delete(id, user.id);
   }
 
   @Put(':id/mappings')
@@ -77,16 +79,18 @@ export class WorkbookController {
   async updateRates(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateRatesDto,
+    @CurrentUser() user: User,
   ) {
-    return this.workbookService.updateRates(id, dto);
+    return this.workbookService.updateRates(id, dto, user.id);
   }
 
   @Put(':id/cash-settlement')
   async updateCashSettlement(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateCashSettlementDto,
+    @CurrentUser() user: User,
   ) {
-    return this.workbookService.updateCashSettlement(id, dto);
+    return this.workbookService.updateCashSettlement(id, dto, user.id);
   }
 
   @Post('upload')

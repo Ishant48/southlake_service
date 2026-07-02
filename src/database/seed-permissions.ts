@@ -1,14 +1,19 @@
 import { AppDataSource } from './data-source';
+import { QueryRunner } from 'typeorm';
 
-export async function seedPermissions(): Promise<void> {
+export async function seedPermissions(externalQueryRunner?: QueryRunner): Promise<void> {
   const isInitialized = AppDataSource.isInitialized;
-  if (!isInitialized) {
-    await AppDataSource.initialize();
-  }
+  const useExternal = !!externalQueryRunner;
 
-  const queryRunner = AppDataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
+  const queryRunner = externalQueryRunner || AppDataSource.createQueryRunner();
+
+  if (!useExternal) {
+    if (!isInitialized) {
+      await AppDataSource.initialize();
+    }
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+  }
 
   try {
     console.log('Connected to database. Seeding module-specific permissions...');
@@ -77,16 +82,22 @@ export async function seedPermissions(): Promise<void> {
       }
     }
 
-    await queryRunner.commitTransaction();
-    console.log('Permissions seeding transaction committed successfully!');
+    if (!useExternal) {
+      await queryRunner.commitTransaction();
+      console.log('Permissions seeding transaction committed successfully!');
+    }
   } catch (error) {
     console.error('Error during permissions seeding, rolling back...', error);
-    await queryRunner.rollbackTransaction();
+    if (!useExternal) {
+      await queryRunner.rollbackTransaction();
+    }
     throw error;
   } finally {
-    await queryRunner.release();
-    if (!isInitialized) {
-      await AppDataSource.destroy();
+    if (!useExternal) {
+      await queryRunner.release();
+      if (!isInitialized) {
+        await AppDataSource.destroy();
+      }
     }
   }
 }

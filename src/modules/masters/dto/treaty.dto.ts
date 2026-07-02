@@ -30,6 +30,14 @@ export class TreatyCarrierDto {
   @IsNumber()
   @IsNotEmpty()
   retention_pct: number;
+
+  @IsUUID()
+  @IsOptional()
+  state_id?: string;
+
+  @IsUUID()
+  @IsOptional()
+  broker_id?: string;
 }
 
 export class TreatyReinsurerDto {
@@ -40,6 +48,14 @@ export class TreatyReinsurerDto {
   @IsNumber()
   @IsNotEmpty()
   cession_pct: number;
+
+  @IsUUID()
+  @IsOptional()
+  state_id?: string;
+
+  @IsUUID()
+  @IsOptional()
+  broker_id?: string;
 }
 
 export class CreateTreatyDto {
@@ -150,6 +166,46 @@ export class CreateTreatyDto {
   @Type(() => TreatyReinsurerDto)
   @IsOptional()
   reinsurers?: TreatyReinsurerDto[];
+
+  @IsString()
+  @IsOptional()
+  treaty_type?: string;
+
+  @IsString()
+  @IsOptional()
+  ulae_type?: string;
+
+  @IsString()
+  @IsOptional()
+  ulae_basis?: string;
+
+  @IsNumber()
+  @IsOptional()
+  ulae_flat_amount?: number;
+
+  @IsString()
+  @IsOptional()
+  policy_seq_prefix?: string;
+
+  @IsNumber()
+  @IsOptional()
+  policy_seq_start?: number;
+
+  @IsNumber()
+  @IsOptional()
+  policy_seq_next?: number;
+
+  @IsString()
+  @IsOptional()
+  claim_seq_prefix?: string;
+
+  @IsNumber()
+  @IsOptional()
+  claim_seq_start?: number;
+
+  @IsNumber()
+  @IsOptional()
+  claim_seq_next?: number;
 }
 
 export class UpdateTreatyDto {
@@ -260,4 +316,44 @@ export class UpdateTreatyDto {
   @Type(() => TreatyReinsurerDto)
   @IsOptional()
   reinsurers?: TreatyReinsurerDto[];
+
+  @IsString()
+  @IsOptional()
+  treaty_type?: string;
+
+  @IsString()
+  @IsOptional()
+  ulae_type?: string;
+
+  @IsString()
+  @IsOptional()
+  ulae_basis?: string;
+
+  @IsNumber()
+  @IsOptional()
+  ulae_flat_amount?: number;
+
+  @IsString()
+  @IsOptional()
+  policy_seq_prefix?: string;
+
+  @IsNumber()
+  @IsOptional()
+  policy_seq_start?: number;
+
+  @IsNumber()
+  @IsOptional()
+  policy_seq_next?: number;
+
+  @IsString()
+  @IsOptional()
+  claim_seq_prefix?: string;
+
+  @IsNumber()
+  @IsOptional()
+  claim_seq_start?: number;
+
+  @IsNumber()
+  @IsOptional()
+  claim_seq_next?: number;
 }

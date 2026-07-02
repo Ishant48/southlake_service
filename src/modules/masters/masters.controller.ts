@@ -38,6 +38,9 @@ import { CreateRiskCompanyDto, UpdateRiskCompanyDto } from './dto/risk-company.d
 import { CreateLobDto, UpdateLobDto } from './dto/lob.dto';
 import { CreateCobDto, UpdateCobDto } from './dto/cob.dto';
 import { CreateTreatyDto, UpdateTreatyDto } from './dto/treaty.dto';
+import { CreateBrokerDto, UpdateBrokerDto } from './dto/broker.dto';
+import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { CreateLockedPeriodDto, UpdateLockedPeriodDto } from './dto/locked-period.dto';
 
 // Ensure uploads directory exists
 const uploadDir = './uploads';
@@ -84,8 +87,8 @@ export class MastersController {
 
   @Delete('states/:id')
   @ApiOperation({ summary: 'Delete state' })
-  deleteState(@Param('id') id: string) {
-    return this.service.deleteState(id);
+  deleteState(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteState(id, user.id);
   }
 
   @Get('states/:id')
@@ -122,12 +125,16 @@ export class MastersController {
   uploadStateDocument(
     @Param('id') id: string,
     @UploadedFile() file: any,
+    @Body('document_type') documentType: string,
     @CurrentUser() user: User,
   ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    return this.service.addStateDocument(id, file.originalname, file.filename, user.id);
+    if (!documentType) {
+      throw new BadRequestException('Document Type is required');
+    }
+    return this.service.addStateDocument(id, file.originalname, file.filename, documentType, user.id);
   }
 
   @Get('states/documents/download/:filename')
@@ -200,8 +207,8 @@ export class MastersController {
 
   @Delete('mgas/:id')
   @ApiOperation({ summary: 'Delete MGA' })
-  deleteMga(@Param('id') id: string) {
-    return this.service.deleteMga(id);
+  deleteMga(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteMga(id, user.id);
   }
 
   @Post('mgas/:id/documents')
@@ -232,12 +239,16 @@ export class MastersController {
   uploadMgaDocument(
     @Param('id') id: string,
     @UploadedFile() file: any,
+    @Body('document_type') documentType: string,
     @CurrentUser() user: User,
   ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    return this.service.addMgaDocument(id, file.originalname, file.filename, user.id);
+    if (!documentType) {
+      throw new BadRequestException('Document Type is required');
+    }
+    return this.service.addMgaDocument(id, file.originalname, file.filename, documentType, user.id);
   }
 
   @Get('mgas/documents/download/:filename')
@@ -379,12 +390,16 @@ export class MastersController {
   uploadRiskCompanyDocument(
     @Param('id') id: string,
     @UploadedFile() file: any,
+    @Body('document_type') documentType: string,
     @CurrentUser() user: User,
   ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    return this.service.addRiskCompanyDocument(id, file.originalname, file.filename, user.id);
+    if (!documentType) {
+      throw new BadRequestException('Document Type is required');
+    }
+    return this.service.addRiskCompanyDocument(id, file.originalname, file.filename, documentType, user.id);
   }
 
   @Get('risk-companies/documents/download/:filename')
@@ -543,5 +558,121 @@ export class MastersController {
     @CurrentUser() user: User,
   ) {
     return this.service.addMgaToTreaties(id, treatyIds, user.id);
+  }
+
+  // ==========================================
+  // BROKER ENDPOINTS
+  // ==========================================
+  @Get('brokers')
+  @ApiOperation({ summary: 'Get all brokers' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
+  findAllBrokers(
+    @Query('search') search?: string,
+    @Query('is_active') isActive?: boolean,
+  ) {
+    const active = isActive !== undefined ? String(isActive) === 'true' : undefined;
+    return this.service.findAllBrokers(search, active);
+  }
+
+  @Get('brokers/:id')
+  @ApiOperation({ summary: 'Get one broker details' })
+  findOneBroker(@Param('id') id: string) {
+    return this.service.findOneBroker(id);
+  }
+
+  @Post('brokers')
+  @ApiOperation({ summary: 'Create broker' })
+  createBroker(@Body() dto: CreateBrokerDto, @CurrentUser() user: User) {
+    return this.service.createBroker(dto, user.id);
+  }
+
+  @Patch('brokers/:id')
+  @ApiOperation({ summary: 'Update broker' })
+  updateBroker(
+    @Param('id') id: string,
+    @Body() dto: UpdateBrokerDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.updateBroker(id, dto, user.id);
+  }
+
+  @Delete('brokers/:id')
+  @ApiOperation({ summary: 'Delete broker' })
+  deleteBroker(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteBroker(id, user.id);
+  }
+
+  // ==========================================
+  // PRODUCT ENDPOINTS
+  // ==========================================
+  @Get('products')
+  @ApiOperation({ summary: 'Get all products' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
+  findAllProducts(
+    @Query('search') search?: string,
+    @Query('is_active') isActive?: boolean,
+  ) {
+    const active = isActive !== undefined ? String(isActive) === 'true' : undefined;
+    return this.service.findAllProducts(search, active);
+  }
+
+  @Get('products/:id')
+  @ApiOperation({ summary: 'Get one product details' })
+  findOneProduct(@Param('id') id: string) {
+    return this.service.findOneProduct(id);
+  }
+
+  @Post('products')
+  @ApiOperation({ summary: 'Create product' })
+  createProduct(@Body() dto: CreateProductDto, @CurrentUser() user: User) {
+    return this.service.createProduct(dto, user.id);
+  }
+
+  @Patch('products/:id')
+  @ApiOperation({ summary: 'Update product' })
+  updateProduct(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.updateProduct(id, dto, user.id);
+  }
+
+  @Delete('products/:id')
+  @ApiOperation({ summary: 'Delete product' })
+  deleteProduct(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteProduct(id, user.id);
+  }
+
+  // ==========================================
+  // LOCKED PERIODS ENDPOINTS
+  // ==========================================
+  @Get('locked-periods')
+  @ApiOperation({ summary: 'Get all locked periods' })
+  @ApiQuery({ name: 'search', required: false })
+  findAllLockedPeriods(@Query('search') search?: string) {
+    return this.service.findAllLockedPeriods(search);
+  }
+
+  @Post('locked-periods/lock')
+  @ApiOperation({ summary: 'Lock a period' })
+  lockPeriod(
+    @Body('period') period: string,
+    @CurrentUser() user: User,
+  ) {
+    if (!period) throw new BadRequestException('Period is required');
+    return this.service.lockPeriod(period, user.id);
+  }
+
+  @Post('locked-periods/unlock')
+  @ApiOperation({ summary: 'Unlock a period' })
+  unlockPeriod(
+    @Body('period') period: string,
+    @CurrentUser() user: User,
+  ) {
+    if (!period) throw new BadRequestException('Period is required');
+    return this.service.unlockPeriod(period, user.id);
   }
 }

@@ -2,6 +2,8 @@ import { Controller, Get, Post, Param, ParseIntPipe, UploadedFile, UseIntercepto
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ReportsService } from '../services/reports.service';
 import { Public } from '../../../common/decorators/public.decorator';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { User } from '../../../entities/user.entity';
 
 @Controller('api/workbooks')
 @Public()
@@ -38,9 +40,10 @@ export class ReportsController {
   async postToJournalEntries(
     @Param('id', ParseIntPipe) id: number,
     @Param('stateCode') stateCode: string,
+    @CurrentUser() user: User,
     @Body() body?: { customRows?: any[] },
   ) {
-    return this.reportsService.postToJournalEntries(id, stateCode.toUpperCase(), undefined, body?.customRows);
+    return this.reportsService.postToJournalEntries(id, stateCode.toUpperCase(), user.id, body?.customRows);
   }
 
   @Get(':id/cash-settlement-calculations')

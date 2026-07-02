@@ -6,6 +6,10 @@ import { RiskCompany } from '../entities/risk-company.entity';
 import { JournalEntryBatch } from '../entities/journal-entry-batch.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { ChartOfAccount } from '../entities/chart-of-account.entity';
+import { QueryRunner } from 'typeorm';
+import { seedPermissions } from './seed-permissions';
+import { seedCoa } from './seed-coa';
+import { seedJournalEntries } from './seed-journal-entries';
 
 const STATES = [
   {
@@ -22766,17 +22770,29 @@ const ENTRIES = [
   }
 ];
 
-export async function seedFalconData() {
+export async function seedFalconData(externalQueryRunner?: QueryRunner) {
   const isInitialized = AppDataSource.isInitialized;
-  if (!isInitialized) {
-    await AppDataSource.initialize();
+  const useExternal = !!externalQueryRunner;
+
+  const queryRunner = externalQueryRunner || AppDataSource.createQueryRunner();
+
+  if (!useExternal) {
+    if (!isInitialized) {
+      await AppDataSource.initialize();
+    }
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
   }
 
-  const queryRunner = AppDataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
-
   try {
+    if (!useExternal) {
+      console.log('Master Seeder: Seeding Permissions...');
+      await seedPermissions(queryRunner);
+
+      console.log('Master Seeder: Seeding Chart of Accounts...');
+      await seedCoa(queryRunner);
+    }
+
     // 1. Seed States
     console.log('Seeding States...');
     for (const s of STATES) {
@@ -22955,16 +22971,25 @@ export async function seedFalconData() {
       }
     }
 
-    await queryRunner.commitTransaction();
-    console.log('Falcon data seeding transaction committed successfully!');
+    if (!useExternal) {
+      console.log('Master Seeder: Seeding Journal Entries (Starlight migration)...');
+      await seedJournalEntries(queryRunner);
+
+      await queryRunner.commitTransaction();
+      console.log('Falcon data seeding transaction committed successfully!');
+    }
   } catch (error) {
     console.error('Error during Falcon data seeding, rolling back...', error);
-    await queryRunner.rollbackTransaction();
+    if (!useExternal) {
+      await queryRunner.rollbackTransaction();
+    }
     throw error;
   } finally {
-    await queryRunner.release();
-    if (!isInitialized) {
-      await AppDataSource.destroy();
+    if (!useExternal) {
+      await queryRunner.release();
+      if (!isInitialized) {
+        await AppDataSource.destroy();
+      }
     }
   }
 }

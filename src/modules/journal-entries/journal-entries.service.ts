@@ -7,6 +7,8 @@ import { ChartOfAccount } from '../../entities/chart-of-account.entity';
 import { CreateJournalBatchDto, UpdateJournalBatchDto } from './dto/journal-batches.dto';
 import { PostJournalEntriesDto } from './dto/journal-entries.dto';
 
+import { LockedPeriod } from '../../entities/locked-period.entity';
+
 @Injectable()
 export class JournalEntriesService {
   constructor(
@@ -16,6 +18,8 @@ export class JournalEntriesService {
     private readonly entryRepo: Repository<JournalEntry>,
     @InjectRepository(ChartOfAccount)
     private readonly coaRepo: Repository<ChartOfAccount>,
+    @InjectRepository(LockedPeriod)
+    private readonly lockedPeriodRepo: Repository<LockedPeriod>,
   ) {}
 
   async findBatches(period?: string, agentName?: string, search?: string): Promise<JournalEntryBatch[]> {
@@ -49,6 +53,10 @@ export class JournalEntriesService {
   }
 
   async createBatch(dto: CreateJournalBatchDto, userId?: string): Promise<JournalEntryBatch> {
+    const locked = await this.lockedPeriodRepo.findOne({ where: { period: dto.period, isLocked: true } });
+    if (locked) {
+      throw new BadRequestException(`Accounting period '${dto.period}' is locked. Cannot create batch.`);
+    }
     let nextBatchNumber = dto.batch_number;
 
     if (!nextBatchNumber) {
@@ -82,6 +90,11 @@ export class JournalEntriesService {
 
   async updateBatch(id: string, dto: UpdateJournalBatchDto, userId?: string): Promise<JournalEntryBatch> {
     const batch = await this.findOneBatch(id);
+    const targetPeriod = dto.period || batch.period;
+    const locked = await this.lockedPeriodRepo.findOne({ where: { period: targetPeriod, isLocked: true } });
+    if (locked) {
+      throw new BadRequestException(`Accounting period '${targetPeriod}' is locked. Cannot update batch.`);
+    }
 
     if (dto.batch_number && dto.batch_number !== batch.batchNumber) {
       const existing = await this.batchRepo.findOne({ where: { batchNumber: dto.batch_number } });
@@ -100,6 +113,10 @@ export class JournalEntriesService {
 
   async removeBatch(id: string): Promise<void> {
     const batch = await this.findOneBatch(id);
+    const locked = await this.lockedPeriodRepo.findOne({ where: { period: batch.period, isLocked: true } });
+    if (locked) {
+      throw new BadRequestException(`Accounting period '${batch.period}' is locked. Cannot delete batch.`);
+    }
     await this.batchRepo.remove(batch);
   }
 
@@ -113,6 +130,10 @@ export class JournalEntriesService {
 
   async postEntries(batchId: string, dto: PostJournalEntriesDto): Promise<JournalEntry[]> {
     const batch = await this.findOneBatch(batchId);
+    const locked = await this.lockedPeriodRepo.findOne({ where: { period: batch.period, isLocked: true } });
+    if (locked) {
+      throw new BadRequestException(`Accounting period '${batch.period}' is locked. Cannot post entries to this batch.`);
+    }
 
     if (!dto.lines || dto.lines.length < 1) {
       throw new BadRequestException('At least one entry line is required');

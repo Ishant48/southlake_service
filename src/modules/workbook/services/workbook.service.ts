@@ -9,6 +9,7 @@ import { UpdateExhibitDto } from '../dto/update-exhibit.dto';
 import { UpdateRatesDto } from '../dto/update-rates.dto';
 import { UpdateCashSettlementDto } from '../dto/update-cash-settlement.dto';
 import { ExcelParserService } from './excel-parser.service';
+import { ActivityLogsService } from '../../activity-logs/activity-logs.service';
 import * as XLSX from 'xlsx';
 
 @Injectable()
@@ -24,6 +25,7 @@ export class WorkbookService {
     private readonly treatyRepo: Repository<Treaty>,
 
     private readonly excelParserService: ExcelParserService,
+    private readonly activityLogsService: ActivityLogsService,
   ) {}
 
   async findPrograms(): Promise<any[]> {
@@ -142,16 +144,33 @@ export class WorkbookService {
     );
   }
 
-  async delete(id: number): Promise<void> {
+  async delete(id: number, userId?: string): Promise<void> {
+    const workbook = await this.findOne(id);
     await this.deleteAssociatedBatches(id);
     await this.workbookRepo.delete(id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'reinsurance',
+      action: 'delete',
+      entityType: 'workbook',
+      entityId: String(id),
+      description: `Deleted workbook ${workbook.program} (${workbook.monthLabel})`,
+    });
   }
 
-  async updateStatus(id: number, status: string): Promise<Workbook> {
+  async updateStatus(id: number, status: string, userId?: string): Promise<Workbook> {
     const workbook = await this.findOne(id);
     workbook.status = status;
     const saved = await this.workbookRepo.save(workbook);
     await this.populateWorkbookRates(saved);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'reinsurance',
+      action: status === 'Approved' ? 'approve' : 'edit',
+      entityType: 'workbook',
+      entityId: String(id),
+      description: `Workbook status updated to ${status} for ${workbook.program} (${workbook.monthLabel})`,
+    });
     return saved;
   }
 
@@ -299,7 +318,7 @@ export class WorkbookService {
     return reloadedExhibit || savedExhibit;
   }
 
-  async updateRates(workbookId: number, dto: UpdateRatesDto): Promise<Workbook> {
+  async updateRates(workbookId: number, dto: UpdateRatesDto, userId?: string): Promise<Workbook> {
     const workbook = await this.findOne(workbookId);
     workbook.rates = {
       ...workbook.rates,
@@ -309,10 +328,18 @@ export class WorkbookService {
     if (savedWorkbook.source === 'FUT') {
       await this.recalculateFUTReserves(workbookId);
     }
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'reinsurance',
+      action: 'edit',
+      entityType: 'workbook',
+      entityId: String(workbookId),
+      description: `Updated ceding rates for workbook ${workbook.program} (${workbook.monthLabel})`,
+    });
     return this.findOne(workbookId);
   }
 
-  async updateCashSettlement(workbookId: number, dto: UpdateCashSettlementDto): Promise<CashSettlement> {
+  async updateCashSettlement(workbookId: number, dto: UpdateCashSettlementDto, userId?: string): Promise<CashSettlement> {
     const workbook = await this.findOne(workbookId);
     if (!workbook.cashSettlement) {
       workbook.cashSettlement = this.cashSettlementRepo.create({
@@ -324,7 +351,16 @@ export class WorkbookService {
       if (dto.begBal !== undefined) workbook.cashSettlement.begBal = dto.begBal;
       if (dto.amtPaid !== undefined) workbook.cashSettlement.amtPaid = dto.amtPaid;
     }
-    return this.cashSettlementRepo.save(workbook.cashSettlement);
+    const saved = await this.cashSettlementRepo.save(workbook.cashSettlement);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'reinsurance',
+      action: 'edit',
+      entityType: 'cash_settlement',
+      entityId: String(saved.id || workbookId),
+      description: `Updated cash settlement balances for workbook ${workbook.program} (${workbook.monthLabel})`,
+    });
+    return saved;
   }
 
   async findPreviousWorkbook(program: string, monthKey: string, source: string): Promise<Workbook | null> {
