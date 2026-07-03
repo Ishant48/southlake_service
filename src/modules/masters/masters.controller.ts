@@ -41,6 +41,7 @@ import { CreateTreatyDto, UpdateTreatyDto } from './dto/treaty.dto';
 import { CreateBrokerDto, UpdateBrokerDto } from './dto/broker.dto';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { CreateLockedPeriodDto, UpdateLockedPeriodDto } from './dto/locked-period.dto';
+import { CreateDocumentTypeDto, UpdateDocumentTypeDto } from './dto/document-type.dto';
 
 // Ensure uploads directory exists
 const uploadDir = './uploads';
@@ -674,5 +675,47 @@ export class MastersController {
   ) {
     if (!period) throw new BadRequestException('Period is required');
     return this.service.unlockPeriod(period, user.id);
+  }
+
+  // ==========================================
+  // DOCUMENT TYPES ENDPOINTS
+  // ==========================================
+  @Get('document-types')
+  @ApiOperation({ summary: 'Get all document types' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
+  findAllDocumentTypes(
+    @Query('search') search?: string,
+    @Query('isActive') isActive?: boolean,
+  ) {
+    return this.service.findAllDocumentTypes(search, isActive);
+  }
+
+  @Get('document-types/:id')
+  @ApiOperation({ summary: 'Get document type by id' })
+  findOneDocumentType(@Param('id') id: string) {
+    return this.service.findOneDocumentType(id);
+  }
+
+  @Post('document-types')
+  @ApiOperation({ summary: 'Create document type' })
+  createDocumentType(@Body() dto: CreateDocumentTypeDto, @CurrentUser() user: User) {
+    return this.service.createDocumentType(dto, user.id);
+  }
+
+  @Patch('document-types/:id')
+  @ApiOperation({ summary: 'Update document type' })
+  updateDocumentType(
+    @Param('id') id: string,
+    @Body() dto: UpdateDocumentTypeDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.updateDocumentType(id, dto, user.id);
+  }
+
+  @Delete('document-types/:id')
+  @ApiOperation({ summary: 'Delete document type' })
+  deleteDocumentType(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteDocumentType(id, user.id);
   }
 }

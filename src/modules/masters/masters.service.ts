@@ -21,6 +21,7 @@ import { TreatyReinsurer } from '../../entities/treaty-reinsurer.entity';
 import { Broker } from '../../entities/broker.entity';
 import { Product } from '../../entities/product.entity';
 import { LockedPeriod } from '../../entities/locked-period.entity';
+import { DocumentType } from '../../entities/document-type.entity';
 
 import { CreateStateDto, UpdateStateDto } from './dto/state.dto';
 import { CreateMgaDto, UpdateMgaDto } from './dto/mga.dto';
@@ -32,6 +33,7 @@ import { CreateTreatyDto, UpdateTreatyDto } from './dto/treaty.dto';
 import { CreateBrokerDto, UpdateBrokerDto } from './dto/broker.dto';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { CreateLockedPeriodDto, UpdateLockedPeriodDto } from './dto/locked-period.dto';
+import { CreateDocumentTypeDto, UpdateDocumentTypeDto } from './dto/document-type.dto';
 
 @Injectable()
 export class MastersService {
@@ -70,6 +72,8 @@ export class MastersService {
     private readonly productRepo: Repository<Product>,
     @InjectRepository(LockedPeriod)
     private readonly lockedPeriodRepo: Repository<LockedPeriod>,
+    @InjectRepository(DocumentType)
+    private readonly documentTypeRepo: Repository<DocumentType>,
     @InjectRepository(TreatyCarrier)
     private readonly treatyCarrierRepo: Repository<TreatyCarrier>,
     @InjectRepository(TreatyReinsurer)
@@ -1322,5 +1326,90 @@ export class MastersService {
   async isPeriodLocked(period: string): Promise<boolean> {
     const lp = await this.lockedPeriodRepo.findOne({ where: { period } });
     return lp ? lp.isLocked : false;
+  }
+
+  // ==========================================
+  // DOCUMENT TYPE MASTER OPERATIONS
+  // ==========================================
+  async findAllDocumentTypes(search?: string, isActive?: boolean): Promise<DocumentType[]> {
+    const where: any = [];
+    if (search) {
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ code: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
+    }
+    return this.documentTypeRepo.find({
+      where: where.length > 1 ? where : where[0],
+      order: { code: 'ASC' }
+    });
+  }
+
+  async findOneDocumentType(id: string): Promise<DocumentType> {
+    const docType = await this.documentTypeRepo.findOne({ where: { id } });
+    if (!docType) throw new NotFoundException('Document Type not found');
+    return docType;
+  }
+
+  async createDocumentType(dto: CreateDocumentTypeDto, userId?: string): Promise<DocumentType> {
+    const exists = await this.documentTypeRepo.findOne({ where: { code: dto.code } });
+    if (exists) throw new BadRequestException(`Document Type code ${dto.code} already exists`);
+
+    const docType = this.documentTypeRepo.create({
+      code: dto.code,
+      name: dto.name,
+      description: dto.description || null,
+      isActive: dto.is_active ?? true,
+    });
+    const saved = await this.documentTypeRepo.save(docType);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'create',
+      entityType: 'document_type',
+      entityId: saved.id,
+      description: `Created Document Type ${saved.name} (${saved.code})`,
+    });
+    return saved;
+  }
+
+  async updateDocumentType(id: string, dto: UpdateDocumentTypeDto, userId?: string): Promise<DocumentType> {
+    const docType = await this.findOneDocumentType(id);
+    if (dto.code !== undefined && dto.code !== docType.code) {
+      const exists = await this.documentTypeRepo.findOne({ where: { code: dto.code } });
+      if (exists) throw new BadRequestException(`Document Type code ${dto.code} already exists`);
+    }
+
+    Object.assign(docType, {
+      code: dto.code !== undefined ? dto.code : docType.code,
+      name: dto.name !== undefined ? dto.name : docType.name,
+      description: dto.description !== undefined ? dto.description : docType.description,
+      isActive: dto.is_active !== undefined ? dto.is_active : docType.isActive,
+    });
+    const saved = await this.documentTypeRepo.save(docType);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'edit',
+      entityType: 'document_type',
+      entityId: saved.id,
+      description: `Updated Document Type ${saved.name} (${saved.code})`,
+    });
+    return saved;
+  }
+
+  async deleteDocumentType(id: string, userId?: string): Promise<void> {
+    const docType = await this.findOneDocumentType(id);
+    await this.documentTypeRepo.delete(id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'delete',
+      entityType: 'document_type',
+      entityId: id,
+      description: `Deleted Document Type ${docType.name} (${docType.code})`,
+    });
   }
 }

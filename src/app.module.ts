@@ -62,6 +62,7 @@ import { CashSettlement } from './entities/cash-settlement.entity';
 import { Broker } from './entities/broker.entity';
 import { Product } from './entities/product.entity';
 import { LockedPeriod } from './entities/locked-period.entity';
+import { DocumentType } from './entities/document-type.entity';
 
 @Module({
   imports: [
@@ -120,6 +121,7 @@ import { LockedPeriod } from './entities/locked-period.entity';
           Broker,
           Product,
           LockedPeriod,
+          DocumentType,
         ],
         synchronize: false,
         logging: process.env.NODE_ENV !== 'production',

@@ -20,6 +20,7 @@ import { TreatyMga } from '../../entities/treaty-mga.entity';
 import { Broker } from '../../entities/broker.entity';
 import { Product } from '../../entities/product.entity';
 import { LockedPeriod } from '../../entities/locked-period.entity';
+import { DocumentType } from '../../entities/document-type.entity';
 import { TreatyCarrier } from '../../entities/treaty-carrier.entity';
 import { TreatyReinsurer } from '../../entities/treaty-reinsurer.entity';
 
@@ -45,6 +46,7 @@ import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
       Broker,
       Product,
       LockedPeriod,
+      DocumentType,
       TreatyCarrier,
       TreatyReinsurer,
     ]),
