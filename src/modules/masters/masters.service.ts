@@ -22,6 +22,7 @@ import { Broker } from '../../entities/broker.entity';
 import { Product } from '../../entities/product.entity';
 import { LockedPeriod } from '../../entities/locked-period.entity';
 import { DocumentType } from '../../entities/document-type.entity';
+import { SequencePrefixCounter } from '../../entities/sequence-prefix-counter.entity';
 
 import { CreateStateDto, UpdateStateDto } from './dto/state.dto';
 import { CreateMgaDto, UpdateMgaDto } from './dto/mga.dto';
@@ -34,6 +35,7 @@ import { CreateBrokerDto, UpdateBrokerDto } from './dto/broker.dto';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { CreateLockedPeriodDto, UpdateLockedPeriodDto } from './dto/locked-period.dto';
 import { CreateDocumentTypeDto, UpdateDocumentTypeDto } from './dto/document-type.dto';
+import { CreateSequencePrefixCounterDto, UpdateSequencePrefixCounterDto } from './dto/sequence-prefix-counter.dto';
 
 @Injectable()
 export class MastersService {
@@ -74,6 +76,8 @@ export class MastersService {
     private readonly lockedPeriodRepo: Repository<LockedPeriod>,
     @InjectRepository(DocumentType)
     private readonly documentTypeRepo: Repository<DocumentType>,
+    @InjectRepository(SequencePrefixCounter)
+    private readonly sequencePrefixCounterRepo: Repository<SequencePrefixCounter>,
     @InjectRepository(TreatyCarrier)
     private readonly treatyCarrierRepo: Repository<TreatyCarrier>,
     @InjectRepository(TreatyReinsurer)
@@ -1410,6 +1414,98 @@ export class MastersService {
       entityType: 'document_type',
       entityId: id,
       description: `Deleted Document Type ${docType.name} (${docType.code})`,
+    });
+  }
+
+  // ==========================================
+  // SEQUENCE PREFIX & COUNTERS MASTER OPERATIONS
+  // ==========================================
+  async findAllSequencePrefixCounters(search?: string, isActive?: boolean): Promise<SequencePrefixCounter[]> {
+    const where: any = [];
+    if (search) {
+      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ code: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({ prefix: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+    } else {
+      const obj: any = {};
+      if (isActive !== undefined) obj.isActive = isActive;
+      where.push(obj);
+    }
+    return this.sequencePrefixCounterRepo.find({
+      where: where.length > 1 ? where : where[0],
+      order: { code: 'ASC' }
+    });
+  }
+
+  async findOneSequencePrefixCounter(id: string): Promise<SequencePrefixCounter> {
+    const counter = await this.sequencePrefixCounterRepo.findOne({ where: { id } });
+    if (!counter) throw new NotFoundException('Sequence Prefix & Counter not found');
+    return counter;
+  }
+
+  async createSequencePrefixCounter(dto: CreateSequencePrefixCounterDto, userId?: string): Promise<SequencePrefixCounter> {
+    const exists = await this.sequencePrefixCounterRepo.findOne({ where: { code: dto.code } });
+    if (exists) throw new BadRequestException(`Sequence Counter code ${dto.code} already exists`);
+
+    const counter = this.sequencePrefixCounterRepo.create({
+      code: dto.code,
+      name: dto.name,
+      prefix: dto.prefix || null,
+      nextValue: dto.next_value ?? 1,
+      paddingWidth: dto.padding_width ?? 4,
+      description: dto.description || null,
+      isActive: dto.is_active ?? true,
+    });
+    const saved = await this.sequencePrefixCounterRepo.save(counter);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'create',
+      entityType: 'sequence_prefix_counter',
+      entityId: saved.id,
+      description: `Created Sequence Counter ${saved.name} (${saved.code})`,
+    });
+    return saved;
+  }
+
+  async updateSequencePrefixCounter(id: string, dto: UpdateSequencePrefixCounterDto, userId?: string): Promise<SequencePrefixCounter> {
+    const counter = await this.findOneSequencePrefixCounter(id);
+    if (dto.code !== undefined && dto.code !== counter.code) {
+      const exists = await this.sequencePrefixCounterRepo.findOne({ where: { code: dto.code } });
+      if (exists) throw new BadRequestException(`Sequence Counter code ${dto.code} already exists`);
+    }
+
+    Object.assign(counter, {
+      code: dto.code !== undefined ? dto.code : counter.code,
+      name: dto.name !== undefined ? dto.name : counter.name,
+      prefix: dto.prefix !== undefined ? dto.prefix : counter.prefix,
+      nextValue: dto.next_value !== undefined ? dto.next_value : counter.nextValue,
+      paddingWidth: dto.padding_width !== undefined ? dto.padding_width : counter.paddingWidth,
+      description: dto.description !== undefined ? dto.description : counter.description,
+      isActive: dto.is_active !== undefined ? dto.is_active : counter.isActive,
+    });
+    const saved = await this.sequencePrefixCounterRepo.save(counter);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'edit',
+      entityType: 'sequence_prefix_counter',
+      entityId: saved.id,
+      description: `Updated Sequence Counter ${saved.name} (${saved.code})`,
+    });
+    return saved;
+  }
+
+  async deleteSequencePrefixCounter(id: string, userId?: string): Promise<void> {
+    const counter = await this.findOneSequencePrefixCounter(id);
+    await this.sequencePrefixCounterRepo.delete(id);
+    await this.activityLogsService.log({
+      userId,
+      moduleId: 'master_data',
+      action: 'delete',
+      entityType: 'sequence_prefix_counter',
+      entityId: id,
+      description: `Deleted Sequence Counter ${counter.name} (${counter.code})`,
     });
   }
 }

@@ -42,6 +42,7 @@ import { CreateBrokerDto, UpdateBrokerDto } from './dto/broker.dto';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { CreateLockedPeriodDto, UpdateLockedPeriodDto } from './dto/locked-period.dto';
 import { CreateDocumentTypeDto, UpdateDocumentTypeDto } from './dto/document-type.dto';
+import { CreateSequencePrefixCounterDto, UpdateSequencePrefixCounterDto } from './dto/sequence-prefix-counter.dto';
 
 // Ensure uploads directory exists
 const uploadDir = './uploads';
@@ -717,5 +718,47 @@ export class MastersController {
   @ApiOperation({ summary: 'Delete document type' })
   deleteDocumentType(@Param('id') id: string, @CurrentUser() user: User) {
     return this.service.deleteDocumentType(id, user.id);
+  }
+
+  // ==========================================
+  // SEQUENCE PREFIX & COUNTERS ENDPOINTS
+  // ==========================================
+  @Get('sequence-prefix-counters')
+  @ApiOperation({ summary: 'Get all sequence prefix & counters' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
+  findAllSequencePrefixCounters(
+    @Query('search') search?: string,
+    @Query('isActive') isActive?: boolean,
+  ) {
+    return this.service.findAllSequencePrefixCounters(search, isActive);
+  }
+
+  @Get('sequence-prefix-counters/:id')
+  @ApiOperation({ summary: 'Get sequence prefix & counter by id' })
+  findOneSequencePrefixCounter(@Param('id') id: string) {
+    return this.service.findOneSequencePrefixCounter(id);
+  }
+
+  @Post('sequence-prefix-counters')
+  @ApiOperation({ summary: 'Create sequence prefix & counter' })
+  createSequencePrefixCounter(@Body() dto: CreateSequencePrefixCounterDto, @CurrentUser() user: User) {
+    return this.service.createSequencePrefixCounter(dto, user.id);
+  }
+
+  @Patch('sequence-prefix-counters/:id')
+  @ApiOperation({ summary: 'Update sequence prefix & counter' })
+  updateSequencePrefixCounter(
+    @Param('id') id: string,
+    @Body() dto: UpdateSequencePrefixCounterDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.updateSequencePrefixCounter(id, dto, user.id);
+  }
+
+  @Delete('sequence-prefix-counters/:id')
+  @ApiOperation({ summary: 'Delete sequence prefix & counter' })
+  deleteSequencePrefixCounter(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteSequencePrefixCounter(id, user.id);
   }
 }

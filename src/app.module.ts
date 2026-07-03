@@ -63,6 +63,7 @@ import { Broker } from './entities/broker.entity';
 import { Product } from './entities/product.entity';
 import { LockedPeriod } from './entities/locked-period.entity';
 import { DocumentType } from './entities/document-type.entity';
+import { SequencePrefixCounter } from './entities/sequence-prefix-counter.entity';
 
 @Module({
   imports: [
@@ -122,6 +123,7 @@ import { DocumentType } from './entities/document-type.entity';
           Product,
           LockedPeriod,
           DocumentType,
+          SequencePrefixCounter,
         ],
         synchronize: false,
         logging: process.env.NODE_ENV !== 'production',

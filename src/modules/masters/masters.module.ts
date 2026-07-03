@@ -21,6 +21,7 @@ import { Broker } from '../../entities/broker.entity';
 import { Product } from '../../entities/product.entity';
 import { LockedPeriod } from '../../entities/locked-period.entity';
 import { DocumentType } from '../../entities/document-type.entity';
+import { SequencePrefixCounter } from '../../entities/sequence-prefix-counter.entity';
 import { TreatyCarrier } from '../../entities/treaty-carrier.entity';
 import { TreatyReinsurer } from '../../entities/treaty-reinsurer.entity';
 
@@ -47,6 +48,7 @@ import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
       Product,
       LockedPeriod,
       DocumentType,
+      SequencePrefixCounter,
       TreatyCarrier,
       TreatyReinsurer,
     ]),
