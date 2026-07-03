@@ -43,7 +43,7 @@ export class ReportsController {
     @CurrentUser() user: User,
     @Body() body?: { customRows?: any[] },
   ) {
-    return this.reportsService.postToJournalEntries(id, stateCode.toUpperCase(), user.id, body?.customRows);
+    return this.reportsService.postToJournalEntries(id, stateCode.toUpperCase(), user?.id, body?.customRows);
   }
 
   @Get(':id/cash-settlement-calculations')
