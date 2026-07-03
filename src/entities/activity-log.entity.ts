@@ -42,7 +42,7 @@ export class ActivityLog {
   @Column({ name: 'entity_type', type: 'varchar', nullable: true })
   entityType: string;
 
-  @Column({ name: 'entity_id', type: 'uuid', nullable: true })
+  @Column({ name: 'entity_id', type: 'varchar', nullable: true })
   entityId: string;
 
   @Column({ type: 'text', nullable: true })
