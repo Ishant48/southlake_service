@@ -107,145 +107,236 @@ export class ReportsService {
     };
   }
 
-  async getCashSettlementCalculations(workbookId: number) {
+  async getCashSettlementCalculations(workbookId: number, stateCode: string = 'TOTAL') {
     const workbook = await this.workbookService.findOne(workbookId);
-    const totalEx = workbook.stateExhibits.find(e => e.stateCode === 'TOTAL');
-    if (!totalEx) {
-      throw new NotFoundException(`TOTAL state exhibit not found in workbook ${workbook.id}`);
+    const code = stateCode ? stateCode.toUpperCase() : 'TOTAL';
+    let ex = workbook.stateExhibits.find(e => e.stateCode === code);
+    if (!ex) {
+      ex = workbook.stateExhibits.find(e => e.stateCode === 'TOTAL');
+    }
+    if (!ex) {
+      throw new NotFoundException(`State exhibit ${code} not found in workbook ${workbook.id}`);
     }
 
-    const qShare = (workbook.rates.qs || 100) / 100;
-    const commRate = (workbook.rates.comm || 32) / 100;
-    const cfRate = (workbook.rates.cf || 5) / 100;
-    const bbRate = (workbook.rates.bb || 0.4) / 100;
-    const xolRate = (workbook.rates.xol || 2) / 100;
+    const treaty = await this.treatyRepo.findOne({
+      where: { name: workbook.program },
+      relations: { reinsurer: true },
+    });
 
-    const sumArray = (arr: number[]) => arr ? arr.reduce((s, v) => s + Number(v || 0), 0) : 0;
+    const qsPct = Number(workbook.rates?.qs ?? 100);
+    const qShare = qsPct / 100;
+    const ssicShare = 1 - qShare;
 
-    const pw = sumArray(totalEx.pw);
-    const pfw = sumArray(totalEx.pfw);
-    const pw_tot = pw + pfw;
+    const commRate = Number(workbook.rates?.comm ?? 29.0) / 100;
+    const cfRate = Number(workbook.rates?.cf ?? 5.0) / 100;
+    const bbRate = Number(workbook.rates?.boardsCharge ?? 0.40) / 100;
+    const xolRate = Number(workbook.rates?.xol ?? 2.0) / 100;
+    const lrCapRate = Number(workbook.rates?.lossRatioCap ?? 0) / 100;
 
-    const pc = sumArray(totalEx.pc);
-    const pfc = sumArray(totalEx.pfc);
-    const pc_tot = pc + pfc;
+    const reinsurerName = treaty?.reinsurer?.name || 'Starlight Re';
 
-    // Commissions
-    const reins_comm = pc_tot * qShare * commRate;
-    const reins_pf = pfc * qShare;
-    const reins_comm_tot = reins_comm + reins_pf;
+    const getCurVal = (arr: any) => {
+      if (!arr || !Array.isArray(arr) || arr.length === 0) return 0;
+      if (arr.length > 1) return Number(arr[1] ?? 0);
+      return Number(arr[0] ?? 0);
+    };
 
-    // Claims
-    const lp = sumArray(totalEx.lp);
-    const laep = sumArray(totalEx.laep);
-    const ae_paid = sumArray(totalEx.ae_paid);
-    const losses_tot = lp + laep + ae_paid;
-    const reins_losses_tot = losses_tot * qShare;
+    const getEndVal = (arr: any) => {
+      if (!arr || !Array.isArray(arr) || arr.length === 0) return 0;
+      if (arr.length > 2) return Number(arr[2] ?? 0);
+      if (arr.length > 1) return Number(arr[1] ?? 0);
+      return Number(arr[0] ?? 0);
+    };
 
-    // Subtotal due
-    const sub_total = (pc_tot * qShare) - reins_comm_tot - reins_losses_tot;
+    // 1. Quota Share Premiums Written
+    const pw = getCurVal(ex.pw);
+    const reins_pw = pw * qShare;
+    const ssic_pw = pw * ssicShare;
 
-    // SSIC
-    const ssic_cf = pc_tot * cfRate;
-    const ssic_bb = pw_tot * bbRate;
-    const ssic_xol = pw * xolRate;
-    const ssic_taxes_tot = ssic_cf + ssic_bb + ssic_xol;
+    // 2. Policy Fees
+    const pfw = getCurVal(ex.pfw);
+    const reins_pfw = pfw * qShare;
+    const ssic_pfw = pfw * ssicShare;
 
-    const reins_bal = sub_total - ssic_bb - ssic_xol;
-    const ssic_bal = ssic_taxes_tot;
+    // 3. Net Premiums Including Policy Fees
+    const net_pw = pw + pfw;
+    const reins_net_pw = reins_pw + reins_pfw;
+    const ssic_net_pw = ssic_pw + ssic_pfw;
 
+    // 4. Collected Premiums
+    const pc_raw = getCurVal(ex.pc);
+    const pc = pc_raw !== 0 ? pc_raw : pw;
+    const reins_pc = pc * qShare;
+    const ssic_pc = pc * ssicShare;
+
+    // 5. Policy Fees (Collected)
+    const pfc_raw = getCurVal(ex.pfc);
+    const pfc = pfc_raw !== 0 ? pfc_raw : pfw;
+    const reins_pfc = pfc * qShare;
+    const ssic_pfc = pfc * ssicShare;
+
+    // 6. Net Collected Premiums
+    const net_pc = pc + pfc;
+    const reins_net_pc = reins_pc + reins_pfc;
+    const ssic_net_pc = ssic_pc + ssic_pfc;
+
+    // 7. Less: Commission Due
+    const comm_due = net_pc * commRate;
+    const reins_comm_due = reins_net_pc * commRate;
+    const ssic_comm_due = ssic_net_pc * commRate;
+
+    // Less: Policy Fees Commission
+    const comm_pf = pfc * commRate;
+    const reins_comm_pf = reins_pfc * commRate;
+    const ssic_comm_pf = ssic_pfc * commRate;
+
+    // Total Commission Due
+    const total_comm_due = comm_due;
+    const reins_total_comm_due = reins_comm_due;
+    const ssic_total_comm_due = ssic_comm_due;
+
+    // 8. Less: Loss Funding
+    const loss_funding = 0;
+    const reins_loss_funding = 0;
+    const ssic_loss_funding = 0;
+
+    // Less: Losses Paid (net of salvage)
+    const lp = getCurVal(ex.lp);
+    const reins_lp = lp * qShare;
+    const ssic_lp = lp * ssicShare;
+
+    // Less: Unearned Loss Adjustment Expense
+    const ulae_paid = 0;
+    const reins_ulae_paid = 0;
+    const ssic_ulae_paid = 0;
+
+    // Less: Defense and Cost Containment (ALAE)
+    const laep = getCurVal(ex.laep);
+    const reins_laep = laep * qShare;
+    const ssic_laep = laep * ssicShare;
+
+    // Less: Adjusting & Other Expenses Paid
+    const ae_paid = getCurVal(ex.ae_paid);
+    const reins_ae_paid = ae_paid * qShare;
+    const ssic_ae_paid = ae_paid * ssicShare;
+
+    // Total Losses Paid
+    const total_losses_paid = lp + laep + ae_paid;
+    const reins_total_losses_paid = reins_lp + reins_laep + reins_ae_paid;
+    const ssic_total_losses_paid = ssic_lp + ssic_laep + ssic_ae_paid;
+
+    // Subtotal Due
+    const subtotal_due = net_pc - total_comm_due - total_losses_paid;
+    const reins_subtotal_due = reins_net_pc - reins_total_comm_due - reins_total_losses_paid;
+    const ssic_subtotal_due = ssic_net_pc - ssic_total_comm_due - ssic_total_losses_paid;
+
+    // 9. Ceding Fee Due
+    const ceding_fee_ssic = net_pc * cfRate;
+
+    // 10. Boards & Bureaus Due
+    const bb_due_val = net_pw * bbRate;
+    const reins_bb_due = -bb_due_val;
+    const ssic_bb_due = bb_due_val;
+
+    // XOL Fees Due
+    const xol_due_val = pw * xolRate;
+    const reins_xol_due = -xol_due_val;
+    const ssic_xol_due = xol_due_val;
+
+    // LR Cap
+    const lr_cap_due_val = lrCapRate > 0 ? pw * lrCapRate : 0;
+    const reins_lr_cap_due = -lr_cap_due_val;
+    const ssic_lr_cap_due = lr_cap_due_val;
+
+    // Total Taxes & Fees Due (SSIC)
+    const total_taxes_fees_ssic = ceding_fee_ssic + ssic_bb_due + ssic_xol_due + ssic_lr_cap_due;
+
+    // Total Balance Due Reinsurers
+    const reins_total_balance_due = reins_subtotal_due + reins_bb_due + reins_xol_due + reins_lr_cap_due;
+
+    // Total Balance Due SSIC
+    const ssic_total_balance_due = total_taxes_fees_ssic;
+
+    // Beginning Balance & Amounts Paid
     const begBal = Number(workbook.cashSettlement?.begBal || 0);
     const amtPaid = Number(workbook.cashSettlement?.amtPaid || 0);
-    const ending_bal = ssic_bal + begBal - amtPaid;
+    const ending_bal_ssic = ssic_total_balance_due + begBal - amtPaid;
 
-    // Reserves
-    const uep = sumArray(totalEx.uep);
-    const lu = sumArray(totalEx.lu);
-    const laeu = sumArray(totalEx.laeu);
-    const aeu = sumArray(totalEx.aeu);
-
-    // Additional Segregated Math
-    const reins_pw = pw * qShare;
-    const reins_pfw = pfw * qShare;
-    const reins_pw_tot = pw_tot * qShare;
-    const reins_pc = pc * qShare;
-    const reins_pc_tot = pc_tot * qShare;
-    const reins_lp = lp * qShare;
-    const reins_laep = laep * qShare;
-    const reins_ae_paid = ae_paid * qShare;
-
-    const ssic_pw = pw * (1 - qShare);
-    const ssic_pfw = pfw * (1 - qShare);
-    const ssic_pw_tot = pw_tot * (1 - qShare);
-    const ssic_pc = pc * (1 - qShare);
-    const ssic_pfc = pfc * (1 - qShare);
-    const ssic_pc_tot = pc_tot * (1 - qShare);
-    const ssic_lp = lp * (1 - qShare);
-    const ssic_laep = laep * (1 - qShare);
-    const ssic_ae_paid = ae_paid * (1 - qShare);
-    const ssic_losses_tot = losses_tot * (1 - qShare);
-    const ssic_comm = pc_tot * (1 - qShare) * commRate;
-    const ssic_pf = pfc * (1 - qShare);
-    const ssic_comm_tot = ssic_comm + ssic_pf;
-
-    const total_comm = pc_tot * commRate;
-    const total_pf = pfc;
-    const total_comm_tot = total_comm + total_pf;
-
-    const total_sub_total = pc_tot - total_comm_tot - losses_tot;
-    const ssic_sub_total = pc_tot * (1 - qShare) - ssic_comm_tot - ssic_losses_tot;
-
+    // Reserves (Unpaid / Ending)
+    const uep = getEndVal(ex.uep);
     const reins_uep = uep * qShare;
-    const reins_lu = lu * qShare;
-    const reins_laeu = laeu * qShare;
-    const reins_aeu = aeu * qShare;
+    const ssic_uep = uep * ssicShare;
 
-    const ssic_uep = uep * (1 - qShare);
-    const ssic_lu = lu * (1 - qShare);
-    const ssic_laeu = laeu * (1 - qShare);
-    const ssic_aeu = aeu * (1 - qShare);
+    const loss_reserves = getEndVal(ex.loss_reserves) || getEndVal(ex.lu);
+    const reins_loss_reserves = loss_reserves * qShare;
+    const ssic_loss_reserves = loss_reserves * ssicShare;
+
+    const lae_reserves = (getEndVal(ex.lae_reserves_dcc) || getEndVal(ex.laeu)) +
+                         (getEndVal(ex.lae_reserves_aoe) || getEndVal(ex.aeu));
+    const reins_lae_reserves = lae_reserves * qShare;
+    const ssic_lae_reserves = lae_reserves * ssicShare;
+
+    const ulae_reserves = getEndVal(ex.ulae_ibnr);
+    const reins_ulae_reserves = ulae_reserves * qShare;
+    const ssic_ulae_reserves = ulae_reserves * ssicShare;
+
+    const rows = [
+      { id: 1, label: '1. QUOTA SHARE PREMIUMS WRITTEN', total: pw, reins: reins_pw, ssic: ssic_pw },
+      { id: 2, label: '2. POLICY FEES', total: pfw, reins: reins_pfw, ssic: ssic_pfw },
+      { id: 3, label: '3. NET PREMIUMS INCLUDING POLICY FEES', total: net_pw, reins: reins_net_pw, ssic: ssic_net_pw, isBold: true },
+      { id: 4, label: '4. COLLECTED PREMIUMS', total: pc, reins: reins_pc, ssic: ssic_pc },
+      { id: 5, label: '5. POLICY FEES', total: pfc, reins: reins_pfc, ssic: ssic_pfc },
+      { id: 6, label: '6. NET COLLECTED PREMIUMS', total: net_pc, reins: reins_net_pc, ssic: ssic_net_pc, isBold: true },
+      { id: 7, label: '7. LESS: COMMISSION DUE', total: comm_due, reins: reins_comm_due, ssic: ssic_comm_due },
+      { id: 8, label: 'LESS: POLICY FEES', total: null, reins: null, ssic: null },
+      { id: 9, label: 'TOTAL COMMISSION DUE', total: total_comm_due, reins: reins_total_comm_due, ssic: ssic_total_comm_due, isBold: true },
+      { id: 10, label: '8. LESS: LOSS FUNDING', total: null, reins: null, ssic: null },
+      { id: 11, label: 'LESS: LOSSES PAID (net of salvage)', total: lp, reins: reins_lp, ssic: ssic_lp },
+      { id: 12, label: 'LESS: UNEARNED LOSS ADJUSTMENT EXPENSE', total: null, reins: null, ssic: null },
+      { id: 13, label: 'LESS: DEFENSE AND COST CONTAINMENT (ALAE)', total: laep, reins: reins_laep, ssic: ssic_laep },
+      { id: 14, label: 'LESS: ADJUSTING & OTHER EXPENSES PAID', total: ae_paid, reins: reins_ae_paid, ssic: ssic_ae_paid },
+      { id: 15, label: 'TOTAL LOSSES PAID', total: total_losses_paid, reins: reins_total_losses_paid, ssic: ssic_total_losses_paid, isBold: true },
+      { id: 16, label: 'SUBTOTAL DUE', total: subtotal_due, reins: reins_subtotal_due, ssic: ssic_subtotal_due, isBold: true, isSubtotal: true },
+      { id: 17, label: '9. ceding fee due', total: null, reins: null, ssic: ceding_fee_ssic, ssicColor: 'green' },
+      { id: 18, label: '10. BOARDS & BUREAUS DUE', total: null, reins: reins_bb_due, ssic: ssic_bb_due, reinsColor: 'red', ssicColor: 'green' },
+      { id: 19, label: 'XOL FEES DUE', total: null, reins: reins_xol_due, ssic: ssic_xol_due, reinsColor: 'red', ssicColor: 'green' },
+      { id: 20, label: 'LR Cap', total: null, reins: reins_lr_cap_due, ssic: ssic_lr_cap_due, ssicColor: 'green' },
+      { id: 21, label: 'TOTAL TAXES & FEES DUE', total: null, reins: null, ssic: total_taxes_fees_ssic, isBold: true, ssicColor: 'green', ssicUnderline: true },
+      { id: 22, label: 'TOTAL BALANCE DUE REINSURERS', total: null, reins: reins_total_balance_due, ssic: null, isBold: true, reinsColor: 'purple' },
+      { id: 23, label: 'TOTAL BALANCE DUE SSIC', total: null, reins: null, ssic: ssic_total_balance_due, isBold: true, ssicColor: 'green' },
+      { id: 24, label: 'Beginning Balance Due TO/(FROM) SSIC', total: null, reins: null, ssic: begBal, isInput: 'beg_bal' },
+      { id: 25, label: 'Less: Amounts Paid TO/(FROM) SSIC', total: null, reins: null, ssic: amtPaid, isInput: 'amt_paid' },
+      { id: 26, label: 'Ending Balance Due TO/(FROM) SSIC', total: null, reins: null, ssic: ending_bal_ssic, isBold: true, ssicColor: 'green', ssicUnderline: true },
+      { id: 27, label: 'UNEARNED PREMIUM', total: uep, reins: reins_uep, ssic: ssic_uep, isBold: true },
+      { id: 28, label: 'OUTSTANDING LOSS RESERVES', total: loss_reserves, reins: reins_loss_reserves, ssic: ssic_loss_reserves, isBold: true },
+      { id: 29, label: 'OUTSTANDING LAE RESERVES', total: lae_reserves, reins: reins_lae_reserves, ssic: ssic_lae_reserves, isBold: true },
+      { id: 30, label: 'OUTSTANDING ULAE RESERVES', total: ulae_reserves, reins: reins_ulae_reserves, ssic: ssic_ulae_reserves, isBold: true },
+    ];
 
     return {
-      begBal, amtPaid,
+      qsPct,
+      reinsurerName,
+      begBal,
+      amtPaid,
       beg_bal: begBal,
       amt_paid: amtPaid,
-      premiumCarrier: ssic_pw_tot,
-      premium_carrier: ssic_pw_tot,
-      premiumReinsurer: reins_pw_tot,
-      premium_reinsurer: reins_pw_tot,
-      lossPaidCarrier: ssic_losses_tot,
-      loss_paid_carrier: ssic_losses_tot,
-      lossPaidReinsurer: reins_losses_tot,
-      loss_paid_reinsurer: reins_losses_tot,
-      netCarrier: ssic_sub_total,
-      net_carrier: ssic_sub_total,
-      netReinsurer: reins_bal,
-      net_reinsurer: reins_bal,
-      endingBalance: ending_bal,
-      ending_balance: ending_bal,
+      rows,
 
-      pw, pfw, pw_tot,
-      pc, pfc, pc_tot,
-      reins_comm, reins_pf, reins_comm_tot,
-      lp, laep, ae_paid, losses_tot, reins_losses_tot,
-      sub_total, ssic_cf, ssic_bb, ssic_xol, ssic_taxes_tot,
-      reins_bal, ssic_bal, ending_bal,
-      uep, lu, laeu, aeu,
-
-      reins_pw, reins_pfw, reins_pw_tot,
-      reins_pc, reins_pc_tot,
-      reins_lp, reins_laep, reins_ae_paid,
-
-      ssic_pw, ssic_pfw, ssic_pw_tot,
-      ssic_pc, ssic_pfc, ssic_pc_tot,
-      ssic_lp, ssic_laep, ssic_ae_paid, ssic_losses_tot,
-      ssic_comm, ssic_pf, ssic_comm_tot,
-
-      total_comm, total_pf, total_comm_tot,
-      total_sub_total, ssic_sub_total,
-
-      reins_uep, reins_lu, reins_laeu, reins_aeu,
-      ssic_uep, ssic_lu, ssic_laeu, ssic_aeu,
+      // Backward compatibility fields
+      premiumCarrier: ssic_pw,
+      premium_carrier: ssic_pw,
+      premiumReinsurer: reins_pw,
+      premium_reinsurer: reins_pw,
+      lossPaidCarrier: ssic_total_losses_paid,
+      loss_paid_carrier: ssic_total_losses_paid,
+      lossPaidReinsurer: reins_total_losses_paid,
+      loss_paid_reinsurer: reins_total_losses_paid,
+      netCarrier: ssic_total_balance_due,
+      net_carrier: ssic_total_balance_due,
+      netReinsurer: reins_total_balance_due,
+      net_reinsurer: reins_total_balance_due,
+      endingBalance: ending_bal_ssic,
+      ending_balance: ending_bal_ssic,
     };
   }
 

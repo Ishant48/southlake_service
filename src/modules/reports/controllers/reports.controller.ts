@@ -47,7 +47,10 @@ export class ReportsController {
   }
 
   @Get(':id/cash-settlement-calculations')
-  async getCashSettlementCalculations(@Param('id', ParseIntPipe) id: number) {
-    return this.reportsService.getCashSettlementCalculations(id);
+  async getCashSettlementCalculations(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('stateCode') stateCode?: string,
+  ) {
+    return this.reportsService.getCashSettlementCalculations(id, stateCode);
   }
 }
