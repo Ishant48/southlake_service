@@ -675,50 +675,36 @@ export class WorkbookService {
       };
 
       if (stateEx) {
-        stateEx.pw = getArrayValue(ex.pw, stateEx.pw);
-        stateEx.pfw = getArrayValue(ex.pfw, stateEx.pfw);
-        stateEx.pc = getArrayValue(ex.pc, stateEx.pc);
-        stateEx.pfc = getArrayValue(ex.pfc, stateEx.pfc);
-        stateEx.tax = getArrayValue(ex.tax, stateEx.tax);
-        stateEx.lp = getArrayValue(ex.lp, stateEx.lp);
-        stateEx.laep = getArrayValue(ex.laep, stateEx.laep);
-        stateEx.ae_paid = getArrayValue(ex.ae_paid, stateEx.ae_paid);
-        stateEx.pe = getArrayValue(ex.pe, stateEx.pe);
-        stateEx.pfe = getArrayValue(ex.pfe, stateEx.pfe);
         stateEx.uep = getArrayValue(ex.uep, stateEx.uep);
-        stateEx.lu = getArrayValue(ex.lu, stateEx.lu);
-        stateEx.laeu = getArrayValue(ex.laeu, stateEx.laeu);
-        stateEx.aeu = getArrayValue(ex.aeu, stateEx.aeu);
         stateEx.loss_reserves = getArrayValue(ex.loss_reserves, stateEx.loss_reserves);
+        stateEx.lu = getArrayValue(ex.loss_reserves, stateEx.lu);
         stateEx.loss_ibnr = getArrayValue(ex.loss_ibnr, stateEx.loss_ibnr);
-        stateEx.lae_reserves_dcc = getArrayValue(ex.lae_reserves_dcc, stateEx.lae_reserves_dcc);
         stateEx.lae_ibnr_dcc = getArrayValue(ex.lae_ibnr_dcc, stateEx.lae_ibnr_dcc);
-        stateEx.lae_reserves_aoe = getArrayValue(ex.lae_reserves_aoe, stateEx.lae_reserves_aoe);
         stateEx.lae_ibnr_aoe = getArrayValue(ex.lae_ibnr_aoe, stateEx.lae_ibnr_aoe);
         stateEx.ulae_ibnr = getArrayValue(ex.ulae_ibnr, stateEx.ulae_ibnr);
       } else {
         stateEx = this.stateExhibitRepo.create({
           workbookId: workbook.id,
           stateCode: ex.state_code.toUpperCase(),
-          pw: getArrayValue(ex.pw, null),
-          pfw: getArrayValue(ex.pfw, null),
-          pc: getArrayValue(ex.pc, null),
-          pfc: getArrayValue(ex.pfc, null),
-          tax: getArrayValue(ex.tax, null),
-          lp: getArrayValue(ex.lp, null),
-          laep: getArrayValue(ex.laep, null),
-          ae_paid: getArrayValue(ex.ae_paid, null),
-          pe: getArrayValue(ex.pe, null),
-          pfe: getArrayValue(ex.pfe, null),
+          pw: [0, 0, 0],
+          pfw: [0, 0, 0],
+          pc: [0, 0, 0],
+          pfc: [0, 0, 0],
+          tax: [0, 0, 0],
+          lp: [0, 0, 0],
+          laep: [0, 0, 0],
+          ae_paid: [0, 0, 0],
+          pe: [0, 0, 0],
+          pfe: [0, 0, 0],
           uep: getArrayValue(ex.uep, null),
-          lu: getArrayValue(ex.lu, null),
-          laeu: getArrayValue(ex.laeu, null),
-          aeu: getArrayValue(ex.aeu, null),
+          lu: getArrayValue(ex.loss_reserves, null),
+          laeu: [0, 0, 0],
+          aeu: [0, 0, 0],
           loss_reserves: getArrayValue(ex.loss_reserves, null),
           loss_ibnr: getArrayValue(ex.loss_ibnr, null),
-          lae_reserves_dcc: getArrayValue(ex.lae_reserves_dcc, null),
+          lae_reserves_dcc: [0, 0, 0],
           lae_ibnr_dcc: getArrayValue(ex.lae_ibnr_dcc, null),
-          lae_reserves_aoe: getArrayValue(ex.lae_reserves_aoe, null),
+          lae_reserves_aoe: [0, 0, 0],
           lae_ibnr_aoe: getArrayValue(ex.lae_ibnr_aoe, null),
           ulae_ibnr: getArrayValue(ex.ulae_ibnr, null),
         });
