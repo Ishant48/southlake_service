@@ -466,7 +466,7 @@ export class ReportsService {
     const premiumsEarned = pw + changeUEP;
 
     const cedingCommission = pw * (rateComm / 100);
-    const commissionUEP = 0.0;
+    const commissionUEP = changeUEP * (rateComm / 100);
     const commissionEarned = cedingCommission + commissionUEP;
 
     // Determine if we have direct reserve entries in the current active exhibit
@@ -601,7 +601,7 @@ export class ReportsService {
       // Use Reserves Module Services
       const lossRes = this.lossIbnrService.calculateLossReserves(premiumsEarned, prevLossIBNR, lossPick);
       const laeRes = this.laeIbnrService.calculateLAEReserves(premiumsEarned, prevDCCIBNR || prevAOEIBNR, laeDcc, laeAoe);
-      const ulaeRes = this.ulaeIbnrService.calculateULAEReserves(pw, rateUlae, lossRes.changeLossIBNR, prevULAEIBNR);
+      const ulaeRes = this.ulaeIbnrService.calculateULAEReserves(pw, rateUlae, lossRes.changeLossReserves, lossRes.changeLossIBNR, prevULAEIBNR);
 
       currLossReserves = 0;
       currLossIBNR = lossRes.currLossIBNR;
