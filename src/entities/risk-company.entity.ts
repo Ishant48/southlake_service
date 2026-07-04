@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity('risk_companies')
+@Entity('carriers')
 export class RiskCompany {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -58,4 +58,13 @@ export class RiskCompany {
 
   @Column({ name: 'updated_by', type: 'uuid', nullable: true })
   updatedBy: string | null;
+
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

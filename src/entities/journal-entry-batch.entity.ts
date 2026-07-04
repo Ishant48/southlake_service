@@ -22,6 +22,21 @@ export class JournalEntryBatch {
   @Column({ name: 'agent_name', type: 'varchar' })
   agentName: string; // e.g. 'Futuristic Underwriters LLC'
 
+  @Column({ name: 'treaty_id', type: 'uuid', nullable: true })
+  treatyId: string | null;
+
+  @Column({ name: 'month_key', type: 'varchar', nullable: true })
+  monthKey: string | null;
+
+  @Column({ name: 'workbook_id', type: 'integer', nullable: true })
+  workbookId: number | null;
+
+  @Column({ name: 'state_code', type: 'varchar', nullable: true })
+  stateCode: string | null;
+
+  @Column({ type: 'varchar', default: 'posted' })
+  status: string;
+
   @Column({ name: 'total_amount', type: 'numeric', precision: 15, scale: 2, default: 0 })
   totalAmount: number;
 
@@ -39,6 +54,15 @@ export class JournalEntryBatch {
 
   @Column({ name: 'updated_by', type: 'uuid', nullable: true })
   updatedBy: string | null;
+
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 
   @OneToMany(() => JournalEntry, (entry) => entry.batch)
   entries: JournalEntry[];

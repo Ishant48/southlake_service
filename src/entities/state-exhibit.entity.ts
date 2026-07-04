@@ -75,6 +75,15 @@ export class StateExhibit {
   @Column('numeric', { array: true, default: [0, 0, 0] })
   ulae_ibnr: number[];
 
+  @Column({ default: false })
+  isDeleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  deletedBy: string | null;
+
   @ManyToOne(() => Workbook, (workbook) => workbook.stateExhibits, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workbookId' })
   workbook: Workbook;

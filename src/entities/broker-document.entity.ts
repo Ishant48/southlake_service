@@ -5,22 +5,19 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity('carrier_documents')
-export class RiskCompanyDocument {
+@Entity('broker_documents')
+export class BrokerDocument {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'risk_company_id', type: 'uuid' })
-  riskCompanyId: string;
+  @Column({ name: 'broker_id', type: 'uuid' })
+  brokerId: string;
 
   @Column({ name: 'file_name', type: 'varchar' })
   fileName: string;
 
   @Column({ name: 'file_url', type: 'varchar' })
   fileUrl: string;
-
-  @Column({ name: 'document_type', type: 'varchar', nullable: true })
-  documentType: string | null;
 
   @Column({ name: 'document_type_id', type: 'uuid', nullable: true })
   documentTypeId: string | null;

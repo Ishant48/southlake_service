@@ -19,7 +19,7 @@ export class ColumnNumericTransformer {
   }
 }
 
-@Entity('treaty_carriers')
+@Entity('treaty_state_carriers')
 export class TreatyCarrier {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -43,9 +43,10 @@ export class TreatyCarrier {
     type: 'decimal',
     precision: 6,
     scale: 2,
+    nullable: true,
     transformer: new ColumnNumericTransformer(),
   })
-  retentionPct: number;
+  retentionPct: number | null;
 
   @Column({ name: 'state_id', type: 'uuid', nullable: true })
   stateId: string | null;
@@ -60,4 +61,13 @@ export class TreatyCarrier {
   @ManyToOne(() => Broker, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'broker_id' })
   broker: Broker | null;
+
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

@@ -6,25 +6,19 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity('broker_master')
-export class Broker {
+@Entity('treaty_type_master')
+export class TreatyTypeMaster {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'broker_code', type: 'varchar', unique: true })
-  brokerCode: string;
+  @Column({ name: 'type_code', type: 'varchar', unique: true })
+  typeCode: string;
 
   @Column({ type: 'varchar' })
   name: string;
 
-  @Column({ name: 'contact_name', type: 'varchar', nullable: true })
-  contactName: string | null;
-
-  @Column({ name: 'contact_email', type: 'varchar', nullable: true })
-  contactEmail: string | null;
-
-  @Column({ name: 'contact_phone', type: 'varchar', nullable: true })
-  contactPhone: string | null;
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
@@ -32,8 +26,14 @@ export class Broker {
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy: string | null;
+
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
+
+  @Column({ name: 'updated_by', type: 'uuid', nullable: true })
+  updatedBy: string | null;
 
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;

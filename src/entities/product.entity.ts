@@ -10,7 +10,7 @@ import {
 import { LineOfBusiness } from './line-of-business.entity';
 import { CobMaster } from './cob-master.entity';
 
-@Entity('products')
+@Entity('product_master')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -18,17 +18,17 @@ export class Product {
   @Column({ name: 'product_id', type: 'varchar', unique: true })
   productId: string;
 
-  @Column({ name: 'lob_id', type: 'uuid' })
-  lobId: string;
+  @Column({ name: 'lob_id', type: 'uuid', nullable: true })
+  lobId: string | null;
 
-  @ManyToOne(() => LineOfBusiness, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => LineOfBusiness, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'lob_id' })
   lob: LineOfBusiness;
 
-  @Column({ name: 'cob_id', type: 'uuid' })
-  cobId: string;
+  @Column({ name: 'cob_id', type: 'uuid', nullable: true })
+  cobId: string | null;
 
-  @ManyToOne(() => CobMaster, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => CobMaster, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'cob_id' })
   cob: CobMaster;
 
@@ -46,4 +46,13 @@ export class Product {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
+
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

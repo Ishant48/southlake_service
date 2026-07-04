@@ -62,6 +62,15 @@ export class Workbook {
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
+  @Column({ default: false })
+  isDeleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  deletedBy: string | null;
+
   @OneToMany(() => StateExhibit, (exhibit) => exhibit.workbook, { cascade: true, onDelete: 'CASCADE' })
   stateExhibits: StateExhibit[];
 
