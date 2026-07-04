@@ -121,7 +121,10 @@ export class SeedItdBaseline1782891298198 implements MigrationInterface {
           const exJson = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
           const safeNumArr = (field: string): string => {
-            const val = exJson[field];
+            let val = exJson[field];
+            if (field === 'loss_reserves' && val === undefined) {
+              val = exJson['lossReserves'] || exJson['lu'];
+            }
             if (Array.isArray(val) && val.length === 3) {
               const cleaned = val.map(v => Number(v) || 0);
               return `{${cleaned.join(',')}}`;

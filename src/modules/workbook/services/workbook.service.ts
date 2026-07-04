@@ -676,6 +676,8 @@ export class WorkbookService {
 
       if (stateEx) {
         stateEx.uep = getArrayValue(ex.uep, stateEx.uep);
+        stateEx.loss_reserves = getArrayValue(ex.loss_reserves, stateEx.loss_reserves);
+        stateEx.lu = getArrayValue(ex.loss_reserves, stateEx.lu);
         stateEx.loss_ibnr = getArrayValue(ex.loss_ibnr, stateEx.loss_ibnr);
         stateEx.lae_ibnr_dcc = getArrayValue(ex.lae_ibnr_dcc, stateEx.lae_ibnr_dcc);
         stateEx.lae_ibnr_aoe = getArrayValue(ex.lae_ibnr_aoe, stateEx.lae_ibnr_aoe);
@@ -695,10 +697,10 @@ export class WorkbookService {
           pe: [0, 0, 0],
           pfe: [0, 0, 0],
           uep: getArrayValue(ex.uep, null),
-          lu: [0, 0, 0],
+          lu: getArrayValue(ex.loss_reserves, null),
           laeu: [0, 0, 0],
           aeu: [0, 0, 0],
-          loss_reserves: [0, 0, 0],
+          loss_reserves: getArrayValue(ex.loss_reserves, null),
           loss_ibnr: getArrayValue(ex.loss_ibnr, null),
           lae_reserves_dcc: [0, 0, 0],
           lae_ibnr_dcc: getArrayValue(ex.lae_ibnr_dcc, null),
