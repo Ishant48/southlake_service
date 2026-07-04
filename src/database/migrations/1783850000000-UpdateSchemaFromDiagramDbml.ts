@@ -206,6 +206,20 @@ export class UpdateSchemaFromDiagramDbml1783850000000 implements MigrationInterf
       );
     `);
 
+    await queryRunner.query(`
+      ALTER TABLE "journal_entry_batches"
+      ADD COLUMN IF NOT EXISTS "treaty_id" uuid,
+      ADD COLUMN IF NOT EXISTS "month_key" varchar,
+      ADD COLUMN IF NOT EXISTS "workbook_id" integer,
+      ADD COLUMN IF NOT EXISTS "state_code" varchar,
+      ADD COLUMN IF NOT EXISTS "status" varchar DEFAULT 'posted';
+    `);
+
+    await queryRunner.query(`
+      ALTER TABLE "carrier_documents"
+      ADD COLUMN IF NOT EXISTS "document_type_id" uuid;
+    `);
+
     // 3. Add soft-delete columns (is_deleted, deleted_at, deleted_by) to all tables where missing
     const tablesWithSoftDelete = [
       'roles', 'users', 'permissions', 'modules', 'submodules', 'role_permissions', 'user_permissions',
