@@ -679,7 +679,9 @@ export class WorkbookService {
         stateEx.loss_reserves = getArrayValue(ex.loss_reserves, stateEx.loss_reserves);
         stateEx.lu = getArrayValue(ex.loss_reserves, stateEx.lu);
         stateEx.loss_ibnr = getArrayValue(ex.loss_ibnr, stateEx.loss_ibnr);
+        stateEx.lae_reserves_dcc = getArrayValue(ex.lae_reserves_dcc, stateEx.lae_reserves_dcc);
         stateEx.lae_ibnr_dcc = getArrayValue(ex.lae_ibnr_dcc, stateEx.lae_ibnr_dcc);
+        stateEx.lae_reserves_aoe = getArrayValue(ex.lae_reserves_aoe, stateEx.lae_reserves_aoe);
         stateEx.lae_ibnr_aoe = getArrayValue(ex.lae_ibnr_aoe, stateEx.lae_ibnr_aoe);
         stateEx.ulae_ibnr = getArrayValue(ex.ulae_ibnr, stateEx.ulae_ibnr);
       } else {
@@ -702,9 +704,9 @@ export class WorkbookService {
           aeu: [0, 0, 0],
           loss_reserves: getArrayValue(ex.loss_reserves, null),
           loss_ibnr: getArrayValue(ex.loss_ibnr, null),
-          lae_reserves_dcc: [0, 0, 0],
+          lae_reserves_dcc: getArrayValue(ex.lae_reserves_dcc, null),
           lae_ibnr_dcc: getArrayValue(ex.lae_ibnr_dcc, null),
-          lae_reserves_aoe: [0, 0, 0],
+          lae_reserves_aoe: getArrayValue(ex.lae_reserves_aoe, null),
           lae_ibnr_aoe: getArrayValue(ex.lae_ibnr_aoe, null),
           ulae_ibnr: getArrayValue(ex.ulae_ibnr, null),
         });
