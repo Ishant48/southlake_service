@@ -207,13 +207,22 @@ export class ReportsService {
 
     return {
       begBal, amtPaid,
+      beg_bal: begBal,
+      amt_paid: amtPaid,
       premiumCarrier: ssic_pw_tot,
+      premium_carrier: ssic_pw_tot,
       premiumReinsurer: reins_pw_tot,
+      premium_reinsurer: reins_pw_tot,
       lossPaidCarrier: ssic_losses_tot,
+      loss_paid_carrier: ssic_losses_tot,
       lossPaidReinsurer: reins_losses_tot,
+      loss_paid_reinsurer: reins_losses_tot,
       netCarrier: ssic_sub_total,
+      net_carrier: ssic_sub_total,
       netReinsurer: reins_bal,
+      net_reinsurer: reins_bal,
       endingBalance: ending_bal,
+      ending_balance: ending_bal,
 
       pw, pfw, pw_tot,
       pc, pfc, pc_tot,
