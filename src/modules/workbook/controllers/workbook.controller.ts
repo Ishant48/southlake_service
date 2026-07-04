@@ -55,7 +55,7 @@ export class WorkbookController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
-    await this.workbookService.delete(id, user.id);
+    await this.workbookService.delete(id, user?.id);
   }
 
   @Put(':id/mappings')
@@ -81,7 +81,7 @@ export class WorkbookController {
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateRatesDto,
     @CurrentUser() user: User,
   ) {
-    return this.workbookService.updateRates(id, dto, user.id);
+    return this.workbookService.updateRates(id, dto, user?.id);
   }
 
   @Put(':id/cash-settlement')
@@ -90,7 +90,7 @@ export class WorkbookController {
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateCashSettlementDto,
     @CurrentUser() user: User,
   ) {
-    return this.workbookService.updateCashSettlement(id, dto, user.id);
+    return this.workbookService.updateCashSettlement(id, dto, user?.id);
   }
 
   @Post('upload')
