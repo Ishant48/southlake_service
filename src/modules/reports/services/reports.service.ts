@@ -475,7 +475,7 @@ export class ReportsService {
     const premiumsEarned = pw + changeUEP;
 
     const cedingCommission = pw * (rateComm / 100);
-    const commissionUEP = changeUEP * (rateComm / 100);
+    const commissionUEP = 0.0;
     const commissionEarned = cedingCommission + commissionUEP;
 
     // Determine if we have direct reserve entries in the current active exhibit
