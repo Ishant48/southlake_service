@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Role } from '../../../entities/role.entity';
-import { RolePermission } from '../../../entities/role-permission.entity';
-import { Permission } from '../../../entities/permission.entity';
+import { Role } from '../entities/role.entity';
+import { RolePermission } from '../entities/role-permission.entity';
+import { Permission } from '../../permissions/entities/permission.entity';
 
 @Injectable()
 export class RolesDao {
@@ -13,7 +13,6 @@ export class RolesDao {
     @InjectRepository(RolePermission)
     private readonly rpRepo: Repository<RolePermission>,
   ) {}
-
 
   findAll(page = 1, limit = 20): Promise<[Role[], number]> {
     return this.roleRepo.findAndCount({
@@ -36,12 +35,17 @@ export class RolesDao {
   }
 
   async update(id: string, data: Partial<Role>): Promise<Role> {
-    await this.roleRepo.update(id, data);
-    return this.findById(id);
+    const role = await this.roleRepo.findOneOrFail({ where: { id } });
+    Object.assign(role, data);
+    return this.roleRepo.save(role);
   }
 
   async delete(id: string): Promise<void> {
-    await this.roleRepo.delete(id);
+    const role = await this.roleRepo.findOne({ where: { id } });
+    if (!role) return;
+    role.isDeleted = true;
+    role.deletedAt = new Date();
+    await this.roleRepo.save(role);
   }
 
   findPermissions(roleId: string): Promise<RolePermission[]> {
@@ -60,11 +64,11 @@ export class RolesDao {
     }>,
   ): Promise<RolePermission[]> {
     await this.rpRepo.delete({ roleId });
-    const entities = permissions.map((p) =>
+    const entities = permissions.map(p =>
       this.rpRepo.create({
         roleId,
         moduleId: p.moduleId,
-        submoduleId: p.submoduleId || null,
+        submoduleId: p.submoduleId ?? undefined,
         permissionId: p.permissionId,
       }),
     );
@@ -75,4 +79,3 @@ export class RolesDao {
     return this.rpRepo.manager.find(Permission);
   }
 }
-

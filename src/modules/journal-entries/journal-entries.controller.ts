@@ -1,21 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JournalEntriesService } from './journal-entries.service';
 import { CreateJournalBatchDto, UpdateJournalBatchDto } from './dto/journal-batches.dto';
 import { PostJournalEntriesDto } from './dto/journal-entries.dto';
-import { JournalEntryBatch } from '../../entities/journal-entry-batch.entity';
-import { JournalEntry } from '../../entities/journal-entry.entity';
+import { JournalEntryBatch } from './entities/journal-entry-batch.entity';
+import { JournalEntry } from './entities/journal-entry.entity';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { User } from '../../entities/user.entity';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('Journal Entries')
 @ApiBearerAuth()

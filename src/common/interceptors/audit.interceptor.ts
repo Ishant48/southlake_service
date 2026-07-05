@@ -1,15 +1,11 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ActivityLog } from '../../entities/activity-log.entity';
+import { ActivityLog } from '../../modules/activity-logs/entities/activity-log.entity';
 import { Request } from 'express';
+import { AuthenticatedUser } from '../guards/auth.guard';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -19,7 +15,7 @@ export class AuditInterceptor implements NestInterceptor {
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest<Request & { user?: any }>();
+    const request = context.switchToHttp().getRequest<Request & { user?: AuthenticatedUser }>();
     const method = request.method;
 
     const auditMethods = ['POST', 'PATCH', 'PUT', 'DELETE'];
@@ -28,29 +24,31 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     return next.handle().pipe(
-      tap(async () => {
-        try {
-          const user = request.user;
-          if (!user) return;
+      tap(() => {
+        void (async () => {
+          try {
+            const user = request.user;
+            if (!user) return;
 
-          const action = this.mapMethodToAction(method);
-          const ipAddress =
-            (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-            request.socket?.remoteAddress ||
-            'unknown';
+            const action = this.mapMethodToAction(method);
+            const ipAddress =
+              (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+              request.socket?.remoteAddress ??
+              'unknown';
 
-          const log = this.activityLogRepo.create({
-            userId: user.id,
-            action,
-            description: `${method} ${request.url}`,
-            ipAddress,
-            userAgent: request.headers['user-agent'] || null,
-          });
+            const log = this.activityLogRepo.create({
+              userId: user.id,
+              action,
+              description: `${method} ${request.url}`,
+              ipAddress,
+              userAgent: request.headers['user-agent'] ?? undefined,
+            });
 
-          await this.activityLogRepo.save(log);
-        } catch {
-          // Audit log failures must not affect the response
-        }
+            await this.activityLogRepo.save(log);
+          } catch {
+            // Audit log failures must not affect the response
+          }
+        })();
       }),
     );
   }

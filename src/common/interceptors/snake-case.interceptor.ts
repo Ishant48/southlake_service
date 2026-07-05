@@ -1,14 +1,9 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 function toSnakeCase(str: string): string {
-  return str.replace(/([A-Z])/g, (letter) => `_${letter.toLowerCase()}`);
+  return str.replace(/([A-Z])/g, letter => `_${letter.toLowerCase()}`);
 }
 
 function transformKeys(value: unknown): unknown {
@@ -17,7 +12,7 @@ function transformKeys(value: unknown): unknown {
   }
   if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
     const result: Record<string, unknown> = {};
-    for (const key of Object.keys(value as object)) {
+    for (const key of Object.keys(value)) {
       result[toSnakeCase(key)] = transformKeys((value as Record<string, unknown>)[key]);
     }
     return result;

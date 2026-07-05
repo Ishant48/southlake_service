@@ -14,8 +14,8 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
-import { UserSession } from '../../entities/user-session.entity';
-import { User } from '../../entities/user.entity';
+import { UserSession } from './entities/user-session.entity';
+import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -33,7 +33,7 @@ export class AuthService {
 
     const user = await this.authDao.findUserWithPasswordByEmail(email);
 
-    if (!user || !user.passwordHash) {
+    if (!user?.passwordHash) {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
@@ -53,14 +53,14 @@ export class AuthService {
       throw new BadRequestException('Too many OTP requests. Please wait 15 minutes.');
     }
 
-    const otpExpiryMinutes = this.configService.get<number>('app.otpExpiryMinutes') || 5;
+    const otpExpiryMinutes = this.configService.get<number>('app.otpExpiryMinutes') ?? 5;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + otpExpiryMinutes * 60 * 1000);
 
     await this.authDao.saveOtp({ email, otpHash, expiresAt });
 
-    console.log(`[DEV OTP] ${email} → ${otp}`);
+    console.warn(`[DEV OTP] ${email} → ${otp}`);
 
     await this.mailService.sendOtp(email, otp);
 
@@ -79,7 +79,7 @@ export class AuthService {
     userAgent: string,
   ): Promise<Record<string, unknown>> {
     const { email, otp, device_label } = dto;
-    const maxAttempts = this.configService.get<number>('app.otpMaxAttempts') || 5;
+    const maxAttempts = this.configService.get<number>('app.otpMaxAttempts') ?? 5;
 
     const otpRecord = await this.authDao.findActiveOtp(email);
 
@@ -88,9 +88,7 @@ export class AuthService {
     }
 
     if (otpRecord.attemptCount >= maxAttempts) {
-      throw new UnauthorizedException(
-        'Maximum OTP attempts exceeded. Please request a new one.',
-      );
+      throw new UnauthorizedException('Maximum OTP attempts exceeded. Please request a new one.');
     }
 
     const isMatch = await bcrypt.compare(otp, otpRecord.otpHash);
@@ -124,7 +122,7 @@ export class AuthService {
         userId: user.id,
         challengeToken,
         existingSessionId: existingSession.id,
-        newDeviceLabel: device_label || null,
+        newDeviceLabel: device_label ?? undefined,
         newIpAddress: ipAddress,
         newUserAgent: userAgent,
         expiresAt,
@@ -149,7 +147,7 @@ export class AuthService {
       };
     }
 
-    const session = await this.createSession(user, device_label || null, ipAddress, userAgent);
+    const session = await this.createSession(user, device_label ?? undefined, ipAddress, userAgent);
 
     await this.activityLogsService.log({
       userId: user.id,
@@ -254,7 +252,9 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async getMe(user: User): Promise<any> {
+  async getMe(
+    user: User,
+  ): Promise<(User & { permissions: { id: string; action: string }[] }) | null> {
     const fullUser = await this.authDao.findUserByEmail(user.email);
     if (!fullUser) return null;
     const permissions = await this.usersService.getPermissions(fullUser.id);
@@ -266,13 +266,12 @@ export class AuthService {
 
   private async createSession(
     user: User,
-    deviceLabel: string | null,
+    deviceLabel: string | undefined,
     ipAddress: string,
     userAgent: string,
   ): Promise<UserSession> {
     const sessionToken = crypto.randomBytes(32).toString('hex');
-    const sessionExpiryHours =
-      this.configService.get<number>('app.sessionExpiryHours') || 1;
+    const sessionExpiryHours = this.configService.get<number>('app.sessionExpiryHours') ?? 1;
     const expiresAt = new Date(Date.now() + sessionExpiryHours * 60 * 60 * 1000);
 
     return this.authDao.saveSession({
@@ -325,7 +324,11 @@ export class AuthService {
     let initials = '';
     const parts = invite.name.trim().split(/\s+/);
     if (parts.length > 1) {
-      initials = parts.map(p => p[0]).join('').slice(0, 4).toUpperCase();
+      initials = parts
+        .map(p => p[0])
+        .join('')
+        .slice(0, 4)
+        .toUpperCase();
     } else if (parts.length === 1 && parts[0]) {
       initials = parts[0].slice(0, 2).toUpperCase();
     }
@@ -341,7 +344,7 @@ export class AuthService {
       userEntityId: invite.userEntityId,
       status: 'active',
       passwordHash,
-      initials: initials || null,
+      initials,
       avatarColor: '#0d1b4b',
       joinedDate: new Date(),
       createdBy: invite.invitedBy,

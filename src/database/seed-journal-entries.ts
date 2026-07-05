@@ -2,11 +2,32 @@ import { AppDataSource } from './data-source';
 import { Client } from 'pg';
 import { QueryRunner } from 'typeorm';
 
+interface StarlightJournalRow {
+  journal_no?: string;
+  period?: string;
+  account_code?: string | number;
+  account_name?: string;
+  date?: string;
+  debit?: string | number;
+  credit?: string | number;
+  sub?: string;
+  cc?: string;
+  mga?: string;
+  lob?: string;
+  state?: string;
+  ext?: string;
+  description?: string;
+}
+
+interface IdRow {
+  id: number;
+}
+
 export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Promise<void> {
   const isInitialized = AppDataSource.isInitialized;
   const useExternal = !!externalQueryRunner;
 
-  const queryRunner = externalQueryRunner || AppDataSource.createQueryRunner();
+  const queryRunner = externalQueryRunner ?? AppDataSource.createQueryRunner();
 
   if (!useExternal) {
     if (!isInitialized) {
@@ -16,36 +37,40 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
     await queryRunner.startTransaction();
   }
 
-  // Connect to starlight db
+  // One-time ETL from the legacy "starlight" database — not part of the
+  // repeatable `npm run seed` flow (see `npm run migrate:from-starlight`).
+  // Requires STARLIGHT_DB_* env vars; see .env.example.
   const starlightClient = new Client({
-    host: 'localhost',
-    port: 5432,
-    database: 'starlight',
-    user: 'postgres',
-    password: 'Rohitpk27',
+    host: process.env.STARLIGHT_DB_HOST ?? 'localhost',
+    port: parseInt(process.env.STARLIGHT_DB_PORT ?? '5432', 10),
+    database: process.env.STARLIGHT_DB_NAME ?? 'starlight',
+    user: process.env.STARLIGHT_DB_USER ?? 'postgres',
+    password: process.env.STARLIGHT_DB_PASSWORD,
   });
 
   try {
     await starlightClient.connect();
-    console.log('Connected to starlight database. Fetching journal entries...');
+    console.warn('Connected to starlight database. Fetching journal entries...');
 
-    const res = await starlightClient.query('SELECT * FROM journal_entries ORDER BY id ASC');
+    const res = await starlightClient.query<StarlightJournalRow>(
+      'SELECT * FROM journal_entries ORDER BY id ASC',
+    );
     const rows = res.rows;
-    console.log(`Fetched ${rows.length} rows from starlight.journal_entries.`);
+    console.warn(`Fetched ${rows.length} rows from starlight.journal_entries.`);
 
     if (rows.length === 0) {
-      console.log('No rows to seed.');
+      console.warn('No rows to seed.');
       await queryRunner.commitTransaction();
       return;
     }
 
     // 0. Ensure Futuristic Underwriters LLC MGA exists in mga_master
-    console.log('Checking Futuristic Underwriters LLC MGA...');
-    const resMGA = await queryRunner.query(
-      "SELECT id FROM mga_master WHERE name = 'Futuristic Underwriters LLC' OR mga_code = 'MGA-100'"
-    );
+    console.warn('Checking Futuristic Underwriters LLC MGA...');
+    const resMGA = (await queryRunner.query(
+      "SELECT id FROM mga_master WHERE name = 'Futuristic Underwriters LLC' OR mga_code = 'MGA-100'",
+    )) as IdRow[];
     if (resMGA.length === 0) {
-      console.log('Inserting Futuristic Underwriters LLC MGA...');
+      console.warn('Inserting Futuristic Underwriters LLC MGA...');
       await queryRunner.query(`
         INSERT INTO mga_master (mga_code, name, tax_payable_inhouse, is_active, ledger_amount)
         VALUES ('MGA-100', 'Futuristic Underwriters LLC', false, true, 0.00)
@@ -53,32 +78,35 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
     } else {
       await queryRunner.query(
         "UPDATE mga_master SET name = 'Futuristic Underwriters LLC', mga_code = 'MGA-100' WHERE id = $1",
-        [resMGA[0].id]
+        [resMGA[0].id],
       );
     }
 
     // Clear existing journal entries and batches in southlake to start fresh
-    console.log('Clearing existing journal entries and batches in southlake...');
+    console.warn('Clearing existing journal entries and batches in southlake...');
     await queryRunner.query('DELETE FROM journal_entries');
     await queryRunner.query('DELETE FROM journal_entry_batches');
 
     // Group rows by journal_no (batch)
-    const batchesMap = new Map<string, any[]>();
+    const batchesMap = new Map<string, StarlightJournalRow[]>();
     for (const row of rows) {
-      const batchNo = row.journal_no || 'UNKNOWN';
+      const batchNo = row.journal_no ?? 'UNKNOWN';
       if (!batchesMap.has(batchNo)) {
         batchesMap.set(batchNo, []);
       }
-      batchesMap.get(batchNo)!.push(row);
+      batchesMap.get(batchNo)?.push(row);
     }
 
-    console.log(`Grouped into ${batchesMap.size} batches.`);
+    console.warn(`Grouped into ${batchesMap.size} batches.`);
 
     // Parent Account mapping cache
-    const parentAccounts: Record<number, string> = {};
+    const parentAccounts: Record<number, number> = {};
     const rootCodes = [110000, 210000, 310000, 410000, 510000];
     for (const code of rootCodes) {
-      const resVal = await queryRunner.query('SELECT id FROM chart_of_accounts WHERE account_code = $1', [code]);
+      const resVal = (await queryRunner.query(
+        'SELECT id FROM chart_of_accounts WHERE account_code = $1',
+        [code],
+      )) as IdRow[];
       if (resVal.length > 0) {
         parentAccounts[code] = resVal[0].id;
       }
@@ -89,9 +117,9 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
     for (const [batchNo, lines] of batchesMap.entries()) {
       // Calculate batch stats
       const firstLine = lines[0];
-      
+
       // Period string conversion from e.g. "Jan-26" or "June 2026"
-      let period = firstLine.period || 'June 2026';
+      let period = firstLine.period ?? 'June 2026';
       if (period === 'Jan-26') period = 'January 2026';
       else if (period === 'Feb-26') period = 'February 2026';
       else if (period === 'Mar-26') period = 'March 2026';
@@ -112,12 +140,12 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
       }
 
       // Create batch record
-      const insertBatch = await queryRunner.query(
+      const insertBatch = (await queryRunner.query(
         `INSERT INTO journal_entry_batches (batch_number, period, agent_name, total_amount, count)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id`,
-        [batchNo, period, 'Futuristic Underwriters LLC', totalAmount, lines.length]
-      );
+        [batchNo, period, 'Futuristic Underwriters LLC', totalAmount, lines.length],
+      )) as IdRow[];
       const batchId = insertBatch[0].id;
 
       // Seed lines with balanced je_number grouping
@@ -129,8 +157,11 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
         if (!glCode) continue;
 
         // Find/create coa_id
-        let coaId;
-        const resCoa = await queryRunner.query('SELECT id FROM chart_of_accounts WHERE account_code = $1', [glCode]);
+        let coaId: number;
+        const resCoa = (await queryRunner.query(
+          'SELECT id FROM chart_of_accounts WHERE account_code = $1',
+          [glCode],
+        )) as IdRow[];
         if (resCoa.length > 0) {
           coaId = resCoa[0].id;
         } else {
@@ -150,13 +181,13 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
             normalBalance = 'debit';
           }
 
-          const parentId = parentAccounts[parentCode] || null;
-          const insertCoa = await queryRunner.query(
+          const parentId = parentAccounts[parentCode] ?? null;
+          const insertCoa = (await queryRunner.query(
             `INSERT INTO chart_of_accounts (account_code, description, parent_id, normal_balance, is_parent, is_active)
              VALUES ($1, $2, $3, $4, false, true)
              RETURNING id`,
-            [glCode, line.account_name || `GL ${glCode}`, parentId, normalBalance]
-          );
+            [glCode, line.account_name ?? `GL ${glCode}`, parentId, normalBalance],
+          )) as IdRow[];
           coaId = insertCoa[0].id;
         }
 
@@ -178,20 +209,20 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
           [
             batchId,
             jeNumber,
-            line.description || 'Starlight Entry',
+            line.description ?? 'Starlight Entry',
             coaId,
-            line.sub || null,
+            line.sub ?? null,
             debitVal > 0 ? debitVal : null,
             creditVal > 0 ? creditVal : null,
             dateStr,
-            `${line.cc || '00'}-${line.mga || '0000'}-${line.lob || '000000'}-${line.state || '00'}-${line.ext || '0000'}`,
-            line.lob || null,
-            line.account_name || 'Starlight line'
-          ]
+            `${line.cc ?? '00'}-${line.mga ?? '0000'}-${line.lob ?? '000000'}-${line.state ?? '00'}-${line.ext ?? '0000'}`,
+            line.lob ?? null,
+            line.account_name ?? 'Starlight line',
+          ],
         );
 
         // Update running balance to determine balanced JE boundaries
-        runningSum += (debitVal - creditVal);
+        runningSum += debitVal - creditVal;
         if (Math.abs(runningSum) < 0.01) {
           runningSum = 0;
           jeNumber++;
@@ -199,17 +230,17 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
       }
 
       // Update count of JEs in batch
-      await queryRunner.query(
-        `UPDATE journal_entry_batches SET count = $1 WHERE id = $2`,
-        [jeNumber - 1 || 1, batchId]
-      );
+      await queryRunner.query(`UPDATE journal_entry_batches SET count = $1 WHERE id = $2`, [
+        jeNumber - 1 || 1,
+        batchId,
+      ]);
     }
 
     if (!useExternal) {
       await queryRunner.commitTransaction();
-      console.log('Successfully completed migrating starlight data to southlake!');
+      console.warn('Successfully completed migrating starlight data to southlake!');
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error during migration seeder:', err);
     if (!useExternal) {
       await queryRunner.rollbackTransaction();
@@ -229,10 +260,10 @@ export async function seedJournalEntries(externalQueryRunner?: QueryRunner): Pro
 if (require.main === module) {
   seedJournalEntries()
     .then(() => {
-      console.log('Seeder run completed.');
+      console.warn('Seeder run completed.');
       process.exit(0);
     })
-    .catch((err) => {
+    .catch((err: unknown) => {
       console.error('Seeder failed:', err);
       process.exit(1);
     });

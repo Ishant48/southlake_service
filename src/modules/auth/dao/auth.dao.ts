@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { LoginOtp } from '../../../entities/login-otp.entity';
-import { UserSession } from '../../../entities/user-session.entity';
-import { LoginChallenge } from '../../../entities/login-challenge.entity';
-import { User } from '../../../entities/user.entity';
-import { PendingInvite } from '../../../entities/pending-invite.entity';
+import { LoginOtp } from '../entities/login-otp.entity';
+import { UserSession } from '../entities/user-session.entity';
+import { LoginChallenge } from '../entities/login-challenge.entity';
+import { User } from '../../users/entities/user.entity';
+import { PendingInvite } from '../../users/entities/pending-invite.entity';
 
 @Injectable()
 export class AuthDao {
@@ -129,6 +129,9 @@ export class AuthDao {
     await this.challengeRepo.save(challenge);
   }
 
+  // Intentionally a raw update(), not save(): this fires on every login and
+  // isn't a change worth an audit-log entry (see AuditSubscriber, which only
+  // observes save()/remove() — this bypasses it on purpose).
   async updateUserLastLogin(userId: string): Promise<void> {
     await this.userRepo.update(userId, { lastLoginAt: new Date() });
   }

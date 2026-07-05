@@ -1,19 +1,5 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Req } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -22,7 +8,8 @@ import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { User } from '../../entities/user.entity';
+import { User } from '../users/entities/user.entity';
+import { UserSession } from './entities/user-session.entity';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -49,7 +36,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid or expired OTP' })
   verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
     const ipAddress = this.getIpAddress(req);
-    const userAgent = req.headers['user-agent'] || '';
+    const userAgent = req.headers['user-agent'] ?? '';
     return this.authService.verifyOtp(dto, ipAddress, userAgent);
   }
 
@@ -61,7 +48,7 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Challenge not found or expired' })
   resolveChallenge(@Body() dto: ResolveChallengeDto, @Req() req: Request) {
     const ipAddress = this.getIpAddress(req);
-    const userAgent = req.headers['user-agent'] || '';
+    const userAgent = req.headers['user-agent'] ?? '';
     return this.authService.resolveChallenge(dto, ipAddress, userAgent);
   }
 
@@ -71,7 +58,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout and revoke current session' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  logout(@Req() req: Request & { session: any }) {
+  logout(@Req() req: Request & { session: UserSession }) {
     return this.authService.logout(req.session);
   }
 
@@ -106,6 +93,6 @@ export class AuthController {
 
   private getIpAddress(req: Request): string {
     const forwarded = req.headers['x-forwarded-for'] as string;
-    return forwarded?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    return forwarded?.split(',')[0]?.trim() ?? req.socket?.remoteAddress ?? 'unknown';
   }
 }

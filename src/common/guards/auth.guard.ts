@@ -1,18 +1,18 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Request } from 'express';
 import { Repository } from 'typeorm';
-import { UserSession } from '../../entities/user-session.entity';
-import { User } from '../../entities/user.entity';
-import { RolePermission } from '../../entities/role-permission.entity';
-import { UserPermission } from '../../entities/user-permission.entity';
-import { Permission } from '../../entities/permission.entity';
+import { UserSession } from '../../modules/auth/entities/user-session.entity';
+import { User } from '../../modules/users/entities/user.entity';
+import { RolePermission } from '../../modules/roles/entities/role-permission.entity';
+import { UserPermission } from '../../modules/users/entities/user-permission.entity';
+import { Permission } from '../../modules/permissions/entities/permission.entity';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { RequestContextService } from '../context/request-context';
+
+/** User attached to the request once AuthGuard resolves it, with the effective permission set computed for this request. */
+export type AuthenticatedUser = User & { effectivePermissions: string[] };
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -28,6 +28,7 @@ export class AuthGuard implements CanActivate {
     private readonly userPermRepo: Repository<UserPermission>,
     @InjectRepository(Permission)
     private readonly permRepo: Repository<Permission>,
+    private readonly requestContext: RequestContextService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -37,10 +38,12 @@ export class AuthGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest();
-    const authHeader: string = request.headers['authorization'];
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: AuthenticatedUser; session?: UserSession }>();
+    const authHeader = request.headers['authorization'];
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing or invalid authorization header');
     }
 
@@ -104,10 +107,13 @@ export class AuthGuard implements CanActivate {
       }
     }
 
-    (user as any).effectivePermissions = Array.from(permissionSet);
+    const authenticatedUser: AuthenticatedUser = Object.assign(user, {
+      effectivePermissions: Array.from(permissionSet),
+    });
 
-    request.user = user;
+    request.user = authenticatedUser;
     request.session = session;
+    this.requestContext.setUser(user.id, user.name);
     return true;
   }
 }

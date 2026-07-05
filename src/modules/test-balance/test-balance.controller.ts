@@ -11,11 +11,8 @@ export class TestBalanceController {
   @Get()
   @ApiOperation({ summary: 'Get Test Balance calculations for AP and AR' })
   @ApiResponse({ status: 200, description: 'Return Test Balance card details.' })
-  async getTestBalance(
-    @Query('month') month?: string,
-    @Query('year') year?: string,
-  ) {
-    const selectedMonth = month || 'June';
+  async getTestBalance(@Query('month') month?: string, @Query('year') year?: string) {
+    const selectedMonth = month ?? 'June';
     const selectedYear = year ? Number(year) : 2026;
     return this.testBalanceService.getTestBalance(selectedMonth, selectedYear);
   }

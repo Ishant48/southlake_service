@@ -5,20 +5,41 @@ import prettierRecommended from 'eslint-plugin-prettier/recommended';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.js'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
   },
 
+  // -------------------------
+  // JavaScript (no type rules)
+  // -------------------------
   js.configs.recommended,
 
-  ...tseslint.configs.recommended,
+  {
+    files: ['**/*.js'],
+    rules: {
+      // keep JS clean but NO TS rules here
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'error',
+      'prefer-const': 'error',
+      'no-var': 'error',
+    },
+  },
 
+  // -------------------------
+  // TypeScript (typed rules)
+  // -------------------------
   {
     files: ['src/**/*.ts'],
+
+    extends: [...tseslint.configs.recommendedTypeChecked],
+
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+
     rules: {
-      // TypeScript
-      '@typescript-eslint/interface-name-prefix': 'off',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -27,7 +48,8 @@ export default tseslint.config(
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/prefer-nullish-coalescing': 'warn',
       '@typescript-eslint/prefer-optional-chain': 'warn',
-      // General
+
+      // general overrides
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'prefer-const': 'error',
@@ -36,6 +58,5 @@ export default tseslint.config(
     },
   },
 
-  // Prettier must be last so it overrides other formatting rules
   prettierRecommended,
 );

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
-import { User } from '../../../entities/user.entity';
-import { UserPermission } from '../../../entities/user-permission.entity';
-import { PendingInvite } from '../../../entities/pending-invite.entity';
-import { Role } from '../../../entities/role.entity';
-import { RolePermission } from '../../../entities/role-permission.entity';
-import { Permission } from '../../../entities/permission.entity';
+import { User } from '../entities/user.entity';
+import { UserPermission } from '../entities/user-permission.entity';
+import { PendingInvite } from '../entities/pending-invite.entity';
+import { Role } from '../../roles/entities/role.entity';
+import { RolePermission } from '../../roles/entities/role-permission.entity';
+import { Permission } from '../../permissions/entities/permission.entity';
 
 export interface FindUsersFilter {
   search?: string;
@@ -30,7 +30,12 @@ export class UsersDao {
     private readonly roleRepo: Repository<Role>,
   ) {}
 
-  async getStats(): Promise<{ total: number; active: number; roles_defined: number; pending_invites: number }> {
+  async getStats(): Promise<{
+    total: number;
+    active: number;
+    roles_defined: number;
+    pending_invites: number;
+  }> {
     const [total, active, roles_defined, pending_invites] = await Promise.all([
       this.userRepo.count({ where: { isDeleted: false } }),
       this.userRepo.count({ where: { isDeleted: false, status: 'active' } }),
@@ -84,24 +89,28 @@ export class UsersDao {
   }
 
   async update(id: string, data: Partial<User>): Promise<User> {
-    await this.userRepo.update(id, data);
-    return this.findById(id);
+    const user = await this.userRepo.findOneOrFail({ where: { id } });
+    Object.assign(user, data);
+    return this.userRepo.save(user);
   }
 
   async softDelete(id: string, deletedBy: string): Promise<void> {
-    await this.userRepo.update(id, {
-      isDeleted: true,
-      deletedAt: new Date(),
-      deletedBy,
-    });
+    const user = await this.userRepo.findOneOrFail({ where: { id } });
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    user.deletedBy = deletedBy;
+    await this.userRepo.save(user);
   }
 
   async deactivateBulk(ids: string[], updatedBy: string): Promise<void> {
     if (!ids.length) return;
-    await this.userRepo.update(
-      { id: In(ids), isDeleted: false },
-      { status: 'inactive', updatedBy },
-    );
+    const users = await this.userRepo.find({ where: { id: In(ids), isDeleted: false } });
+    if (!users.length) return;
+    for (const user of users) {
+      user.status = 'inactive';
+      user.updatedBy = updatedBy;
+    }
+    await this.userRepo.save(users);
   }
 
   findUserPermissions(userId: string): Promise<UserPermission[]> {
@@ -122,11 +131,11 @@ export class UsersDao {
     }>,
   ): Promise<UserPermission[]> {
     await this.permRepo.delete({ userId });
-    const entities = permissions.map((p) =>
+    const entities = permissions.map(p =>
       this.permRepo.create({
         userId,
         moduleId: p.moduleId,
-        submoduleId: p.submoduleId || null,
+        submoduleId: p.submoduleId ?? undefined,
         permissionId: p.permissionId,
         accessType: p.accessType,
         createdBy: p.createdBy,
@@ -152,7 +161,9 @@ export class UsersDao {
   }
 
   async revokeInvite(id: string): Promise<void> {
-    await this.inviteRepo.update(id, { status: 'revoked' });
+    const invite = await this.inviteRepo.findOneOrFail({ where: { id } });
+    invite.status = 'revoked';
+    await this.inviteRepo.save(invite);
   }
 
   findRolePermissions(roleId: string): Promise<RolePermission[]> {

@@ -14,7 +14,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || true,
+    origin: process.env.CORS_ORIGIN ?? true,
     credentials: true,
   });
 
@@ -51,10 +51,10 @@ async function bootstrap() {
     },
   });
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+  console.warn(`Application is running on: http://localhost:${port}`);
+  console.warn(`Swagger docs available at: http://localhost:${port}/api/docs`);
 }
 
-bootstrap();
+void bootstrap();

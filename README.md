@@ -217,12 +217,18 @@ npm run migration:run
 
 ---
 
-### Step 6 — Seed Chart of Accounts
+### Step 6 — Seed Initial Data
 
-Populate the initial Chart of Accounts data (recommended for first setup):
+Populate roles, the superadmin user, permissions, Chart of Accounts, and Falcon master data (states, lines of business, carriers, etc.) in one command:
 
 ```bash
-npm run seed:coa
+npm run seed
+```
+
+Safe to re-run — every seed is idempotent. To reset your local database and reseed from scratch in one step:
+
+```bash
+npm run db:refresh
 ```
 
 ---
@@ -258,7 +264,6 @@ npm run start:prod
 | `DATABASE_NAME`        | Name of the database to connect to                     | `southlake`                            |
 | `DATABASE_USER`        | PostgreSQL username                                    | `postgres`                             |
 | `DATABASE_PASSWORD`    | PostgreSQL password                                    | `yourpassword`                         |
-| `JWT_SECRET`           | Secret key used to sign and verify JWT tokens          | `a_very_long_random_secret_string`     |
 | `MAIL_HOST`            | SMTP server hostname                                   | `smtp.gmail.com`                       |
 | `MAIL_PORT`            | SMTP server port                                       | `587`                                  |
 | `MAIL_USER`            | SMTP username / sender email address                   | `you@gmail.com`                        |
@@ -269,6 +274,9 @@ npm run start:prod
 | `SESSION_EXPIRY_HOURS` | How long a user session stays active                   | `24`                                   |
 | `OTP_EXPIRY_MINUTES`   | How long an OTP code remains valid                     | `5`                                    |
 | `OTP_MAX_ATTEMPTS`     | Maximum wrong OTP attempts before the code is locked   | `5`                                    |
+| `CORS_ORIGIN`          | Allowed origin for browser requests                     | `http://localhost:4200`                |
+| `RATE_LIMIT_TTL`       | Rate-limit window, in milliseconds                     | `60000`                                |
+| `RATE_LIMIT_MAX`       | Max requests allowed per window                        | `100`                                  |
 
 ---
 
@@ -294,10 +302,26 @@ npm run migration:revert
 npm run migration:generate -- --name=DescriptiveMigrationName
 ```
 
-### Seed Chart of Accounts data
+Migrations are auto-generated from entity metadata — never hand-write schema SQL. Never edit a migration file once it's been applied anywhere (your machine, a teammate's, staging); generate a new one instead.
+
+### Check for entity/schema drift
+
+Fails with a non-zero exit code if any entity change hasn't been captured in a migration yet — useful in CI or before opening a PR:
 
 ```bash
-npm run seed:coa
+npm run migration:check
+```
+
+### Seed all fixture data (roles, superadmin user, permissions, COA, Falcon master data)
+
+```bash
+npm run seed
+```
+
+### Reset your local database (drop, recreate, migrate, seed)
+
+```bash
+npm run db:refresh
 ```
 
 ---
@@ -345,8 +369,11 @@ When verifying a user's permissions, the system queries the role-level grants fi
 | `npm run migration:revert`   | Roll back the most recent migration                 |
 | `npm run migration:generate` | Auto-generate a migration from entity changes       |
 | `npm run migration:create`   | Create a blank migration file                       |
-| `npm run seed:coa`           | Seed Chart of Accounts data into the database       |
-| `npm run seed:permissions`   | Seed flat module permissions and roles associations |
+| `npm run migration:check`    | Exit non-zero if entities and DB schema have drifted |
+| `npm run seed`               | Seed roles, superadmin user, permissions, COA, Falcon master data |
+| `npm run migrate:from-starlight` | One-time ETL of journal entries from the legacy Starlight DB |
+| `npm run db:reset`           | Drop, recreate, and migrate the local database      |
+| `npm run db:refresh`         | `db:reset` + `seed` in one step                     |
 | `npm run lint`               | Run ESLint (zero warnings policy)                   |
 | `npm run lint:fix`           | Auto-fix all fixable ESLint violations              |
 | `npm run format`             | Auto-format all TypeScript files with Prettier      |
@@ -436,18 +463,10 @@ npm run migration:revert
 npm run migration:run
 ```
 
-If the schema is badly out of sync, drop and recreate the database:
-
-```sql
-DROP DATABASE southlake;
-CREATE DATABASE southlake;
-```
-
-Then re-run migrations:
+If the schema is badly out of sync, reset it in one step:
 
 ```bash
-npm run migration:run
-npm run seed:coa
+npm run db:refresh
 ```
 
 ---

@@ -12,11 +12,8 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
-import { User } from '../../entities/user.entity';
-import { UserPermission } from '../../entities/user-permission.entity';
-import { PendingInvite } from '../../entities/pending-invite.entity';
-import { RolePermission } from '../../entities/role-permission.entity';
-import { Permission } from '../../entities/permission.entity';
+import { User } from './entities/user.entity';
+import { PendingInvite } from './entities/pending-invite.entity';
 
 export interface UpsertPermissionEntry {
   moduleId: string;
@@ -35,14 +32,21 @@ export class UsersService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getStats(): Promise<{ total: number; active: number; roles_defined: number; pending_invites: number }> {
+  async getStats(): Promise<{
+    total: number;
+    active: number;
+    roles_defined: number;
+    pending_invites: number;
+  }> {
     return this.dao.getStats();
   }
 
-  async findAll(filters: FindUsersFilter): Promise<{ data: User[]; total: number; page: number; per_page: number; total_pages: number }> {
+  async findAll(
+    filters: FindUsersFilter,
+  ): Promise<{ data: User[]; total: number; page: number; per_page: number; total_pages: number }> {
     const [data, total] = await this.dao.findAll(filters);
-    const perPage = filters.limit || 20;
-    const page = filters.page || 1;
+    const perPage = filters.limit ?? 20;
+    const page = filters.page ?? 1;
     return {
       data,
       total,
@@ -71,11 +75,11 @@ export class UsersService {
       email: dto.email,
       name: dto.name,
       roleId: dto.role_id,
-      userType: dto.user_type || null,
-      department: dto.department || null,
-      title: dto.title || null,
-      userEntityType: dto.user_entity_type || null,
-      userEntityId: dto.user_entity_id || null,
+      userType: dto.user_type ?? undefined,
+      department: dto.department ?? undefined,
+      title: dto.title ?? undefined,
+      userEntityType: dto.user_entity_type ?? undefined,
+      userEntityId: dto.user_entity_id ?? undefined,
       invitedBy: invitedBy.id,
       expiresAt,
       token,
@@ -160,7 +164,10 @@ export class UsersService {
     return { message: 'User deactivated' };
   }
 
-  async deactivateBulk(ids: string[], updatedBy: User): Promise<{ message: string; count: number }> {
+  async deactivateBulk(
+    ids: string[],
+    updatedBy: User,
+  ): Promise<{ message: string; count: number }> {
     await this.dao.deactivateBulk(ids, updatedBy.id);
 
     await this.activityLogsService.log({

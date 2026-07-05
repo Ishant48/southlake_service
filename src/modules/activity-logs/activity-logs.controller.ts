@@ -15,12 +15,12 @@ export class ActivityLogsController {
   @ApiOperation({ summary: 'Export activity logs as CSV' })
   @ApiResponse({ status: 200, description: 'CSV file' })
   async export(
+    @Res() res: Response,
     @Query('search') search?: string,
     @Query('action') action?: string,
     @Query('module_id') moduleId?: string,
     @Query('date_from') dateFrom?: string,
     @Query('date_to') dateTo?: string,
-    @Res() res?: Response,
   ) {
     const csv = await this.service.exportCsv({
       search,

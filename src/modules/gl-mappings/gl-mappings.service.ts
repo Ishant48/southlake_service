@@ -1,31 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { GlMapping } from '../../entities/gl-mapping.entity';
-import { ChartOfAccount } from '../../entities/chart-of-account.entity';
+import { GlMapping } from './entities/gl-mapping.entity';
 import { CreateGlMappingDto, UpdateGlMappingDto } from './dto/gl-mapping.dto';
+import { GlMappingsDao } from './dao/gl-mappings.dao';
 
 @Injectable()
 export class GlMappingsService {
-  constructor(
-    @InjectRepository(GlMapping)
-    private readonly glMappingRepo: Repository<GlMapping>,
-    @InjectRepository(ChartOfAccount)
-    private readonly coaRepo: Repository<ChartOfAccount>,
-  ) {}
+  constructor(private readonly dao: GlMappingsDao) {}
 
   async findAll(): Promise<GlMapping[]> {
-    return this.glMappingRepo.find({
-      relations: ['coa'],
-      order: { type: 'ASC' },
-    });
+    return this.dao.findAll();
   }
 
   async findOne(id: string): Promise<GlMapping> {
-    const mapping = await this.glMappingRepo.findOne({
-      where: { id },
-      relations: ['coa'],
-    });
+    const mapping = await this.dao.findById(id);
     if (!mapping) {
       throw new NotFoundException(`GL Mapping with ID ${id} not found`);
     }
@@ -34,23 +21,22 @@ export class GlMappingsService {
 
   async create(dto: CreateGlMappingDto): Promise<GlMapping> {
     // 1. Verify COA exists
-    const coa = await this.coaRepo.findOne({ where: { id: dto.coa_id } });
+    const coa = await this.dao.findCoaById(dto.coa_id);
     if (!coa) {
       throw new BadRequestException(`Chart of Account with ID ${dto.coa_id} does not exist`);
     }
 
     // 2. Check if mapping type already exists
-    const existing = await this.glMappingRepo.findOne({ where: { type: dto.type } });
+    const existing = await this.dao.findByType(dto.type);
     if (existing) {
       throw new BadRequestException(`GL Mapping type '${dto.type}' is already configured`);
     }
 
-    const mapping = this.glMappingRepo.create({
+    const saved = await this.dao.save({
       coaId: dto.coa_id,
       type: dto.type,
     });
 
-    const saved = await this.glMappingRepo.save(mapping);
     return this.findOne(saved.id);
   }
 
@@ -58,7 +44,7 @@ export class GlMappingsService {
     const mapping = await this.findOne(id);
 
     if (dto.coa_id) {
-      const coa = await this.coaRepo.findOne({ where: { id: dto.coa_id } });
+      const coa = await this.dao.findCoaById(dto.coa_id);
       if (!coa) {
         throw new BadRequestException(`Chart of Account with ID ${dto.coa_id} does not exist`);
       }
@@ -66,19 +52,19 @@ export class GlMappingsService {
     }
 
     if (dto.type && dto.type !== mapping.type) {
-      const existing = await this.glMappingRepo.findOne({ where: { type: dto.type } });
+      const existing = await this.dao.findByType(dto.type);
       if (existing) {
         throw new BadRequestException(`GL Mapping type '${dto.type}' is already configured`);
       }
       mapping.type = dto.type;
     }
 
-    await this.glMappingRepo.save(mapping);
+    await this.dao.save(mapping);
     return this.findOne(id);
   }
 
   async remove(id: string): Promise<void> {
     const mapping = await this.findOne(id);
-    await this.glMappingRepo.remove(mapping);
+    await this.dao.remove(mapping);
   }
 }

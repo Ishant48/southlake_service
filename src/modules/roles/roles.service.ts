@@ -1,18 +1,13 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RolesDao } from './dao/roles.dao';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { Role } from '../../entities/role.entity';
-import { RolePermission } from '../../entities/role-permission.entity';
-import { Permission } from '../../entities/permission.entity';
-import { User } from '../../entities/user.entity';
+import { Role } from './entities/role.entity';
+import { RolePermission } from './entities/role-permission.entity';
+import { User } from '../users/entities/user.entity';
 
 export interface UpsertRolePermissionEntry {
   moduleId: string;
@@ -29,7 +24,10 @@ export class RolesService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async findAll(page = 1, perPage = 20): Promise<{
+  async findAll(
+    page = 1,
+    perPage = 20,
+  ): Promise<{
     data: (Role & { user_count: number })[];
     total: number;
     page: number;
@@ -38,15 +36,19 @@ export class RolesService {
   }> {
     const [roles, total] = await this.dao.findAll(page, perPage);
     const data = await Promise.all(
-      roles.map(async (role) => {
-        const user_count = await this.userRepo.count({ where: { roleId: role.id, isDeleted: false } });
+      roles.map(async role => {
+        const user_count = await this.userRepo.count({
+          where: { roleId: role.id, isDeleted: false },
+        });
         return { ...role, user_count };
       }),
     );
     return { data, total, page, per_page: perPage, total_pages: Math.ceil(total / perPage) };
   }
 
-  async findOne(id: string): Promise<Role & { user_count: number; permissions: { id: string; action: string }[] }> {
+  async findOne(
+    id: string,
+  ): Promise<Role & { user_count: number; permissions: { id: string; action: string }[] }> {
     const role = await this.dao.findById(id);
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
@@ -67,8 +69,8 @@ export class RolesService {
     const role = await this.dao.save({
       name: dto.name,
       label: dto.label,
-      color: dto.color || null,
-      description: dto.description || null,
+      color: dto.color ?? undefined,
+      description: dto.description ?? undefined,
       isSystem: false,
       createdBy: createdBy.id,
     });
@@ -89,7 +91,11 @@ export class RolesService {
     return { ...role, user_count: 0 };
   }
 
-  async update(id: string, dto: UpdateRoleDto, updatedBy: User): Promise<Role & { user_count: number }> {
+  async update(
+    id: string,
+    dto: UpdateRoleDto,
+    updatedBy: User,
+  ): Promise<Role & { user_count: number }> {
     const role = await this.dao.findById(id);
     if (!role) throw new NotFoundException(`Role ${id} not found`);
 
@@ -173,7 +179,7 @@ export class RolesService {
   }
 
   async saveFlatPermissions(roleId: string, permissionIds: string[]): Promise<void> {
-    const upsertEntries: UpsertRolePermissionEntry[] = permissionIds.map((pid) => ({
+    const upsertEntries: UpsertRolePermissionEntry[] = permissionIds.map(pid => ({
       moduleId: 'rbac',
       permissionId: pid,
     }));
@@ -183,8 +189,8 @@ export class RolesService {
 
   private flattenPermissions(rawPerms: RolePermission[]): { id: string; action: string }[] {
     return rawPerms
-      .filter((rp) => rp.permission?.action)
-      .map((rp) => ({
+      .filter(rp => rp.permission?.action)
+      .map(rp => ({
         id: rp.permission.id,
         action: rp.permission.action,
       }));

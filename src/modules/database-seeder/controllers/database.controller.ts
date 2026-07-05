@@ -36,7 +36,7 @@ export class DatabaseController {
 
   @Put('seeder-files/:stateCode')
   @HttpCode(HttpStatus.OK)
-  updateSeederFile(@Param('stateCode') stateCode: string, @Body() data: any) {
+  updateSeederFile(@Param('stateCode') stateCode: string, @Body() data: Record<string, unknown>) {
     return this.itdSeederService.updateSeederFile(stateCode, data);
   }
 }

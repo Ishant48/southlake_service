@@ -3,13 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PermissionsController } from './permissions.controller';
 import { PermissionsService } from './permissions.service';
 import { PermissionsDao } from './dao/permissions.dao';
-import { Permission } from '../../entities/permission.entity';
-import { Module } from '../../entities/module.entity';
+import { Permission } from './entities/permission.entity';
+import { Module } from './entities/module.entity';
 
 @NestModule({
-  imports: [
-    TypeOrmModule.forFeature([Permission, Module]),
-  ],
+  imports: [TypeOrmModule.forFeature([Permission, Module])],
   controllers: [PermissionsController],
   providers: [PermissionsService, PermissionsDao],
   exports: [PermissionsService],

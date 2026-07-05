@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ActivityLogsDao, ActivityLogFilter } from './dao/activity-logs.dao';
-import { ActivityLog } from '../../entities/activity-log.entity';
+import { ActivityLog } from './entities/activity-log.entity';
 
 export interface LogEntry {
   userId?: string;
@@ -12,6 +12,7 @@ export interface LogEntry {
   description?: string;
   ipAddress?: string;
   userAgent?: string;
+  changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
 }
 
 @Injectable()
@@ -20,15 +21,16 @@ export class ActivityLogsService {
 
   async log(entry: LogEntry): Promise<ActivityLog> {
     return this.dao.save({
-      userId: entry.userId || null,
-      moduleId: entry.moduleId || null,
-      submoduleId: entry.submoduleId || null,
+      userId: entry.userId ?? undefined,
+      moduleId: entry.moduleId ?? undefined,
+      submoduleId: entry.submoduleId ?? undefined,
       action: entry.action,
-      entityType: entry.entityType || null,
-      entityId: entry.entityId || null,
-      description: entry.description || null,
-      ipAddress: entry.ipAddress || null,
-      userAgent: entry.userAgent || null,
+      entityType: entry.entityType ?? undefined,
+      entityId: entry.entityId ?? undefined,
+      description: entry.description ?? undefined,
+      ipAddress: entry.ipAddress ?? undefined,
+      userAgent: entry.userAgent ?? undefined,
+      changes: entry.changes ?? null,
     });
   }
 
@@ -40,8 +42,8 @@ export class ActivityLogsService {
     total_pages: number;
   }> {
     const [data, total] = await this.dao.findAll(filter);
-    const perPage = filter.limit || 20;
-    const page = filter.page || 1;
+    const perPage = filter.limit ?? 20;
+    const page = filter.page ?? 1;
     return {
       data,
       total,
@@ -55,17 +57,17 @@ export class ActivityLogsService {
     const logs = await this.dao.findAllForExport(filter);
 
     const headers = ['Date', 'User', 'Email', 'Action', 'Module', 'Description', 'IP Address'];
-    const rows = logs.map((log) => [
+    const rows = logs.map(log => [
       new Date(log.createdAt).toISOString(),
-      log.user?.name || '',
-      log.user?.email || '',
+      log.user?.name ?? '',
+      log.user?.email ?? '',
       log.action,
-      log.moduleId || '',
-      (log.description || '').replace(/,/g, ';'),
-      log.ipAddress || '',
+      log.moduleId ?? '',
+      (log.description ?? '').replace(/,/g, ';'),
+      log.ipAddress ?? '',
     ]);
 
-    const csvLines = [headers, ...rows].map((row) => row.join(','));
+    const csvLines = [headers, ...rows].map(row => row.join(','));
     return csvLines.join('\n');
   }
 }

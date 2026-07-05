@@ -1,28 +1,12 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RolesService, UpsertRolePermissionEntry } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { User } from '../../entities/user.entity';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('roles')
 @ApiBearerAuth()
@@ -36,10 +20,7 @@ export class RolesController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'per_page', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Paginated roles' })
-  findAll(
-    @Query('page') page = '1',
-    @Query('per_page') perPage = '20',
-  ) {
+  findAll(@Query('page') page = '1', @Query('per_page') perPage = '20') {
     return this.service.findAll(parseInt(page, 10), parseInt(perPage, 10));
   }
 

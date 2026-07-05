@@ -11,7 +11,6 @@ import {
   UploadedFile,
   BadRequestException,
   Res,
-  Inject,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -24,15 +23,31 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import * as multer from 'multer';
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
-import { Response } from 'express';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { Request, Response } from 'express';
 import { ChartOfAccountsService } from './chart-of-accounts.service';
 import { CreateChartOfAccountDto } from './dto/create-chart-of-account.dto';
 import { UpdateChartOfAccountDto } from './dto/update-chart-of-account.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { User } from '../../entities/user.entity';
+import { User } from '../users/entities/user.entity';
+
+interface UploadedMulterFile {
+  filename: string;
+  originalname: string;
+}
+
+type MulterFilenameCallback = (error: Error | null, filename: string) => void;
+
+interface MulterDiskStorageOptions {
+  destination: string;
+  filename: (req: Request, file: UploadedMulterFile, cb: MulterFilenameCallback) => void;
+}
+
+const diskStorage: (options: MulterDiskStorageOptions) => unknown = (
+  multer as unknown as { diskStorage: (options: MulterDiskStorageOptions) => unknown }
+).diskStorage;
 
 // Ensure uploads directory exists
 const uploadDir = './uploads';
@@ -51,10 +66,7 @@ export class ChartOfAccountsController {
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'is_active', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'List of accounts' })
-  findAll(
-    @Query('search') search?: string,
-    @Query('is_active') isActive?: boolean,
-  ) {
+  findAll(@Query('search') search?: string, @Query('is_active') isActive?: boolean) {
     // Convert string query to boolean if present
     const active = isActive !== undefined ? String(isActive) === 'true' : undefined;
     return this.service.findAll(search, active);
@@ -70,21 +82,14 @@ export class ChartOfAccountsController {
   @Post()
   @ApiOperation({ summary: 'Create a new chart of account' })
   @ApiResponse({ status: 201, description: 'Account created' })
-  create(
-    @Body() dto: CreateChartOfAccountDto,
-    @CurrentUser() user: User,
-  ) {
+  create(@Body() dto: CreateChartOfAccountDto, @CurrentUser() user: User) {
     return this.service.create(dto, user.id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing chart of account' })
   @ApiResponse({ status: 200, description: 'Account updated' })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateChartOfAccountDto,
-    @CurrentUser() user: User,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateChartOfAccountDto, @CurrentUser() user: User) {
     return this.service.update(id, dto, user.id);
   }
 
@@ -103,7 +108,11 @@ export class ChartOfAccountsController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: './uploads',
-        filename: (req, file, cb) => {
+        filename: (
+          req: Request,
+          file: UploadedMulterFile,
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
         },
@@ -126,7 +135,7 @@ export class ChartOfAccountsController {
   @ApiResponse({ status: 201, description: 'Document uploaded' })
   uploadDocument(
     @Param('id') id: string,
-    @UploadedFile() file: any,
+    @UploadedFile() file: UploadedMulterFile,
     @Body('document_type') documentType: string,
     @CurrentUser() user: User,
   ) {
@@ -136,16 +145,12 @@ export class ChartOfAccountsController {
     if (!documentType) {
       throw new BadRequestException('Document Type is required');
     }
-    const fileUrl = `/api/chart-of-accounts/documents/download/${file.filename}`;
     return this.service.addDocument(id, file.originalname, file.filename, documentType, user.id);
   }
 
   @Get('documents/download/:filename')
   @ApiOperation({ summary: 'Download an attached document' })
-  downloadDocument(
-    @Param('filename') filename: string,
-    @Res() res: Response,
-  ) {
+  downloadDocument(@Param('filename') filename: string, @Res() res: Response) {
     const filePath = join(process.cwd(), 'uploads', filename);
     if (!existsSync(filePath)) {
       throw new NotFoundException('Document file not found on disk');
@@ -159,14 +164,13 @@ export class ChartOfAccountsController {
   async deleteDocument(@Param('docId') docId: string) {
     const doc = await this.service.findDocument(docId);
     const filePath = join(process.cwd(), 'uploads', doc.fileUrl); // fileUrl stores filename
-    
+
     // Attempt filesystem deletion
     try {
-      const fs = require('fs');
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      if (existsSync(filePath)) {
+        unlinkSync(filePath);
       }
-    } catch (err) {
+    } catch {
       // Log error but proceed to remove database record
     }
 

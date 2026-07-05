@@ -1,16 +1,8 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GlMappingsService } from './gl-mappings.service';
 import { CreateGlMappingDto, UpdateGlMappingDto } from './dto/gl-mapping.dto';
-import { GlMapping } from '../../entities/gl-mapping.entity';
+import { GlMapping } from './entities/gl-mapping.entity';
 
 @ApiTags('GL Mappings')
 @ApiBearerAuth()
@@ -46,10 +38,7 @@ export class GlMappingsController {
   @ApiResponse({ status: 200, description: 'The GL mapping has been successfully updated.' })
   @ApiResponse({ status: 404, description: 'GL Mapping not found.' })
   @ApiResponse({ status: 400, description: 'Invalid input or duplicate mapping type.' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateGlMappingDto,
-  ): Promise<GlMapping> {
+  async update(@Param('id') id: string, @Body() dto: UpdateGlMappingDto): Promise<GlMapping> {
     return this.glMappingsService.update(id, dto);
   }
 

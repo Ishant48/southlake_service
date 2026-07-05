@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsString, IsUUID, IsOptional, IsNumber, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -55,7 +63,10 @@ export class PostJournalEntriesDto {
   @IsNumber()
   je_number: number;
 
-  @ApiProperty({ description: 'List of entry lines in the transaction', type: [JournalEntryLineDto] })
+  @ApiProperty({
+    description: 'List of entry lines in the transaction',
+    type: [JournalEntryLineDto],
+  })
   @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })

@@ -1,9 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
+interface FinancialLedgerRow {
+  accountCode: string;
+  description: string;
+  parentKey: string | null;
+  normalBalance: string;
+  totalDebit: string | number;
+  totalCredit: string | number;
+}
+
+export interface FinancialLineItem {
+  accountCode: string;
+  description: string;
+  balance: number;
+}
+
+interface BatchPeriodRow {
+  period: string;
+}
+
 const MONTHS_LIST = [
-  'january', 'february', 'march', 'april', 'may', 'june',
-  'july', 'august', 'september', 'october', 'november', 'december'
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
 ];
 
 function parsePeriod(period: string): { year: number; month: number } {
@@ -60,18 +89,18 @@ export class FinancialReportsService {
 
     const parsed = parsePeriod(period);
     const altPeriod = `${String(parsed.month + 1).padStart(2, '0')}-${parsed.year}`;
-    const dbRes = await this.dataSource.query(query, [period, altPeriod]);
+    const dbRes: FinancialLedgerRow[] = await this.dataSource.query(query, [period, altPeriod]);
 
     let totalRevenue = 0;
     let totalExpense = 0;
-    const revenues: any[] = [];
-    const expenses: any[] = [];
+    const revenues: FinancialLineItem[] = [];
+    const expenses: FinancialLineItem[] = [];
 
     for (const row of dbRes) {
       const debit = Number(row.totalDebit);
       const credit = Number(row.totalCredit);
-      const parentKey = row.parentKey || '';
-      
+      const parentKey = row.parentKey ?? '';
+
       let balance = 0;
       if (row.normalBalance === 'credit') {
         balance = credit - debit;
@@ -82,13 +111,18 @@ export class FinancialReportsService {
       const item = {
         accountCode: row.accountCode,
         description: row.description,
-        balance
+        balance,
       };
 
       if (parentKey === 'REVENUE' || String(row.accountCode).startsWith('4')) {
         revenues.push(item);
         totalRevenue += balance;
-      } else if (parentKey === 'EXPANSE' || String(row.accountCode).startsWith('5') || String(row.accountCode).startsWith('6') || String(row.accountCode).startsWith('9')) {
+      } else if (
+        parentKey === 'EXPANSE' ||
+        String(row.accountCode).startsWith('5') ||
+        String(row.accountCode).startsWith('6') ||
+        String(row.accountCode).startsWith('9')
+      ) {
         expenses.push(item);
         totalExpense += balance;
       }
@@ -102,13 +136,13 @@ export class FinancialReportsService {
       totalExpense,
       netIncome,
       revenues,
-      expenses
+      expenses,
     };
   }
 
   async getBalanceSheet(period: string) {
     // Balance Sheet is cumulative: all batches up to and including the target period
-    const allBatches = await this.dataSource.query(`
+    const allBatches: BatchPeriodRow[] = await this.dataSource.query(`
       SELECT DISTINCT period FROM journal_entry_batches
     `);
 
@@ -128,30 +162,13 @@ export class FinancialReportsService {
         totalEquity: 0,
         assets: [],
         liabilities: [],
-        equity: []
+        equity: [],
       };
     }
 
-    const query = `
-      SELECT 
-        c.account_code as "accountCode",
-        c.description as "description",
-        p.key as "parentKey",
-        c.normal_balance as "normalBalance",
-        COALESCE(SUM(e.debit), 0) as "totalDebit",
-        COALESCE(SUM(e.credit), 0) as "totalCredit"
-      FROM journal_entries e
-      JOIN chart_of_accounts c ON e.coa_id = c.id
-      JOIN chart_of_accounts p ON c.parent_id = p.id
-      JOIN journal_entry_batches b ON e.batch_id = b.id
-      WHERE b.period ANY($1)
-      GROUP BY c.account_code, c.description, p.key, c.normal_balance
-      ORDER BY c.account_code ASC
-    `;
-
     // TypeORM supports ANY($1) for array parameters
-    const dbRes = await this.dataSource.query(
-      `SELECT 
+    const dbRes: FinancialLedgerRow[] = await this.dataSource.query(
+      `SELECT
         c.account_code as "accountCode",
         c.description as "description",
         p.key as "parentKey",
@@ -165,15 +182,15 @@ export class FinancialReportsService {
       WHERE b.period = ANY($1)
       GROUP BY c.account_code, c.description, p.key, c.normal_balance
       ORDER BY c.account_code ASC`,
-      [validPeriods]
+      [validPeriods],
     );
 
     let totalAssets = 0;
     let totalLiabilities = 0;
     let totalEquity = 0;
-    const assets: any[] = [];
-    const liabilities: any[] = [];
-    const equity: any[] = [];
+    const assets: FinancialLineItem[] = [];
+    const liabilities: FinancialLineItem[] = [];
+    const equity: FinancialLineItem[] = [];
 
     // Cumulative Revenue & Expense up to this period forms Retained Earnings
     let cumulativeRevenue = 0;
@@ -182,8 +199,8 @@ export class FinancialReportsService {
     for (const row of dbRes) {
       const debit = Number(row.totalDebit);
       const credit = Number(row.totalCredit);
-      const parentKey = row.parentKey || '';
-      
+      const parentKey = row.parentKey ?? '';
+
       let balance = 0;
       if (row.normalBalance === 'credit') {
         balance = credit - debit;
@@ -194,7 +211,7 @@ export class FinancialReportsService {
       const item = {
         accountCode: row.accountCode,
         description: row.description,
-        balance
+        balance,
       };
 
       if (parentKey === 'ASSETS' || String(row.accountCode).startsWith('1')) {
@@ -208,7 +225,12 @@ export class FinancialReportsService {
         totalEquity += balance;
       } else if (parentKey === 'REVENUE' || String(row.accountCode).startsWith('4')) {
         cumulativeRevenue += balance;
-      } else if (parentKey === 'EXPANSE' || String(row.accountCode).startsWith('5') || String(row.accountCode).startsWith('6') || String(row.accountCode).startsWith('9')) {
+      } else if (
+        parentKey === 'EXPANSE' ||
+        String(row.accountCode).startsWith('5') ||
+        String(row.accountCode).startsWith('6') ||
+        String(row.accountCode).startsWith('9')
+      ) {
         cumulativeExpense += balance;
       }
     }
@@ -217,9 +239,9 @@ export class FinancialReportsService {
     const retainedEarnings = cumulativeRevenue - cumulativeExpense;
     if (retainedEarnings !== 0) {
       equity.push({
-        accountCode: 399999,
+        accountCode: '399999',
         description: 'Retained Earnings (Net Income Cumulative)',
-        balance: retainedEarnings
+        balance: retainedEarnings,
       });
       totalEquity += retainedEarnings;
     }
@@ -231,7 +253,7 @@ export class FinancialReportsService {
       totalEquity,
       assets,
       liabilities,
-      equity
+      equity,
     };
   }
 }

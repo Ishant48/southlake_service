@@ -1,11 +1,58 @@
 import { AppDataSource } from './data-source';
 import { QueryRunner } from 'typeorm';
 
+/**
+ * One row per real feature module, each granted the standard CRUD action
+ * set (view/create/edit/delete) plus any extra actions that module's
+ * controller actually checks for (e.g. journal_entry.post for posting a
+ * batch — see PostToJournalEntries). Keep this in sync with every
+ * @RequirePermission(...) string used across src/modules/**\/*.controller.ts —
+ * a permission a controller checks for but this seed never creates can
+ * only ever be satisfied by the superadmin guard bypass, never by a real
+ * role grant.
+ */
+const MODULES: Record<string, { label: string; extraActions?: string[] }> = {
+  activity_log: { label: 'Activity Logs', extraActions: ['export'] },
+  role: { label: 'Roles', extraActions: ['manage'] },
+  permission: { label: 'Permissions', extraActions: ['assign'] },
+  user: { label: 'Users' },
+  chart_of_accounts: { label: 'Chart of Accounts' },
+  gl_mapping: { label: 'GL Mappings' },
+  journal_entry: { label: 'Journal Entries', extraActions: ['post'] },
+  broker: { label: 'Brokers' },
+  cob: { label: 'Classes of Business' },
+  lob: { label: 'Lines of Business' },
+  masters_config: { label: 'Masters Configuration' },
+  mga: { label: 'MGAs' },
+  product: { label: 'Products' },
+  reinsurer: { label: 'Reinsurers' },
+  risk_company: { label: 'Risk Companies' },
+  state: { label: 'States' },
+  treaty: { label: 'Treaties' },
+  reports: { label: 'Reports', extraActions: ['post'] },
+  test_balance: { label: 'Test Balance' },
+  workbook: { label: 'Workbooks' },
+  financial_reports: { label: 'Financial Reports' },
+  database_seeder: { label: 'Database Seeder', extraActions: ['manage'] },
+};
+
+const CRUD_ACTIONS = ['view', 'create', 'edit', 'delete'];
+
+interface PermissionRow {
+  id: string;
+  action: string;
+}
+
+interface RoleRow {
+  id: string;
+  name: string;
+}
+
 export async function seedPermissions(externalQueryRunner?: QueryRunner): Promise<void> {
   const isInitialized = AppDataSource.isInitialized;
   const useExternal = !!externalQueryRunner;
 
-  const queryRunner = externalQueryRunner || AppDataSource.createQueryRunner();
+  const queryRunner = externalQueryRunner ?? AppDataSource.createQueryRunner();
 
   if (!useExternal) {
     if (!isInitialized) {
@@ -16,75 +63,89 @@ export async function seedPermissions(externalQueryRunner?: QueryRunner): Promis
   }
 
   try {
-    console.log('Connected to database. Seeding module-specific permissions...');
+    console.warn('Ensuring required modules exist...');
+    // 'rbac' is not a real feature module — it's the module_id role_permissions
+    // uses to group access-control grants. 'user_management' is a legacy alias
+    // still referenced by some role_permissions rows.
+    const pseudoModuleIds = ['rbac', 'user_management'];
+    for (const modId of [...Object.keys(MODULES), ...pseudoModuleIds]) {
+      const label =
+        MODULES[modId]?.label ??
+        modId
+          .split('_')
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+      await queryRunner.query(
+        `INSERT INTO "modules" ("id", "label") VALUES ($1, $2) ON CONFLICT ("id") DO NOTHING`,
+        [modId, modId === 'rbac' ? 'Access Control' : label],
+      );
+    }
 
-    const modules = ['chart_of_accounts', 'master_data', 'journal_entry', 'reinsurance'];
-    const actions = ['view', 'create', 'edit', 'approve', 'export', 'post', 'file', 'lock', 'override', 'reconcile', 'void', 'reverse'];
-
-    // 1. Insert permissions
-    for (const mod of modules) {
-      const modLabel = mod.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    console.warn('Seeding permissions...');
+    for (const [modId, def] of Object.entries(MODULES)) {
+      const actions = [...CRUD_ACTIONS, ...(def.extraActions ?? [])];
       for (const act of actions) {
-        const action = `${mod}.${act}`;
-        const label = `${act.charAt(0).toUpperCase() + act.slice(1)} ${modLabel}`;
-        const desc = `${act.charAt(0).toUpperCase() + act.slice(1)} ${mod.replace(/_/g, ' ')} records`;
-
-        await queryRunner.query(`
-          INSERT INTO "permissions" ("action", "label", "description")
-          VALUES ($1, $2, $3)
-          ON CONFLICT ("action") DO NOTHING
-        `, [action, label, desc]);
+        const action = `${modId}.${act}`;
+        const label = `${act.charAt(0).toUpperCase() + act.slice(1)} ${def.label}`;
+        const desc = `${label}`;
+        await queryRunner.query(
+          `INSERT INTO "permissions" ("action", "label", "description")
+           VALUES ($1, $2, $3)
+           ON CONFLICT ("action") DO NOTHING`,
+          [action, label, desc],
+        );
       }
     }
 
-    // 2. Fetch all permissions
-    const perms = await queryRunner.query('SELECT id, action FROM permissions');
-
-    // 3. Fetch roles
-    const roles = await queryRunner.query('SELECT id, name FROM roles');
-    const superadminRole = roles.find((r: any) => r.name === 'superadmin');
-    const adminRole = roles.find((r: any) => r.name === 'admin');
+    const perms = (await queryRunner.query(
+      'SELECT id, action FROM permissions',
+    )) as PermissionRow[];
+    const roles = (await queryRunner.query('SELECT id, name FROM roles')) as RoleRow[];
+    const superadminRole = roles.find(r => r.name === 'superadmin');
+    const adminRole = roles.find(r => r.name === 'admin');
 
     if (superadminRole) {
-      console.log('Seeding superadmin role permissions...');
+      console.warn('Seeding superadmin role permissions (all)...');
       for (const perm of perms) {
-        await queryRunner.query(`
-          INSERT INTO "role_permissions" ("role_id", "module_id", "permission_id")
-          VALUES ($1, $2, $3)
-          ON CONFLICT DO NOTHING
-        `, [superadminRole.id, 'rbac', perm.id]);
+        await queryRunner.query(
+          `INSERT INTO "role_permissions" ("role_id", "module_id", "permission_id")
+           VALUES ($1, $2, $3)
+           ON CONFLICT DO NOTHING`,
+          [superadminRole.id, 'rbac', perm.id],
+        );
       }
     }
 
     if (adminRole) {
-      console.log('Seeding admin role permissions...');
-      const adminActions = ['view', 'create', 'edit', 'approve', 'export', 'post'];
-      const rbacAdminActions = ['user.view', 'user.create', 'user.edit', 'activity_log.view', 'activity_log.export'];
+      console.warn(
+        'Seeding admin role permissions (view/create/edit + user/activity_log management)...',
+      );
+      const adminActions = ['view', 'create', 'edit'];
+      const alwaysGrantToAdmin = [
+        'user.view',
+        'user.create',
+        'user.edit',
+        'activity_log.view',
+        'activity_log.export',
+      ];
 
       for (const perm of perms) {
-        let grant = false;
-        if (rbacAdminActions.includes(perm.action)) {
-          grant = true;
-        } else {
-          const parts = perm.action.split('.');
-          if (parts.length > 1 && modules.includes(parts[0]) && adminActions.includes(parts[1])) {
-            grant = true;
-          }
-        }
-
+        const [, act] = perm.action.split('.');
+        const grant = alwaysGrantToAdmin.includes(perm.action) || adminActions.includes(act);
         if (grant) {
-          await queryRunner.query(`
-            INSERT INTO "role_permissions" ("role_id", "module_id", "permission_id")
-            VALUES ($1, $2, $3)
-            ON CONFLICT DO NOTHING
-          `, [adminRole.id, 'rbac', perm.id]);
+          await queryRunner.query(
+            `INSERT INTO "role_permissions" ("role_id", "module_id", "permission_id")
+             VALUES ($1, $2, $3)
+             ON CONFLICT DO NOTHING`,
+            [adminRole.id, 'rbac', perm.id],
+          );
         }
       }
     }
 
     if (!useExternal) {
       await queryRunner.commitTransaction();
-      console.log('Permissions seeding transaction committed successfully!');
+      console.warn('Permissions seeding transaction committed successfully!');
     }
   } catch (error) {
     console.error('Error during permissions seeding, rolling back...', error);
@@ -105,10 +166,10 @@ export async function seedPermissions(externalQueryRunner?: QueryRunner): Promis
 if (require.main === module) {
   seedPermissions()
     .then(() => {
-      console.log('Permissions seeding completed successfully.');
+      console.warn('Permissions seeding completed successfully.');
       process.exit(0);
     })
-    .catch((err) => {
+    .catch(err => {
       console.error('Permissions seeding failed:', err);
       process.exit(1);
     });
