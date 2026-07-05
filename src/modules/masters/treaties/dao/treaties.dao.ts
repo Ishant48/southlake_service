@@ -53,13 +53,18 @@ export class TreatiesDao {
   findAll(search?: string, isActive?: boolean): Promise<Treaty[]> {
     const where: FindOptionsWhere<Treaty>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
       where.push({
         treatyCode: ILike(`%${search}%`),
+        isDeleted: false,
         ...(isActive !== undefined ? { isActive } : {}),
       });
     } else {
-      const obj: FindOptionsWhere<Treaty> = {};
+      const obj: FindOptionsWhere<Treaty> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

@@ -9,7 +9,7 @@ interface UploadedMulterFile {
   originalname: string;
 }
 
-@Controller('api/workbooks')
+@Controller('workbooks')
 @Public()
 export class WorkbookUploadController {
   constructor(private readonly workbookUploadService: WorkbookUploadService) {}

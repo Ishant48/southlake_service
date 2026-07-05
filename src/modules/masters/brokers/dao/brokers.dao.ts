@@ -13,13 +13,18 @@ export class BrokersDao {
   findAll(search?: string, isActive?: boolean): Promise<Broker[]> {
     const where: FindOptionsWhere<Broker>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
       where.push({
         brokerCode: ILike(`%${search}%`),
+        isDeleted: false,
         ...(isActive !== undefined ? { isActive } : {}),
       });
     } else {
-      const obj: FindOptionsWhere<Broker> = {};
+      const obj: FindOptionsWhere<Broker> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

@@ -50,10 +50,18 @@ export class MastersConfigDao {
   findAllDocumentTypes(search?: string, isActive?: boolean): Promise<DocumentType[]> {
     const where: FindOptionsWhere<DocumentType>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
-      where.push({ code: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
+      where.push({
+        code: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
     } else {
-      const obj: FindOptionsWhere<DocumentType> = {};
+      const obj: FindOptionsWhere<DocumentType> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }
@@ -97,11 +105,23 @@ export class MastersConfigDao {
   ): Promise<SequencePrefixCounter[]> {
     const where: FindOptionsWhere<SequencePrefixCounter>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
-      where.push({ code: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
-      where.push({ prefix: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
+      where.push({
+        code: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
+      where.push({
+        prefix: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
     } else {
-      const obj: FindOptionsWhere<SequencePrefixCounter> = {};
+      const obj: FindOptionsWhere<SequencePrefixCounter> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

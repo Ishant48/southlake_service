@@ -16,10 +16,10 @@ export class StatesDao {
   findAll(search?: string, isActive?: boolean): Promise<StateMaster[]> {
     const where: FindOptionsWhere<StateMaster>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), isActive });
-      where.push({ stateAbbr: ILike(`%${search}%`), isActive });
+      where.push({ name: ILike(`%${search}%`), isActive, isDeleted: false });
+      where.push({ stateAbbr: ILike(`%${search}%`), isActive, isDeleted: false });
     } else {
-      const obj: FindOptionsWhere<StateMaster> = {};
+      const obj: FindOptionsWhere<StateMaster> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

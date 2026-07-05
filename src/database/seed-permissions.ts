@@ -67,7 +67,7 @@ export async function seedPermissions(externalQueryRunner?: QueryRunner): Promis
     // 'rbac' is not a real feature module — it's the module_id role_permissions
     // uses to group access-control grants. 'user_management' is a legacy alias
     // still referenced by some role_permissions rows.
-    const pseudoModuleIds = ['rbac', 'user_management'];
+    const pseudoModuleIds = ['rbac', 'user_management', 'master_data', 'reinsurance'];
     for (const modId of [...Object.keys(MODULES), ...pseudoModuleIds]) {
       const label =
         MODULES[modId]?.label ??

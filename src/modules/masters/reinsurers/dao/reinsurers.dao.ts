@@ -13,13 +13,18 @@ export class ReinsurersDao {
   findAll(search?: string, isActive?: boolean): Promise<ReinsurerCompany[]> {
     const where: FindOptionsWhere<ReinsurerCompany>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
       where.push({
         reinsurerCompanyId: ILike(`%${search}%`),
+        isDeleted: false,
         ...(isActive !== undefined ? { isActive } : {}),
       });
     } else {
-      const obj: FindOptionsWhere<ReinsurerCompany> = {};
+      const obj: FindOptionsWhere<ReinsurerCompany> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

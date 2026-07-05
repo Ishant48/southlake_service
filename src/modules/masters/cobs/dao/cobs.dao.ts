@@ -13,13 +13,18 @@ export class CobsDao {
   findAll(search?: string, isActive?: boolean): Promise<CobMaster[]> {
     const where: FindOptionsWhere<CobMaster>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
       where.push({
         cobCode: ILike(`%${search}%`),
+        isDeleted: false,
         ...(isActive !== undefined ? { isActive } : {}),
       });
     } else {
-      const obj: FindOptionsWhere<CobMaster> = {};
+      const obj: FindOptionsWhere<CobMaster> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

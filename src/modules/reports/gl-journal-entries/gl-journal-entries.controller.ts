@@ -4,7 +4,7 @@ import { Public } from '../../../common/decorators/public.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
 
-@Controller('api/workbooks')
+@Controller('workbooks')
 @Public()
 export class GlJournalEntriesController {
   constructor(private readonly glJournalEntriesService: GlJournalEntriesService) {}

@@ -22,13 +22,18 @@ export class MgasDao {
   findAll(search?: string, isActive?: boolean): Promise<MgaMaster[]> {
     const where: FindOptionsWhere<MgaMaster>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
       where.push({
         mgaCode: ILike(`%${search}%`),
+        isDeleted: false,
         ...(isActive !== undefined ? { isActive } : {}),
       });
     } else {
-      const obj: FindOptionsWhere<MgaMaster> = {};
+      const obj: FindOptionsWhere<MgaMaster> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

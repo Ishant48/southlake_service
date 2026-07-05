@@ -2,7 +2,7 @@ import { Controller, Post, HttpCode, HttpStatus, Get, Put, Param, Body } from '@
 import { ItdSeederService } from '../services/itd-seeder.service';
 import { Public } from '../../../common/decorators/public.decorator';
 
-@Controller('api/database')
+@Controller('database')
 @Public()
 export class DatabaseController {
   constructor(private readonly itdSeederService: ItdSeederService) {}

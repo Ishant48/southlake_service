@@ -16,6 +16,7 @@ export class RolesDao {
 
   findAll(page = 1, limit = 20): Promise<[Role[], number]> {
     return this.roleRepo.findAndCount({
+      where: { isDeleted: false },
       order: { createdAt: 'ASC' },
       skip: (page - 1) * limit,
       take: limit,

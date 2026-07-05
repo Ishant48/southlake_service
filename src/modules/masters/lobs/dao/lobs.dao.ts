@@ -13,13 +13,18 @@ export class LobsDao {
   findAll(search?: string, isActive?: boolean): Promise<LineOfBusiness[]> {
     const where: FindOptionsWhere<LineOfBusiness>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), ...(isActive !== undefined ? { isActive } : {}) });
+      where.push({
+        name: ILike(`%${search}%`),
+        isDeleted: false,
+        ...(isActive !== undefined ? { isActive } : {}),
+      });
       where.push({
         lobCode: ILike(`%${search}%`),
+        isDeleted: false,
         ...(isActive !== undefined ? { isActive } : {}),
       });
     } else {
-      const obj: FindOptionsWhere<LineOfBusiness> = {};
+      const obj: FindOptionsWhere<LineOfBusiness> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

@@ -15,7 +15,7 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
 import { Treaty } from '../../masters/entities/treaty.entity';
 
-@Controller('api/workbooks')
+@Controller('workbooks')
 @Public()
 export class WorkbooksController {
   constructor(private readonly workbooksService: WorkbooksService) {}

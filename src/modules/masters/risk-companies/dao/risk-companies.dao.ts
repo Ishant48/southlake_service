@@ -16,11 +16,11 @@ export class RiskCompaniesDao {
   findAll(search?: string, isActive?: boolean): Promise<RiskCompany[]> {
     const where: FindOptionsWhere<RiskCompany>[] = [];
     if (search) {
-      where.push({ name: ILike(`%${search}%`), isActive });
-      where.push({ riskCompanyId: ILike(`%${search}%`), isActive });
-      where.push({ idName: ILike(`%${search}%`), isActive });
+      where.push({ name: ILike(`%${search}%`), isActive, isDeleted: false });
+      where.push({ riskCompanyId: ILike(`%${search}%`), isActive, isDeleted: false });
+      where.push({ idName: ILike(`%${search}%`), isActive, isDeleted: false });
     } else {
-      const obj: FindOptionsWhere<RiskCompany> = {};
+      const obj: FindOptionsWhere<RiskCompany> = { isDeleted: false };
       if (isActive !== undefined) obj.isActive = isActive;
       where.push(obj);
     }

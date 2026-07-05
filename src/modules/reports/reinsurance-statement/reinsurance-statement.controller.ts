@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { ReinsuranceStatementService } from './reinsurance-statement.service';
 import { Public } from '../../../common/decorators/public.decorator';
 
-@Controller('api/workbooks')
+@Controller('workbooks')
 @Public()
 export class ReinsuranceStatementController {
   constructor(private readonly reinsuranceStatementService: ReinsuranceStatementService) {}

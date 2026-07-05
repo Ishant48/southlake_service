@@ -9,7 +9,7 @@ interface UploadedMulterFile {
   originalname: string;
 }
 
-@Controller('api/workbooks')
+@Controller('workbooks')
 @Public()
 export class BatchUploadController {
   constructor(private readonly batchUploadService: BatchUploadService) {}
