@@ -1,5 +1,8 @@
 import { AppDataSource } from './data-source';
 import { QueryRunner } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
+
+const DEFAULT_SUPERADMIN_PASSWORD = 'Admin@123';
 
 /**
  * Seeds the two system roles and the initial superadmin user. Previously
@@ -38,13 +41,14 @@ export async function seedRoles(externalQueryRunner?: QueryRunner): Promise<void
     const roleId: string = superadminRole[0].id;
 
     console.warn('Seeding superadmin user (admin@southlake.com)...');
+    const passwordHash = await bcrypt.hash(DEFAULT_SUPERADMIN_PASSWORD, 10);
     await queryRunner.query(
       `
-      INSERT INTO "users" ("email", "role_id", "user_type", "name", "initials", "avatar_color", "status")
-      VALUES ($1, $2, 'staff', 'Super Admin', 'SA', '#0d1b4b', 'active')
+      INSERT INTO "users" ("email", "role_id", "user_type", "name", "initials", "avatar_color", "status", "password_hash")
+      VALUES ($1, $2, 'staff', 'Super Admin', 'SA', '#0d1b4b', 'active', $3)
       ON CONFLICT ("email") DO NOTHING
     `,
-      ['admin@southlake.com', roleId],
+      ['admin@southlake.com', roleId, passwordHash],
     );
 
     if (!useExternal) {
