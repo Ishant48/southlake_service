@@ -27,6 +27,7 @@ describe('ChartOfAccounts (e2e)', () => {
     await otpRepo.createQueryBuilder().delete().execute();
 
     const sessionRepo = moduleFixture.get(getRepositoryToken(UserSession));
+    await sessionRepo.manager.query('DELETE FROM "login_challenges"');
     await sessionRepo.createQueryBuilder().delete().execute();
 
     const mailService = moduleFixture.get(MailService);

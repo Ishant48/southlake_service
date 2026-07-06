@@ -24,6 +24,7 @@ describe('Auth (e2e)', () => {
   beforeEach(async () => {
     // Clear active sessions to prevent session conflicts
     const sessionRepo = moduleFixture.get(getRepositoryToken(UserSession));
+    await sessionRepo.manager.query('DELETE FROM "login_challenges"');
     await sessionRepo.createQueryBuilder().delete().execute();
 
     const otpRepo = moduleFixture.get(getRepositoryToken(LoginOtp));
