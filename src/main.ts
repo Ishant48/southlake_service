@@ -5,9 +5,14 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Graceful shutdown: let TypeORM/other modules close connections and
+  // in-flight requests finish on SIGTERM (rolling deploys / scale-down)
+  app.enableShutdownHooks();
 
   // Security
   app.use(helmet());
@@ -33,8 +38,8 @@ async function bootstrap() {
   // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Global snake_case response transform
-  app.useGlobalInterceptors(new SnakeCaseInterceptor());
+  // Global snake_case response transform + request timeout
+  app.useGlobalInterceptors(new SnakeCaseInterceptor(), new TimeoutInterceptor());
 
   // Swagger
   const config = new DocumentBuilder()

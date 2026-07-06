@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -15,6 +16,7 @@ export class JournalEntry {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'batch_id', type: 'uuid' })
   batchId: string;
 
@@ -28,6 +30,7 @@ export class JournalEntry {
   @Column({ type: 'varchar' })
   description: string;
 
+  @Index()
   @Column({ name: 'coa_id', type: 'uuid' })
   coaId: string;
 
@@ -44,6 +47,7 @@ export class JournalEntry {
   @Column({ type: 'numeric', precision: 15, scale: 2, nullable: true })
   credit: number | null;
 
+  @Index()
   @Column({ type: 'date' })
   date: string; // YYYY-MM-DD format
 

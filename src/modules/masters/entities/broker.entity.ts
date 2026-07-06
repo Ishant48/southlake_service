@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -26,6 +27,7 @@ export class Broker {
   @Column({ name: 'contact_phone', type: 'varchar', nullable: true })
   contactPhone: string | null;
 
+  @Index()
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
@@ -35,6 +37,7 @@ export class Broker {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

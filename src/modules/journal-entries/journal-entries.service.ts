@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { JournalEntryBatch } from './entities/journal-entry-batch.entity';
 import { JournalEntry } from './entities/journal-entry.entity';
 import { CreateJournalBatchDto, UpdateJournalBatchDto } from './dto/journal-batches.dto';
@@ -7,7 +8,10 @@ import { JournalEntriesDao } from './dao/journal-entries.dao';
 
 @Injectable()
 export class JournalEntriesService {
-  constructor(private readonly journalEntriesDao: JournalEntriesDao) {}
+  constructor(
+    private readonly journalEntriesDao: JournalEntriesDao,
+    private readonly dataSource: DataSource,
+  ) {}
 
   async findBatches(
     period?: string,
@@ -32,35 +36,56 @@ export class JournalEntriesService {
         `Accounting period '${dto.period}' is locked. Cannot create batch.`,
       );
     }
-    let nextBatchNumber = dto.batch_number;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!nextBatchNumber) {
-      const allBatches = await this.journalEntriesDao.findAllBatches();
-      let maxNum = 10000;
-      for (const b of allBatches) {
-        const num = parseInt(b.batchNumber, 10);
-        if (!isNaN(num) && num > maxNum) {
-          maxNum = num;
+    try {
+      let nextBatchNumber = dto.batch_number;
+
+      if (!nextBatchNumber) {
+        // Lock all existing batch rows for the duration of the transaction so a
+        // concurrent createBatch call blocks until this one commits, preventing
+        // two callers from computing the same max+1 batch number.
+        const allBatches = await queryRunner.manager
+          .createQueryBuilder(JournalEntryBatch, 'batch')
+          .setLock('pessimistic_write')
+          .getMany();
+        let maxNum = 10000;
+        for (const b of allBatches) {
+          const num = parseInt(b.batchNumber, 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+        nextBatchNumber = (maxNum + 1).toString();
+      } else {
+        const existing = await queryRunner.manager.findOne(JournalEntryBatch, {
+          where: { batchNumber: nextBatchNumber },
+        });
+        if (existing) {
+          throw new BadRequestException(`Batch number '${nextBatchNumber}' already exists`);
         }
       }
-      nextBatchNumber = (maxNum + 1).toString();
-    } else {
-      const existing = await this.journalEntriesDao.findBatchByBatchNumber(nextBatchNumber);
-      if (existing) {
-        throw new BadRequestException(`Batch number '${nextBatchNumber}' already exists`);
-      }
+
+      const batch = queryRunner.manager.create(JournalEntryBatch, {
+        batchNumber: nextBatchNumber,
+        period: dto.period,
+        agentName: dto.agent_name,
+        totalAmount: 0.0,
+        count: 0,
+        createdBy: userId ?? null,
+      });
+
+      const savedBatch = await queryRunner.manager.save(JournalEntryBatch, batch);
+      await queryRunner.commitTransaction();
+      return savedBatch;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    const batch = this.journalEntriesDao.createBatchEntity({
-      batchNumber: nextBatchNumber,
-      period: dto.period,
-      agentName: dto.agent_name,
-      totalAmount: 0.0,
-      count: 0,
-      createdBy: userId ?? null,
-    });
-
-    return this.journalEntriesDao.saveBatch(batch);
   }
 
   async updateBatch(
@@ -157,42 +182,56 @@ export class JournalEntriesService {
       );
     }
 
-    // 2. Delete existing entries for the same je_number in this batch (Edit/Overwrite support)
-    await this.journalEntriesDao.deleteEntriesByBatchAndJeNumber(batchId, dto.je_number);
+    // 2. Delete existing entries for the same je_number in this batch (Edit/Overwrite support),
+    // re-insert the new lines and recalculate batch totals, all within a single transaction so a
+    // failure partway through rolls back cleanly instead of leaving the batch in a corrupted state.
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 3. Save the entry lines
-    const savedEntries: JournalEntry[] = [];
-    const today = new Date().toISOString().split('T')[0];
+    try {
+      await queryRunner.manager.delete(JournalEntry, { batchId, jeNumber: dto.je_number });
 
-    for (const line of dto.lines) {
-      const entry = this.journalEntriesDao.createEntryEntity({
-        batchId,
-        jeNumber: dto.je_number,
-        description: line.description,
-        coaId: line.coa_id,
-        sub: line.sub ?? null,
-        debit: line.debit !== undefined ? Number(line.debit) : null,
-        credit: line.credit !== undefined ? Number(line.credit) : null,
-        date: line.date ?? today,
-        dp: line.dp ?? null,
-        policy: line.policy ?? null,
-        memo: line.memo ?? null,
-      });
+      // 3. Save the entry lines
+      const savedEntries: JournalEntry[] = [];
+      const today = new Date().toISOString().split('T')[0];
 
-      const saved = await this.journalEntriesDao.saveEntry(entry);
-      savedEntries.push(saved);
+      for (const line of dto.lines) {
+        const entry = queryRunner.manager.create(JournalEntry, {
+          batchId,
+          jeNumber: dto.je_number,
+          description: line.description,
+          coaId: line.coa_id,
+          sub: line.sub ?? null,
+          debit: line.debit !== undefined ? Number(line.debit) : null,
+          credit: line.credit !== undefined ? Number(line.credit) : null,
+          date: line.date ?? today,
+          dp: line.dp ?? null,
+          policy: line.policy ?? null,
+          memo: line.memo ?? null,
+        });
+
+        const saved = await queryRunner.manager.save(JournalEntry, entry);
+        savedEntries.push(saved);
+      }
+
+      // 4. Recalculate Batch Totals and Counts
+      const allEntries = await queryRunner.manager.find(JournalEntry, { where: { batchId } });
+      const batchTotalAmount = allEntries.reduce((sum, item) => sum + Number(item.debit ?? 0), 0);
+      const distinctJeNumbers = new Set(allEntries.map(item => item.jeNumber));
+      const batchCount = distinctJeNumbers.size;
+
+      batch.totalAmount = batchTotalAmount;
+      batch.count = batchCount;
+      await queryRunner.manager.save(JournalEntryBatch, batch);
+
+      await queryRunner.commitTransaction();
+      return savedEntries;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    // 3. Recalculate Batch Totals and Counts
-    const allEntries = await this.journalEntriesDao.findEntriesByBatchIdOnly(batchId);
-    const batchTotalAmount = allEntries.reduce((sum, item) => sum + Number(item.debit ?? 0), 0);
-    const distinctJeNumbers = new Set(allEntries.map(item => item.jeNumber));
-    const batchCount = distinctJeNumbers.size;
-
-    batch.totalAmount = batchTotalAmount;
-    batch.count = batchCount;
-    await this.journalEntriesDao.saveBatch(batch);
-
-    return savedEntries;
   }
 }

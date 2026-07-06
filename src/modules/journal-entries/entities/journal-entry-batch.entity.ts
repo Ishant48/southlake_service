@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -16,24 +17,30 @@ export class JournalEntryBatch {
   @Column({ name: 'batch_number', type: 'varchar', unique: true })
   batchNumber: string;
 
+  @Index()
   @Column({ type: 'varchar' })
   period: string; // e.g. 'June 2026'
 
   @Column({ name: 'agent_name', type: 'varchar' })
   agentName: string; // e.g. 'Futuristic Underwriters LLC'
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid', nullable: true })
   treatyId: string | null;
 
+  @Index()
   @Column({ name: 'month_key', type: 'varchar', nullable: true })
   monthKey: string | null;
 
+  @Index()
   @Column({ name: 'workbook_id', type: 'integer', nullable: true })
   workbookId: number | null;
 
+  @Index()
   @Column({ name: 'state_code', type: 'varchar', nullable: true })
   stateCode: string | null;
 
+  @Index()
   @Column({ type: 'varchar', default: 'posted' })
   status: string;
 
@@ -55,6 +62,7 @@ export class JournalEntryBatch {
   @Column({ name: 'updated_by', type: 'uuid', nullable: true })
   updatedBy: string | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -29,6 +30,7 @@ export class Treaty {
   @Column({ type: 'varchar' })
   name: string;
 
+  @Index()
   @Column({ name: 'mga_id', type: 'uuid', nullable: true })
   mgaId: string | null;
 
@@ -36,6 +38,7 @@ export class Treaty {
   @JoinColumn({ name: 'mga_id' })
   mga: MgaMaster | null;
 
+  @Index()
   @Column({ name: 'reinsurer_id', type: 'uuid', nullable: true })
   reinsurerId: string | null;
 
@@ -43,6 +46,7 @@ export class Treaty {
   @JoinColumn({ name: 'reinsurer_id' })
   reinsurer: ReinsurerCompany | null;
 
+  @Index()
   @Column({ name: 'risk_company_id', type: 'uuid', nullable: true })
   riskCompanyId: string | null;
 
@@ -214,6 +218,7 @@ export class Treaty {
   @Column({ name: 'claim_seq_next', type: 'integer', nullable: true })
   claimSeqNext: number | null;
 
+  @Index()
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
@@ -244,6 +249,7 @@ export class Treaty {
   @Column({ name: 'updated_by', type: 'uuid', nullable: true })
   updatedBy: string | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

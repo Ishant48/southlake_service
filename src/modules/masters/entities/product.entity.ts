@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -18,6 +19,7 @@ export class Product {
   @Column({ name: 'product_id', type: 'varchar', unique: true })
   productId: string;
 
+  @Index()
   @Column({ name: 'lob_id', type: 'uuid', nullable: true })
   lobId: string | null;
 
@@ -25,6 +27,7 @@ export class Product {
   @JoinColumn({ name: 'lob_id' })
   lob: LineOfBusiness;
 
+  @Index()
   @Column({ name: 'cob_id', type: 'uuid', nullable: true })
   cobId: string | null;
 
@@ -38,6 +41,7 @@ export class Product {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
+  @Index()
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
@@ -47,6 +51,7 @@ export class Product {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index, OneToOne, JoinColumn } from 'typeorm';
 import { Workbook } from './workbook.entity';
 
 @Entity('cash_settlements')
@@ -9,9 +9,11 @@ export class CashSettlement {
   @Column()
   workbookId: number;
 
+  @Index()
   @Column({ name: 'batch_id', type: 'uuid', nullable: true })
   batchId: string | null;
 
+  @Index()
   @Column({ name: 'reinsurer_id', type: 'uuid', nullable: true })
   reinsurerId: string | null;
 
@@ -27,6 +29,7 @@ export class CashSettlement {
   @Column('numeric', { precision: 15, scale: 2, default: 0 })
   endBal: number;
 
+  @Index()
   @Column({ default: false })
   isDeleted: boolean;
 

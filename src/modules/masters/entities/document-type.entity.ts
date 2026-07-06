@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -20,6 +21,7 @@ export class DocumentType {
   @Column({ type: 'varchar', nullable: true })
   description: string | null;
 
+  @Index()
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
@@ -29,6 +31,7 @@ export class DocumentType {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

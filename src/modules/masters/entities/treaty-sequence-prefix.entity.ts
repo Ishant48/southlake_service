@@ -1,16 +1,19 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('treaty_sequence_prefixes')
 export class TreatySequencePrefix {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid' })
   treatyId: string;
 
+  @Index()
   @Column({ name: 'sequence_prefix_id', type: 'uuid' })
   sequencePrefixId: string;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

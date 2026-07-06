@@ -1,10 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import * as path from 'path';
+import { Worker } from 'worker_threads';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as XLSX from 'xlsx';
+import type * as XLSXType from 'xlsx';
 import { Workbook } from '../entities/workbook.entity';
 import { StarlightParserService } from '../starlight-parser/starlight-parser.service';
 import { FutParserService } from '../fut-parser/fut-parser.service';
+
+type WorkerResult = { ok: true; workbook: XLSXType.WorkBook } | { ok: false; error: string };
+
+/** Runs XLSX.read() on a worker thread so parsing a large workbook doesn't block the event loop for every other request. */
+function parseWorkbookOffThread(buffer: Buffer): Promise<XLSXType.WorkBook> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, 'xlsx-parse.worker.js'), {
+      workerData: { buffer },
+    });
+
+    worker.once('message', (result: WorkerResult) => {
+      void worker.terminate();
+      if (result.ok) {
+        resolve(result.workbook);
+      } else {
+        reject(new InternalServerErrorException(`Failed to parse workbook: ${result.error}`));
+      }
+    });
+
+    worker.once('error', err => {
+      void worker.terminate();
+      reject(err);
+    });
+  });
+}
 
 /** Result of parsing a FUT-format workbook: a single created/updated workbook. */
 export interface FutParseResult {
@@ -36,7 +63,7 @@ export class ExcelParserService {
     forceOverwrite: boolean = false,
     overrideProgram?: string,
   ): Promise<WorkbookParseResult> {
-    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    const workbook = await parseWorkbookOffThread(fileBuffer);
     const sheetNames = workbook.SheetNames;
     const isStarlight = sheetNames.some(name => name.toLowerCase().includes('starlight'));
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 interface FinancialLedgerRow {
@@ -52,20 +52,33 @@ function parsePeriod(period: string): { year: number; month: number } {
       return { year: y, month: m - 1 };
     }
   }
-  return { year: 2026, month: 5 }; // default June 2026
+  throw new BadRequestException(
+    `Unrecognized period format: "${period}". Expected a month name (e.g. "June 2026") or "MM-YYYY".`,
+  );
 }
 
-function isPeriodBeforeOrEqual(periodA: string, periodB: string): boolean {
-  const a = parsePeriod(periodA);
-  const b = parsePeriod(periodB);
-  if (a.year !== b.year) {
-    return a.year < b.year;
+function tryParsePeriod(period: string): { year: number; month: number } | null {
+  try {
+    return parsePeriod(period);
+  } catch {
+    return null;
   }
-  return a.month <= b.month;
+}
+
+/** periodA is untrusted (a batch's stored period), periodB is the already-validated target period. */
+function isPeriodBeforeOrEqual(periodA: string, periodB: { year: number; month: number }): boolean {
+  const a = tryParsePeriod(periodA);
+  if (!a) return false;
+  if (a.year !== periodB.year) {
+    return a.year < periodB.year;
+  }
+  return a.month <= periodB.month;
 }
 
 @Injectable()
 export class FinancialReportsService {
+  private readonly logger = new Logger(FinancialReportsService.name);
+
   constructor(private readonly dataSource: DataSource) {}
 
   async getPLStatement(period: string) {
@@ -95,6 +108,7 @@ export class FinancialReportsService {
     let totalExpense = 0;
     const revenues: FinancialLineItem[] = [];
     const expenses: FinancialLineItem[] = [];
+    const unclassified: string[] = [];
 
     for (const row of dbRes) {
       const debit = Number(row.totalDebit);
@@ -125,7 +139,15 @@ export class FinancialReportsService {
       ) {
         expenses.push(item);
         totalExpense += balance;
+      } else {
+        unclassified.push(row.accountCode);
       }
+    }
+
+    if (unclassified.length > 0) {
+      this.logger.warn(
+        `P&L for period "${period}": ${unclassified.length} account(s) matched neither REVENUE nor EXPANSE buckets and were excluded: ${unclassified.join(', ')}`,
+      );
     }
 
     const netIncome = totalRevenue - totalExpense;
@@ -141,6 +163,8 @@ export class FinancialReportsService {
   }
 
   async getBalanceSheet(period: string) {
+    const targetPeriod = parsePeriod(period);
+
     // Balance Sheet is cumulative: all batches up to and including the target period
     const allBatches: BatchPeriodRow[] = await this.dataSource.query(`
       SELECT DISTINCT period FROM journal_entry_batches
@@ -148,7 +172,13 @@ export class FinancialReportsService {
 
     const validPeriods: string[] = [];
     for (const b of allBatches) {
-      if (isPeriodBeforeOrEqual(b.period, period)) {
+      if (!tryParsePeriod(b.period)) {
+        this.logger.warn(
+          `Balance sheet: skipping journal_entry_batches.period "${b.period}" — unrecognized format`,
+        );
+        continue;
+      }
+      if (isPeriodBeforeOrEqual(b.period, targetPeriod)) {
         validPeriods.push(b.period);
       }
     }
@@ -195,6 +225,7 @@ export class FinancialReportsService {
     // Cumulative Revenue & Expense up to this period forms Retained Earnings
     let cumulativeRevenue = 0;
     let cumulativeExpense = 0;
+    const unclassified: string[] = [];
 
     for (const row of dbRes) {
       const debit = Number(row.totalDebit);
@@ -232,7 +263,15 @@ export class FinancialReportsService {
         String(row.accountCode).startsWith('9')
       ) {
         cumulativeExpense += balance;
+      } else {
+        unclassified.push(row.accountCode);
       }
+    }
+
+    if (unclassified.length > 0) {
+      this.logger.warn(
+        `Balance sheet for period "${period}": ${unclassified.length} account(s) matched no known bucket and were excluded (Assets may not equal Liabilities + Equity): ${unclassified.join(', ')}`,
+      );
     }
 
     // Add Retained Earnings (Net Income cumulative) to Equity

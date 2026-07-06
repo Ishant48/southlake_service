@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { WorkbookUploadService, ManualItdDto } from './workbook-upload.service';
 import { Public } from '../../../common/decorators/public.decorator';
+import { MAX_UPLOAD_FILE_SIZE_BYTES } from '../workbook.constants';
 
 interface UploadedMulterFile {
   buffer: Buffer;
@@ -15,7 +16,7 @@ export class WorkbookUploadController {
   constructor(private readonly workbookUploadService: WorkbookUploadService) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } }))
   async uploadFile(
     @UploadedFile() file: UploadedMulterFile,
     @Body('overwrite') overwrite?: string,
@@ -31,7 +32,7 @@ export class WorkbookUploadController {
   }
 
   @Post('generate-itd')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } }))
   generateITDExcel(
     @UploadedFile() file: UploadedMulterFile,
     @Body('program') program: string,

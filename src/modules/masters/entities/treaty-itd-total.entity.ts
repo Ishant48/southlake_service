@@ -2,25 +2,32 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 import { ColumnNumericTransformer } from '../../../common/utils';
 
 @Entity('treaty_itd_totals')
+@Unique(['treatyId', 'stateId', 'year', 'month'])
 export class TreatyItdTotal {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid' })
   treatyId: string;
 
+  @Index()
   @Column({ type: 'integer' })
   year: number;
 
+  @Index()
   @Column({ type: 'integer' })
   month: number;
 
+  @Index()
   @Column({ name: 'state_id', type: 'uuid' })
   stateId: string;
 
@@ -227,6 +234,7 @@ export class TreatyItdTotal {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

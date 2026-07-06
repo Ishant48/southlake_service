@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -29,6 +30,7 @@ export class User {
   @Column({ type: 'varchar', unique: true })
   email: string;
 
+  @Index()
   @Column({ name: 'role_id', type: 'uuid' })
   roleId: string;
 
@@ -63,6 +65,7 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   title: string;
 
+  @Index()
   @Column({ type: 'varchar', default: 'active' })
   status: string;
 
@@ -93,6 +96,7 @@ export class User {
   @Column({ name: 'is_superadmin', type: 'boolean', default: false })
   isSuperAdmin: boolean;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

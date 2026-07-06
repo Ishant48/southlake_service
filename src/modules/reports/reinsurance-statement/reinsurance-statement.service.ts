@@ -719,7 +719,8 @@ export class ReinsuranceStatementService {
       );
       const laeRes = this.laeIbnrService.calculateLAEReserves(
         premiumsEarned,
-        prevDCCIBNR || prevAOEIBNR,
+        prevDCCIBNR,
+        prevAOEIBNR,
         laeDcc,
         laeAoe,
       );

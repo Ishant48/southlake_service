@@ -1,10 +1,11 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('calculation_report_lines')
 export class CalculationReportLine {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid', nullable: true })
   treatyId: string | null;
 
@@ -20,6 +21,7 @@ export class CalculationReportLine {
   @Column({ name: 'is_bold', type: 'boolean', default: false })
   isBold: boolean;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

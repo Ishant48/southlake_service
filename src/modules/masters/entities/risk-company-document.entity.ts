@@ -1,10 +1,11 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('carrier_documents')
 export class RiskCompanyDocument {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'risk_company_id', type: 'uuid' })
   riskCompanyId: string;
 
@@ -17,6 +18,7 @@ export class RiskCompanyDocument {
   @Column({ name: 'document_type', type: 'varchar', nullable: true })
   documentType: string | null;
 
+  @Index()
   @Column({ name: 'document_type_id', type: 'uuid', nullable: true })
   documentTypeId: string | null;
 
@@ -26,6 +28,7 @@ export class RiskCompanyDocument {
   @Column({ name: 'uploaded_by', type: 'uuid', nullable: true })
   uploadedBy: string | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

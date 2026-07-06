@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Treaty } from './treaty.entity';
 import { ReinsurerCompany } from './reinsurer-company.entity';
 import { StateMaster } from './state-master.entity';
@@ -10,6 +10,7 @@ export class TreatyReinsurer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid' })
   treatyId: string;
 
@@ -17,6 +18,7 @@ export class TreatyReinsurer {
   @JoinColumn({ name: 'treaty_id' })
   treaty: Treaty;
 
+  @Index()
   @Column({ name: 'reinsurer_id', type: 'uuid' })
   reinsurerId: string;
 
@@ -33,6 +35,7 @@ export class TreatyReinsurer {
   })
   cessionPct: number;
 
+  @Index()
   @Column({ name: 'state_id', type: 'uuid', nullable: true })
   stateId: string | null;
 
@@ -40,6 +43,7 @@ export class TreatyReinsurer {
   @JoinColumn({ name: 'state_id' })
   state: StateMaster | null;
 
+  @Index()
   @Column({ name: 'broker_id', type: 'uuid', nullable: true })
   brokerId: string | null;
 

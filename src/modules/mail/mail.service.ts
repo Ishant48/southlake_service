@@ -17,6 +17,9 @@ export class MailService {
         user: this.configService.get<string>('mail.user'),
         pass: this.configService.get<string>('mail.password'),
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
   }
 

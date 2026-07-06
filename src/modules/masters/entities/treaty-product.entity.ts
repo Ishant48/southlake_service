@@ -1,16 +1,20 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 @Entity('treaty_products')
+@Unique(['treatyId', 'productId'])
 export class TreatyProduct {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid' })
   treatyId: string;
 
+  @Index()
   @Column({ name: 'product_id', type: 'uuid' })
   productId: string;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

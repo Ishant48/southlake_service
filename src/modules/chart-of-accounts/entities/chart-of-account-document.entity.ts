@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -14,6 +15,7 @@ export class ChartOfAccountDocument {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'coa_id', type: 'uuid' })
   coaId: string;
 
@@ -40,6 +42,7 @@ export class ChartOfAccountDocument {
   @JoinColumn({ name: 'uploaded_by' })
   uploader: User | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

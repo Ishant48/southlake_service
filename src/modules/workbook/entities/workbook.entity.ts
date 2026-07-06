@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
   OneToMany,
   OneToOne,
 } from 'typeorm';
@@ -17,6 +18,7 @@ export class Workbook {
   @Column()
   program: string;
 
+  @Index()
   @Column()
   monthKey: string;
 
@@ -63,12 +65,14 @@ export class Workbook {
   @Column({ default: '' })
   sub: string;
 
+  @Index()
   @Column({ default: 'Pending' })
   status: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
+  @Index()
   @Column({ default: false })
   isDeleted: boolean;
 

@@ -15,4 +15,9 @@ export const AppDataSource = new DataSource({
   migrations: [resolve(__dirname, './migrations/**/*.{ts,js}')],
   synchronize: false,
   logging: true,
+  extra: {
+    max: parseInt(process.env.DB_POOL_MAX ?? '', 10) || 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  },
 });

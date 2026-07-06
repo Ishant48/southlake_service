@@ -1,13 +1,24 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 import { Treaty } from './treaty.entity';
 import { LineOfBusiness } from './line-of-business.entity';
 import { TreatyLobCob } from './treaty-lob-cob.entity';
 
 @Entity('treaty_lobs')
+@Unique(['treatyId', 'lobId'])
 export class TreatyLob {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid' })
   treatyId: string;
 
@@ -15,6 +26,7 @@ export class TreatyLob {
   @JoinColumn({ name: 'treaty_id' })
   treaty: Treaty;
 
+  @Index()
   @Column({ name: 'lob_id', type: 'uuid' })
   lobId: string;
 

@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -16,6 +17,7 @@ export class UserPermission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
@@ -23,6 +25,7 @@ export class UserPermission {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  @Index()
   @Column({ name: 'module_id', type: 'varchar' })
   moduleId: string;
 
@@ -30,6 +33,7 @@ export class UserPermission {
   @JoinColumn({ name: 'module_id' })
   module: Module;
 
+  @Index()
   @Column({ name: 'submodule_id', type: 'varchar', nullable: true })
   submoduleId: string;
 
@@ -37,6 +41,7 @@ export class UserPermission {
   @JoinColumn({ name: 'submodule_id' })
   submodule: Submodule;
 
+  @Index()
   @Column({ name: 'permission_id', type: 'uuid' })
   permissionId: string;
 

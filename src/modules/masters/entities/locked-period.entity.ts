@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -16,12 +17,14 @@ export class LockedPeriod {
   @Column({ type: 'varchar', unique: true })
   period: string; // e.g. 'June 2026'
 
+  @Index()
   @Column({ name: 'is_locked', type: 'boolean', default: true })
   isLocked: boolean;
 
   @CreateDateColumn({ name: 'locked_at', type: 'timestamp' })
   lockedAt: Date;
 
+  @Index()
   @Column({ name: 'locked_by', type: 'uuid', nullable: true })
   lockedBy: string | null;
 

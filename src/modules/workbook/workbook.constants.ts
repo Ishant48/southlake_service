@@ -1,3 +1,6 @@
+/** Maximum accepted upload size for workbook/batch file uploads, in bytes (25 MB). */
+export const MAX_UPLOAD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+
 export interface DefaultProgramRates {
   comm: number;
   ulae: number;

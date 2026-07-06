@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Treaty } from './treaty.entity';
 import { RiskCompany } from './risk-company.entity';
 import { StateMaster } from './state-master.entity';
@@ -10,6 +10,7 @@ export class TreatyCarrier {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'treaty_id', type: 'uuid' })
   treatyId: string;
 
@@ -17,6 +18,7 @@ export class TreatyCarrier {
   @JoinColumn({ name: 'treaty_id' })
   treaty: Treaty;
 
+  @Index()
   @Column({ name: 'risk_company_id', type: 'uuid' })
   riskCompanyId: string;
 
@@ -34,6 +36,7 @@ export class TreatyCarrier {
   })
   retentionPct: number | null;
 
+  @Index()
   @Column({ name: 'state_id', type: 'uuid', nullable: true })
   stateId: string | null;
 
@@ -41,6 +44,7 @@ export class TreatyCarrier {
   @JoinColumn({ name: 'state_id' })
   state: StateMaster | null;
 
+  @Index()
   @Column({ name: 'broker_id', type: 'uuid', nullable: true })
   brokerId: string | null;
 
@@ -48,6 +52,7 @@ export class TreatyCarrier {
   @JoinColumn({ name: 'broker_id' })
   broker: Broker | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

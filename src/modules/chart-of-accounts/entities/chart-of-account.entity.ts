@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -24,6 +25,7 @@ export class ChartOfAccount {
   @Column({ type: 'varchar' })
   description: string;
 
+  @Index()
   @Column({ name: 'parent_id', type: 'uuid', nullable: true })
   parentId: string | null;
 
@@ -43,6 +45,7 @@ export class ChartOfAccount {
   @Column({ name: 'next_number', type: 'integer', nullable: true })
   nextNumber: number | null;
 
+  @Index()
   @Column({ name: 'earning_account_id', type: 'uuid', nullable: true })
   earningAccountId: string | null;
 
@@ -53,6 +56,7 @@ export class ChartOfAccount {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  @Index()
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
@@ -76,6 +80,7 @@ export class ChartOfAccount {
   @JoinColumn({ name: 'updated_by' })
   updater: User | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

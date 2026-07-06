@@ -132,6 +132,13 @@ import { SequencePrefixCounter } from './modules/masters/entities/sequence-prefi
         ],
         synchronize: false,
         logging: process.env.NODE_ENV !== 'production',
+        extra: {
+          max: configService.get<number>('database.poolMax'),
+          idleTimeoutMillis: configService.get<number>('database.poolIdleTimeoutMillis'),
+          connectionTimeoutMillis: configService.get<number>(
+            'database.poolConnectionTimeoutMillis',
+          ),
+        },
       }),
     }),
     RateLimitModule,

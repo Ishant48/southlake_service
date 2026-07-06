@@ -6,4 +6,7 @@ export default registerAs('database', () => ({
   name: process.env.DATABASE_NAME ?? 'southlake_db',
   user: process.env.DATABASE_USER ?? 'postgres',
   password: process.env.DATABASE_PASSWORD ?? 'postgres',
+  poolMax: parseInt(process.env.DB_POOL_MAX ?? '', 10) || 20,
+  poolIdleTimeoutMillis: 30000,
+  poolConnectionTimeoutMillis: 5000,
 }));

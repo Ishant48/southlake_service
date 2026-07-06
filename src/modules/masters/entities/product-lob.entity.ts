@@ -1,16 +1,20 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 @Entity('product_lobs')
+@Unique(['productId', 'lobId'])
 export class ProductLob {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'product_id', type: 'uuid' })
   productId: string;
 
+  @Index()
   @Column({ name: 'lob_id', type: 'uuid' })
   lobId: string;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 

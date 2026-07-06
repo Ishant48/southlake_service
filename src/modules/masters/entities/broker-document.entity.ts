@@ -1,10 +1,11 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('broker_documents')
 export class BrokerDocument {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column({ name: 'broker_id', type: 'uuid' })
   brokerId: string;
 
@@ -14,6 +15,7 @@ export class BrokerDocument {
   @Column({ name: 'file_url', type: 'varchar' })
   fileUrl: string;
 
+  @Index()
   @Column({ name: 'document_type_id', type: 'uuid', nullable: true })
   documentTypeId: string | null;
 
@@ -23,6 +25,7 @@ export class BrokerDocument {
   @Column({ name: 'uploaded_by', type: 'uuid', nullable: true })
   uploadedBy: string | null;
 
+  @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
 
