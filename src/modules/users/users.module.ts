@@ -10,12 +10,14 @@ import { User } from './entities/user.entity';
 import { UserPermission } from './entities/user-permission.entity';
 import { PendingInvite } from './entities/pending-invite.entity';
 import { Role } from '../roles/entities/role.entity';
+import { PermissionCacheModule } from '../../common/cache/permission-cache.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, UserPermission, PendingInvite, Role]),
     MailModule,
     ActivityLogsModule,
+    PermissionCacheModule,
   ],
   controllers: [UsersController, InvitesController],
   providers: [UsersService, UsersDao],

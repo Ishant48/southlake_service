@@ -10,6 +10,8 @@ import { UserPermission } from '../../modules/users/entities/user-permission.ent
 import { Permission } from '../../modules/permissions/entities/permission.entity';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { RequestContextService } from '../context/request-context';
+import { hashToken } from '../utils/hash-token.util';
+import { PermissionCacheService } from '../cache/permission-cache.service';
 
 /** User attached to the request once AuthGuard resolves it, with the effective permission set computed for this request. */
 export type AuthenticatedUser = User & { effectivePermissions: string[] };
@@ -29,6 +31,7 @@ export class AuthGuard implements CanActivate {
     @InjectRepository(Permission)
     private readonly permRepo: Repository<Permission>,
     private readonly requestContext: RequestContextService,
+    private readonly permissionCache: PermissionCacheService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -50,7 +53,7 @@ export class AuthGuard implements CanActivate {
     const token = authHeader.slice(7);
 
     const session = await this.sessionRepo.findOne({
-      where: { sessionToken: token, isActive: true },
+      where: { sessionToken: hashToken(token), isActive: true },
     });
 
     if (!session) {
@@ -74,41 +77,51 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('User account is inactive');
     }
 
-    let permissionSet = new Set<string>();
+    const cachedPermissions = this.permissionCache.get(user.id);
+    let effectivePermissions: string[];
 
-    if (user.role?.name === 'superadmin') {
-      const allPerms = await this.permRepo.find();
-      permissionSet = new Set(allPerms.map(p => p.action));
+    if (cachedPermissions) {
+      effectivePermissions = cachedPermissions;
     } else {
-      if (user.roleId) {
-        const rolePerms = await this.rolePermRepo.find({
-          where: { roleId: user.roleId },
+      let permissionSet = new Set<string>();
+
+      if (user.role?.name === 'superadmin') {
+        const allPerms = await this.permRepo.find();
+        permissionSet = new Set(allPerms.map(p => p.action));
+      } else {
+        if (user.roleId) {
+          const rolePerms = await this.rolePermRepo.find({
+            where: { roleId: user.roleId },
+            relations: ['permission'],
+          });
+          for (const rp of rolePerms) {
+            if (rp.permission?.action) {
+              permissionSet.add(rp.permission.action);
+            }
+          }
+        }
+
+        const userPerms = await this.userPermRepo.find({
+          where: { userId: user.id },
           relations: ['permission'],
         });
-        for (const rp of rolePerms) {
-          if (rp.permission?.action) {
-            permissionSet.add(rp.permission.action);
+        for (const up of userPerms) {
+          if (up.permission?.action) {
+            if (up.accessType === 'grant') {
+              permissionSet.add(up.permission.action);
+            } else if (up.accessType === 'revoke') {
+              permissionSet.delete(up.permission.action);
+            }
           }
         }
       }
 
-      const userPerms = await this.userPermRepo.find({
-        where: { userId: user.id },
-        relations: ['permission'],
-      });
-      for (const up of userPerms) {
-        if (up.permission?.action) {
-          if (up.accessType === 'grant') {
-            permissionSet.add(up.permission.action);
-          } else if (up.accessType === 'revoke') {
-            permissionSet.delete(up.permission.action);
-          }
-        }
-      }
+      effectivePermissions = Array.from(permissionSet);
+      this.permissionCache.set(user.id, effectivePermissions);
     }
 
     const authenticatedUser: AuthenticatedUser = Object.assign(user, {
-      effectivePermissions: Array.from(permissionSet),
+      effectivePermissions,
     });
 
     request.user = authenticatedUser;

@@ -16,7 +16,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           },
           {
             name: 'short',
-            ttl: (configService.get<number>('RATE_LIMIT_TTL') ?? 60) * 1000 * 5,
+            ttl: (configService.get<number>('RATE_LIMIT_TTL') ?? 60000) * 5,
             limit: (configService.get<number>('RATE_LIMIT_MAX') ?? 100) * 3,
           },
         ],

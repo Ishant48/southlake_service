@@ -1,12 +1,14 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import { hashToken } from '../../common/utils/hash-token.util';
 import { AuthDao } from './dao/auth.dao';
 import { MailService } from '../mail/mail.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
@@ -20,6 +22,8 @@ import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authDao: AuthDao,
     private readonly mailService: MailService,
@@ -54,15 +58,19 @@ export class AuthService {
     }
 
     const otpExpiryMinutes = this.configService.get<number>('app.otpExpiryMinutes') ?? 5;
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + otpExpiryMinutes * 60 * 1000);
 
     await this.authDao.saveOtp({ email, otpHash, expiresAt });
 
-    console.warn(`[DEV OTP] ${email} → ${otp}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[DEV OTP] ${email} → ${otp}`);
+    }
 
-    await this.mailService.sendOtp(email, otp);
+    this.mailService
+      .sendOtp(email, otp)
+      .catch(err => this.logger.error(`Failed to send OTP email to ${email}`, err));
 
     await this.activityLogsService.log({
       action: 'otp_requested',
@@ -147,7 +155,12 @@ export class AuthService {
       };
     }
 
-    const session = await this.createSession(user, device_label ?? undefined, ipAddress, userAgent);
+    const { token: sessionToken } = await this.createSession(
+      user,
+      device_label ?? undefined,
+      ipAddress,
+      userAgent,
+    );
 
     await this.activityLogsService.log({
       userId: user.id,
@@ -161,7 +174,7 @@ export class AuthService {
 
     return {
       token_type: 'session',
-      session_token: session.sessionToken,
+      session_token: sessionToken,
       user: {
         ...this.sanitizeUser(user),
         permissions,
@@ -212,7 +225,7 @@ export class AuthService {
       throw new NotFoundException('User not found.');
     }
 
-    const session = await this.createSession(
+    const { token: sessionToken } = await this.createSession(
       user,
       challenge.newDeviceLabel,
       challenge.newIpAddress,
@@ -232,7 +245,7 @@ export class AuthService {
     const permissions = await this.usersService.getPermissions(user.id);
 
     return {
-      session_token: session.sessionToken,
+      session_token: sessionToken,
       user: {
         ...this.sanitizeUser(user),
         permissions,
@@ -269,19 +282,21 @@ export class AuthService {
     deviceLabel: string | undefined,
     ipAddress: string,
     userAgent: string,
-  ): Promise<UserSession> {
-    const sessionToken = crypto.randomBytes(32).toString('hex');
+  ): Promise<{ session: UserSession; token: string }> {
+    const token = crypto.randomBytes(32).toString('hex');
     const sessionExpiryHours = this.configService.get<number>('app.sessionExpiryHours') ?? 1;
     const expiresAt = new Date(Date.now() + sessionExpiryHours * 60 * 60 * 1000);
 
-    return this.authDao.saveSession({
+    const session = await this.authDao.saveSession({
       userId: user.id,
-      sessionToken,
+      sessionToken: hashToken(token),
       deviceLabel,
       ipAddress,
       userAgent,
       expiresAt,
     });
+
+    return { session, token };
   }
 
   async getInviteDetails(token: string): Promise<{ email: string; name: string }> {
@@ -359,13 +374,18 @@ export class AuthService {
       description: `Invitation accepted by ${invite.email}`,
     });
 
-    const session = await this.createSession(user, 'Default Device', 'unknown', 'unknown');
+    const { token: sessionToken } = await this.createSession(
+      user,
+      'Default Device',
+      'unknown',
+      'unknown',
+    );
 
     const permissions = await this.usersService.getPermissions(user.id);
 
     return {
       token_type: 'session',
-      session_token: session.sessionToken,
+      session_token: sessionToken,
       user: {
         ...this.sanitizeUser(user),
         permissions,
@@ -374,6 +394,7 @@ export class AuthService {
   }
 
   private sanitizeUser(user: User): Partial<User> {
-    return { ...user };
+    const { passwordHash: _passwordHash, ...sanitized } = user;
+    return sanitized;
   }
 }

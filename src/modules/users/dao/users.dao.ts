@@ -80,6 +80,10 @@ export class UsersDao {
     });
   }
 
+  findRoleById(id: string): Promise<Role | null> {
+    return this.roleRepo.findOne({ where: { id } });
+  }
+
   findByEmail(email: string): Promise<User | null> {
     return this.userRepo.findOne({ where: { email, isDeleted: false } });
   }

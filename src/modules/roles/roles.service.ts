@@ -8,6 +8,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { Role } from './entities/role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { User } from '../users/entities/user.entity';
+import { PermissionCacheService } from '../../common/cache/permission-cache.service';
 
 export interface UpsertRolePermissionEntry {
   moduleId: string;
@@ -22,6 +23,7 @@ export class RolesService {
     private readonly activityLogsService: ActivityLogsService,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly permissionCache: PermissionCacheService,
   ) {}
 
   async findAll(
@@ -166,6 +168,12 @@ export class RolesService {
 
     const result = await this.dao.upsertPermissions(roleId, permissions);
 
+    // Role permission changes affect every user with this role. There's no
+    // cheap way to know which cached users hold this role, and role
+    // permission changes are a rare admin action, so a full cache clear is
+    // acceptable.
+    this.permissionCache.invalidateAll();
+
     await this.activityLogsService.log({
       userId: updatedBy.id,
       moduleId: 'user_management',
@@ -185,6 +193,10 @@ export class RolesService {
     }));
 
     await this.dao.upsertPermissions(roleId, upsertEntries);
+
+    // Same rationale as upsertPermissions(): a role's permissions changed,
+    // which affects every user assigned to it.
+    this.permissionCache.invalidateAll();
   }
 
   private flattenPermissions(rawPerms: RolePermission[]): { id: string; action: string }[] {

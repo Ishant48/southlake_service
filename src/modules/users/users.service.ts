@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +15,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { User } from './entities/user.entity';
 import { PendingInvite } from './entities/pending-invite.entity';
+import { PermissionCacheService } from '../../common/cache/permission-cache.service';
 
 export interface UpsertPermissionEntry {
   moduleId: string;
@@ -25,11 +27,14 @@ export interface UpsertPermissionEntry {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly dao: UsersDao,
     private readonly mailService: MailService,
     private readonly activityLogsService: ActivityLogsService,
     private readonly configService: ConfigService,
+    private readonly permissionCache: PermissionCacheService,
   ) {}
 
   async getStats(): Promise<{
@@ -88,7 +93,9 @@ export class UsersService {
 
     const appUrl = this.configService.get<string>('app.appUrl');
     const inviteLink = `${appUrl}/accept-invite?token=${token}`;
-    await this.mailService.sendInvite(dto.email, dto.name, inviteLink, invitedBy.name);
+    this.mailService
+      .sendInvite(dto.email, dto.name, inviteLink, invitedBy.name)
+      .catch(err => this.logger.error(`Failed to send invite email to ${dto.email}`, err));
 
     await this.activityLogsService.log({
       userId: invitedBy.id,
@@ -104,8 +111,18 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto, updatedBy: User): Promise<User> {
     await this.findOne(id);
 
-    if (dto.role_id !== undefined && id === updatedBy.id && !updatedBy.isSuperAdmin) {
-      throw new ForbiddenException('You cannot change your own role');
+    if (dto.role_id !== undefined) {
+      if (id === updatedBy.id && !updatedBy.isSuperAdmin) {
+        throw new ForbiddenException('You cannot change your own role');
+      }
+
+      const targetRole = await this.dao.findRoleById(dto.role_id);
+      if (!targetRole) {
+        throw new BadRequestException(`Role ${dto.role_id} not found`);
+      }
+      if (targetRole.name === 'superadmin' && !updatedBy.isSuperAdmin) {
+        throw new ForbiddenException('Only a superadmin can assign the superadmin role');
+      }
     }
 
     const updateData: Partial<User> = { updatedBy: updatedBy.id };
@@ -119,6 +136,11 @@ export class UsersService {
     if (dto.joined_date !== undefined) updateData.joinedDate = new Date(dto.joined_date);
 
     const updated = await this.dao.update(id, updateData);
+
+    if (dto.role_id !== undefined) {
+      // The user's effective permission set changes when their role changes.
+      this.permissionCache.invalidate(id);
+    }
 
     await this.activityLogsService.log({
       userId: updatedBy.id,
@@ -136,6 +158,12 @@ export class UsersService {
     await this.findOne(id);
     const updated = await this.dao.update(id, { status: dto.status, updatedBy: updatedBy.id });
 
+    if (dto.status !== 'active') {
+      // Defense in depth: AuthGuard already blocks non-active users, but
+      // don't leave stale cached permissions around for a deactivated user.
+      this.permissionCache.invalidate(id);
+    }
+
     await this.activityLogsService.log({
       userId: updatedBy.id,
       moduleId: 'user_management',
@@ -151,6 +179,7 @@ export class UsersService {
   async deactivate(id: string, updatedBy: User): Promise<{ message: string }> {
     await this.findOne(id);
     await this.dao.update(id, { status: 'inactive', updatedBy: updatedBy.id });
+    this.permissionCache.invalidate(id);
 
     await this.activityLogsService.log({
       userId: updatedBy.id,
@@ -169,6 +198,9 @@ export class UsersService {
     updatedBy: User,
   ): Promise<{ message: string; count: number }> {
     await this.dao.deactivateBulk(ids, updatedBy.id);
+    for (const id of ids) {
+      this.permissionCache.invalidate(id);
+    }
 
     await this.activityLogsService.log({
       userId: updatedBy.id,
@@ -281,6 +313,7 @@ export class UsersService {
     }
 
     await this.dao.upsertUserPermissions(userId, overrides);
+    this.permissionCache.invalidate(userId);
 
     await this.activityLogsService.log({
       userId: updatedBy.id,

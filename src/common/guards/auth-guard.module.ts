@@ -9,12 +9,14 @@ import { RolePermission } from '../../modules/roles/entities/role-permission.ent
 import { UserPermission } from '../../modules/users/entities/user-permission.entity';
 import { Permission } from '../../modules/permissions/entities/permission.entity';
 import { AuditModule } from '../interceptors/audit.module';
+import { PermissionCacheModule } from '../cache/permission-cache.module';
 
 @Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserSession, User, RolePermission, UserPermission, Permission]),
     AuditModule,
+    PermissionCacheModule,
   ],
   providers: [
     AuthGuard,
