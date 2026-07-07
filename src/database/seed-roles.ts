@@ -44,8 +44,8 @@ export async function seedRoles(externalQueryRunner?: QueryRunner): Promise<void
     const passwordHash = await bcrypt.hash(DEFAULT_SUPERADMIN_PASSWORD, 10);
     await queryRunner.query(
       `
-      INSERT INTO "users" ("email", "role_id", "user_type", "name", "initials", "avatar_color", "status", "password_hash")
-      VALUES ($1, $2, 'staff', 'Super Admin', 'SA', '#0d1b4b', 'active', $3)
+      INSERT INTO "users" ("email", "role_id", "user_type", "name", "initials", "avatar_color", "status", "password_hash", "is_superadmin")
+      VALUES ($1, $2, 'staff', 'Super Admin', 'SA', '#0d1b4b', 'active', $3, true)
       ON CONFLICT ("email") DO NOTHING
     `,
       ['admin@southlake.com', roleId, passwordHash],

@@ -109,10 +109,12 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto, updatedBy: User): Promise<User> {
-    await this.findOne(id);
+    const user = await this.findOne(id);
 
-    if (dto.role_id !== undefined) {
-      if (id === updatedBy.id && !updatedBy.isSuperAdmin) {
+    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin || updatedBy.role?.name === 'superadmin';
+
+    if (dto.role_id !== undefined && dto.role_id !== user.roleId) {
+      if (id === updatedBy.id && !isUpdatedBySuperAdmin) {
         throw new ForbiddenException('You cannot change your own role');
       }
 
@@ -120,7 +122,7 @@ export class UsersService {
       if (!targetRole) {
         throw new BadRequestException(`Role ${dto.role_id} not found`);
       }
-      if (targetRole.name === 'superadmin' && !updatedBy.isSuperAdmin) {
+      if (targetRole.name === 'superadmin' && !isUpdatedBySuperAdmin) {
         throw new ForbiddenException('Only a superadmin can assign the superadmin role');
       }
     }
@@ -274,7 +276,9 @@ export class UsersService {
   ): Promise<{ id: string; action: string }[]> {
     const user = await this.findOne(userId);
 
-    if (userId === updatedBy.id && !updatedBy.isSuperAdmin) {
+    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin || updatedBy.role?.name === 'superadmin';
+
+    if (userId === updatedBy.id && !isUpdatedBySuperAdmin) {
       throw new ForbiddenException('You cannot modify your own permissions');
     }
 
