@@ -25,6 +25,7 @@ export class CobsService {
       taxable: dto.taxable ?? false,
       priority: dto.priority ?? 1,
       fullyEarned: dto.fully_earned ?? false,
+      aslCode: dto.asl_code ?? null,
       createdBy: userId,
       updatedBy: userId,
     });
@@ -49,6 +50,7 @@ export class CobsService {
       taxable: dto.taxable ?? cob.taxable,
       priority: dto.priority ?? cob.priority,
       fullyEarned: dto.fully_earned ?? cob.fullyEarned,
+      aslCode: dto.asl_code ?? cob.aslCode,
       updatedBy: userId,
     });
     return this.dao.save(cob);

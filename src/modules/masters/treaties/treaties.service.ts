@@ -56,7 +56,9 @@ export class TreatiesService {
       const firstMgaId =
         dto.mga_ids && dto.mga_ids.length > 0 ? dto.mga_ids[0] : (dto.mga_id ?? null);
 
-      const firstReinsurerId = firstReinsurer ? firstReinsurer.reinsurer_id : (dto.reinsurer_id ?? null);
+      const firstReinsurerId = firstReinsurer
+        ? firstReinsurer.reinsurer_id
+        : (dto.reinsurer_id ?? null);
       if (firstReinsurerId) {
         await this.ensureReinsurerExists(queryRunner, firstReinsurerId, userId);
       }
@@ -126,7 +128,8 @@ export class TreatiesService {
             treatyId: savedTreaty.id,
             reinsurerId: r.reinsurer_id,
             cessionPct: r.cession_pct,
-            stateId: r.state_id ?? null,
+            stateId: r.state_ids && r.state_ids.length > 0 ? r.state_ids[0] : (r.state_id ?? null),
+            stateIds: r.state_ids ?? null,
             brokerId: r.broker_id ?? null,
             brokerCommType: r.broker_comm_type ?? null,
           });
@@ -314,7 +317,9 @@ export class TreatiesService {
               treatyId: id,
               reinsurerId: r.reinsurer_id,
               cessionPct: r.cession_pct,
-              stateId: r.state_id ?? null,
+              stateId:
+                r.state_ids && r.state_ids.length > 0 ? r.state_ids[0] : (r.state_id ?? null),
+              stateIds: r.state_ids ?? null,
               brokerId: r.broker_id ?? null,
               brokerCommType: r.broker_comm_type ?? null,
             });
@@ -383,7 +388,11 @@ export class TreatiesService {
     }
   }
 
-  private async ensureReinsurerExists(queryRunner: QueryRunner, id: string, userId: string): Promise<void> {
+  private async ensureReinsurerExists(
+    queryRunner: QueryRunner,
+    id: string,
+    userId: string,
+  ): Promise<void> {
     const exists = await queryRunner.manager.findOne(ReinsurerCompany, { where: { id } });
     if (exists) return;
 

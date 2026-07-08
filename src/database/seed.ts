@@ -5,6 +5,7 @@ import { seedCoa } from './seed-coa';
 import { seedFalconData } from './seed-falcon-data';
 import { seedGlMappings } from './seed-gl-mappings';
 import { seedDocumentTypes } from './seed-document-types';
+import { seedTreatyTypes } from './seed-treaty-types';
 
 /**
  * Single entry point for all repeatable fixture seeding — run via `npm run seed`.
@@ -41,6 +42,9 @@ async function seed(): Promise<void> {
 
     console.warn('Seeding Document Types...');
     await seedDocumentTypes(queryRunner);
+
+    console.warn('Seeding Treaty Types...');
+    await seedTreatyTypes(queryRunner);
 
     await queryRunner.commitTransaction();
     console.warn('Seeding completed successfully.');

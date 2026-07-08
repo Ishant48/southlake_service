@@ -10,3 +10,4 @@ export * from './risk-company.dto';
 export * from './sequence-prefix-counter.dto';
 export * from './state.dto';
 export * from './treaty.dto';
+export * from './treaty-type.dto';

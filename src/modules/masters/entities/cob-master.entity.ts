@@ -37,6 +37,9 @@ export class CobMaster {
   @Column({ name: 'fully_earned', type: 'boolean', default: false })
   fullyEarned: boolean;
 
+  @Column({ name: 'asl_code', type: 'varchar', nullable: true })
+  aslCode: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 

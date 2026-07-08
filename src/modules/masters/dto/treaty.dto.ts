@@ -53,6 +53,11 @@ export class TreatyReinsurerDto {
   @IsOptional()
   state_id?: string;
 
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  state_ids?: string[];
+
   @IsUUID()
   @IsOptional()
   broker_id?: string;

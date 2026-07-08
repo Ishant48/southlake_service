@@ -39,6 +39,9 @@ export class TreatyReinsurer {
   @Column({ name: 'state_id', type: 'uuid', nullable: true })
   stateId: string | null;
 
+  @Column({ name: 'state_ids', type: 'jsonb', nullable: true })
+  stateIds: string[] | null;
+
   @ManyToOne(() => StateMaster, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'state_id' })
   state: StateMaster | null;

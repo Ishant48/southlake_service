@@ -29,6 +29,7 @@ const MODULES: Record<string, { label: string; extraActions?: string[] }> = {
   risk_company: { label: 'Risk Companies' },
   state: { label: 'States' },
   treaty: { label: 'Treaties' },
+  treaty_type: { label: 'Treaty Types' },
   reinsurance: { label: 'Reinsurance Calculations' },
   reports: { label: 'Reports', extraActions: ['post'] },
   test_balance: { label: 'Test Balance' },

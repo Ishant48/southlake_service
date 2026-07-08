@@ -32,6 +32,10 @@ export class CreateCobDto {
   @IsBoolean()
   @IsOptional()
   fully_earned?: boolean;
+
+  @IsString()
+  @IsOptional()
+  asl_code?: string;
 }
 
 export class UpdateCobDto {
@@ -66,4 +70,8 @@ export class UpdateCobDto {
   @IsBoolean()
   @IsOptional()
   fully_earned?: boolean;
+
+  @IsString()
+  @IsOptional()
+  asl_code?: string;
 }
