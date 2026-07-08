@@ -112,9 +112,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         ? (fields.oldValues.constructor?.name ?? '')
         : '';
     const entityId = String(
-      (fields as Record<string, unknown>).newValues?.id ??
-        (fields as Record<string, unknown>).oldValues?.id ??
-        '',
+      fields.newValues?.id ?? fields.oldValues?.id ?? '', // eslint-disable-line @typescript-eslint/no-base-to-string
     );
     await repo.save(
       repo.create({
