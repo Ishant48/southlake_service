@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -26,9 +26,14 @@ import { UsersModule } from '../users/users.module';
     ]),
     MailModule,
     ActivityLogsModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthDao],
+  // AuthService is consumed by UsersController for the admin-initiated
+  // password reset endpoint (POST /users/:id/reset-password). UsersModule
+  // already gets imported here for UsersService, so this import is
+  // wrapped in forwardRef() on both sides to break the resulting cycle.
+  exports: [AuthService],
 })
 export class AuthModule {}
