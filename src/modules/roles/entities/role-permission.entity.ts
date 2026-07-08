@@ -1,4 +1,12 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 import { Role } from './role.entity';
 import { Module } from '../../permissions/entities/module.entity';
 import { Submodule } from '../../permissions/entities/submodule.entity';
@@ -37,4 +45,14 @@ export class RolePermission {
   @ManyToOne(() => Permission)
   @JoinColumn({ name: 'permission_id' })
   permission: Permission;
+
+  @Index()
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

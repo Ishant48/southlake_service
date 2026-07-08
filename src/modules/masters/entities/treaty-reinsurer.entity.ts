@@ -1,8 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Treaty } from './treaty.entity';
 import { ReinsurerCompany } from './reinsurer-company.entity';
-import { StateMaster } from './state-master.entity';
-import { Broker } from './broker.entity';
 import { ColumnNumericTransformer } from '../../../common/utils';
 
 @Entity('treaty_reinsurers')
@@ -27,27 +25,21 @@ export class TreatyReinsurer {
   reinsurer: ReinsurerCompany;
 
   @Column({
-    name: 'cession_pct',
+    name: 'quota_share',
     type: 'decimal',
     precision: 6,
     scale: 2,
     transformer: new ColumnNumericTransformer(),
   })
-  cessionPct: number;
+  quotaShare: number;
 
   @Index()
-  @Column({ name: 'state_id', type: 'uuid', nullable: true })
-  stateId: string | null;
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
 
-  @ManyToOne(() => StateMaster, { onDelete: 'CASCADE', nullable: true })
-  @JoinColumn({ name: 'state_id' })
-  state: StateMaster | null;
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
 
-  @Index()
-  @Column({ name: 'broker_id', type: 'uuid', nullable: true })
-  brokerId: string | null;
-
-  @ManyToOne(() => Broker, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'broker_id' })
-  broker: Broker | null;
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

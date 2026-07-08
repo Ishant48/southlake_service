@@ -28,14 +28,4 @@ export class InviteUserDto {
   @IsOptional()
   @IsString()
   title?: string;
-
-  @ApiPropertyOptional({ example: 'mga_user' })
-  @IsOptional()
-  @IsString()
-  user_entity_type?: string;
-
-  @ApiPropertyOptional({ example: 'uuid-of-entity' })
-  @IsOptional()
-  @IsUUID()
-  user_entity_id?: string;
 }

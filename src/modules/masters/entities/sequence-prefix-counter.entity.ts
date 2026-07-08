@@ -8,24 +8,33 @@ import {
 } from 'typeorm';
 
 @Entity('sequence_prefix_master')
-export class SequencePrefixCounter {
+export class SequencePrefixMaster {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'code', type: 'varchar', unique: true, nullable: true })
-  code: string | null;
+  @Column({ name: 'sequence_type', type: 'varchar', nullable: false })
+  sequenceType: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', nullable: false })
   name: string;
 
+  @Column({ type: 'varchar', nullable: false })
+  prefix: string;
+
+  @Column({ name: 'prefix_connector', type: 'varchar', nullable: true })
+  prefixConnector: string | null;
+
+  @Column({ name: 'seq_start', type: 'integer', default: 1 })
+  seqStart: number;
+
+  @Column({ name: 'next_number', type: 'integer', default: 1 })
+  nextNumber: number;
+
   @Column({ type: 'varchar', nullable: true })
-  prefix: string | null;
+  suffix: string | null;
 
-  @Column({ name: 'next_value', type: 'integer', default: 1 })
-  nextValue: number;
-
-  @Column({ name: 'padding_width', type: 'integer', default: 4 })
-  paddingWidth: number;
+  @Column({ name: 'suffix_connector', type: 'varchar', nullable: true })
+  suffixConnector: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   description: string | null;
@@ -37,8 +46,14 @@ export class SequencePrefixCounter {
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy: string | null;
+
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
+
+  @Column({ name: 'updated_by', type: 'uuid', nullable: true })
+  updatedBy: string | null;
 
   @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })

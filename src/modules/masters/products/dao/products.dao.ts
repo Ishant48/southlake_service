@@ -19,7 +19,7 @@ export class ProductsDao {
         ...(isActive !== undefined ? { isActive } : {}),
       });
       where.push({
-        productId: ILike(`%${search}%`),
+        productCode: ILike(`%${search}%`),
         isDeleted: false,
         ...(isActive !== undefined ? { isActive } : {}),
       });
@@ -30,20 +30,18 @@ export class ProductsDao {
     }
     return this.productRepo.find({
       where: where.length > 1 ? where : where[0],
-      relations: ['lob', 'cob'],
-      order: { productId: 'ASC' },
+      order: { productCode: 'ASC' },
     });
   }
 
   findById(id: string): Promise<Product | null> {
     return this.productRepo.findOne({
       where: { id },
-      relations: ['lob', 'cob'],
     });
   }
 
-  findByProductId(productId: string): Promise<Product | null> {
-    return this.productRepo.findOne({ where: { productId } });
+  findByProductCode(productCode: string): Promise<Product | null> {
+    return this.productRepo.findOne({ where: { productCode } });
   }
 
   create(data: Partial<Product>): Product {

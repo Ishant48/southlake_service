@@ -1,25 +1,37 @@
 import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class CreateSequencePrefixCounterDto {
+export class CreateSequencePrefixMasterDto {
   @IsString()
   @IsNotEmpty()
-  code: string;
+  sequence_type: string;
 
   @IsString()
   @IsNotEmpty()
   name: string;
 
   @IsString()
+  @IsNotEmpty()
+  prefix: string;
+
+  @IsString()
   @IsOptional()
-  prefix?: string;
+  prefix_connector?: string;
 
   @IsNumber()
   @IsOptional()
-  next_value?: number;
+  seq_start?: number;
 
   @IsNumber()
   @IsOptional()
-  padding_width?: number;
+  next_number?: number;
+
+  @IsString()
+  @IsOptional()
+  suffix?: string;
+
+  @IsString()
+  @IsOptional()
+  suffix_connector?: string;
 
   @IsString()
   @IsOptional()
@@ -30,10 +42,10 @@ export class CreateSequencePrefixCounterDto {
   is_active?: boolean;
 }
 
-export class UpdateSequencePrefixCounterDto {
+export class UpdateSequencePrefixMasterDto {
   @IsString()
   @IsOptional()
-  code?: string;
+  sequence_type?: string;
 
   @IsString()
   @IsOptional()
@@ -43,13 +55,25 @@ export class UpdateSequencePrefixCounterDto {
   @IsOptional()
   prefix?: string;
 
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  next_value?: number;
+  prefix_connector?: string;
 
   @IsNumber()
   @IsOptional()
-  padding_width?: number;
+  seq_start?: number;
+
+  @IsNumber()
+  @IsOptional()
+  next_number?: number;
+
+  @IsString()
+  @IsOptional()
+  suffix?: string;
+
+  @IsString()
+  @IsOptional()
+  suffix_connector?: string;
 
   @IsString()
   @IsOptional()

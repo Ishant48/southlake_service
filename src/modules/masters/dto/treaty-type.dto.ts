@@ -1,6 +1,6 @@
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class CreateDocumentTypeDto {
+export class CreateTreatyTypeDto {
   @IsString()
   @IsNotEmpty()
   type_code: string;
@@ -18,7 +18,7 @@ export class CreateDocumentTypeDto {
   is_active?: boolean;
 }
 
-export class UpdateDocumentTypeDto {
+export class UpdateTreatyTypeDto {
   @IsString()
   @IsOptional()
   type_code?: string;

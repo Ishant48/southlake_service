@@ -162,8 +162,6 @@ export class WorkbookUpdatesService {
       userId,
       moduleId: 'reinsurance',
       action: 'edit',
-      entityType: 'workbook',
-      entityId: String(workbookId),
       description: `Updated ceding rates for workbook ${workbook.program} (${workbook.monthLabel})`,
     });
     return this.workbooksService.findOne(workbookId);
@@ -190,8 +188,6 @@ export class WorkbookUpdatesService {
       userId,
       moduleId: 'reinsurance',
       action: 'edit',
-      entityType: 'cash_settlement',
-      entityId: String(saved.id || workbookId),
       description: `Updated cash settlement balances for workbook ${workbook.program} (${workbook.monthLabel})`,
     });
     return saved;

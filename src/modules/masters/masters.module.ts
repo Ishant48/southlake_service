@@ -10,8 +10,6 @@ import { RiskCompany } from './entities/risk-company.entity';
 import { LineOfBusiness } from './entities/line-of-business.entity';
 import { CobMaster } from './entities/cob-master.entity';
 import { Treaty } from './entities/treaty.entity';
-import { TreatyLob } from './entities/treaty-lob.entity';
-import { TreatyLobCob } from './entities/treaty-lob-cob.entity';
 import { TreatyState } from './entities/treaty-state.entity';
 import { StateDocument } from './entities/state-document.entity';
 import { RiskCompanyDocument } from './entities/risk-company-document.entity';
@@ -20,9 +18,13 @@ import { Broker } from './entities/broker.entity';
 import { Product } from './entities/product.entity';
 import { LockedPeriod } from './entities/locked-period.entity';
 import { DocumentType } from './entities/document-type.entity';
-import { SequencePrefixCounter } from './entities/sequence-prefix-counter.entity';
+import { SequencePrefixMaster } from './entities/sequence-prefix-counter.entity';
 import { TreatyCarrier } from './entities/treaty-carrier.entity';
 import { TreatyReinsurer } from './entities/treaty-reinsurer.entity';
+import { TreatyProduct } from './entities/treaty-product.entity';
+import { ProductLob } from './entities/product-lob.entity';
+import { ProductCob } from './entities/product-cob.entity';
+import { TreatyTypeMaster } from './entities/treaty-type-master.entity';
 
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
 
@@ -83,8 +85,6 @@ if (!existsSync(uploadDir)) {
       LineOfBusiness,
       CobMaster,
       Treaty,
-      TreatyLob,
-      TreatyLobCob,
       TreatyState,
       TreatyMga,
       StateDocument,
@@ -93,9 +93,13 @@ if (!existsSync(uploadDir)) {
       Product,
       LockedPeriod,
       DocumentType,
-      SequencePrefixCounter,
+      SequencePrefixMaster,
       TreatyCarrier,
       TreatyReinsurer,
+      TreatyProduct,
+      ProductLob,
+      ProductCob,
+      TreatyTypeMaster,
     ]),
     ActivityLogsModule,
   ],

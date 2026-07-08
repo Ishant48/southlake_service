@@ -27,6 +27,27 @@ export class Broker {
   @Column({ name: 'contact_phone', type: 'varchar', nullable: true })
   contactPhone: string | null;
 
+  @Column({ name: 'license_number', type: 'varchar', nullable: true })
+  licenseNumber: string | null;
+
+  @Column({ name: 'company_id', type: 'bigint', nullable: true })
+  companyId: number | null;
+
+  @Column({ name: 'id_name', type: 'varchar', nullable: true })
+  idName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  address: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  state: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  zip: string | null;
+
+  @Column({ name: 'commission_pct', type: 'decimal', precision: 6, scale: 2, nullable: true })
+  commissionPct: number | null;
+
   @Index()
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
@@ -34,8 +55,14 @@ export class Broker {
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy: string | null;
+
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
+
+  @Column({ name: 'updated_by', type: 'uuid', nullable: true })
+  updatedBy: string | null;
 
   @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })

@@ -41,12 +41,6 @@ export class User {
   @Column({ name: 'user_type', type: 'varchar' })
   userType: string;
 
-  @Column({ name: 'user_entity_type', type: 'varchar', nullable: true })
-  userEntityType: string;
-
-  @Column({ name: 'user_entity_id', type: 'uuid', nullable: true })
-  userEntityId: string;
-
   @Column({ type: 'varchar' })
   name: string;
 

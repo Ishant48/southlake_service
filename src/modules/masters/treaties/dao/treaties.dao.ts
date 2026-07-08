@@ -5,42 +5,34 @@ import { Treaty } from '../../entities/treaty.entity';
 
 const TREATY_LIST_RELATIONS = [
   'mga',
-  'reinsurer',
   'riskCompany',
-  'treatyLobs',
-  'treatyLobs.lob',
-  'treatyLobs.treatyLobCobs',
-  'treatyLobs.treatyLobCobs.cob',
   'treatyStates',
   'treatyStates.state',
   'treatyMgas',
   'treatyMgas.mga',
-  'treatyCarriers',
-  'treatyCarriers.riskCompany',
   'treatyReinsurers',
   'treatyReinsurers.reinsurer',
+  'treatyCarriers',
+  'treatyCarriers.carrier',
+  'treatyCarriers.state',
+  'treatyProducts',
+  'treatyProducts.product',
 ];
 
 const TREATY_DETAIL_RELATIONS = [
   'mga',
-  'reinsurer',
   'riskCompany',
-  'treatyLobs',
-  'treatyLobs.lob',
-  'treatyLobs.treatyLobCobs',
-  'treatyLobs.treatyLobCobs.cob',
   'treatyStates',
   'treatyStates.state',
   'treatyMgas',
   'treatyMgas.mga',
-  'treatyCarriers',
-  'treatyCarriers.riskCompany',
-  'treatyCarriers.state',
-  'treatyCarriers.broker',
   'treatyReinsurers',
   'treatyReinsurers.reinsurer',
-  'treatyReinsurers.state',
-  'treatyReinsurers.broker',
+  'treatyCarriers',
+  'treatyCarriers.carrier',
+  'treatyCarriers.state',
+  'treatyProducts',
+  'treatyProducts.product',
 ];
 
 @Injectable()
@@ -50,23 +42,19 @@ export class TreatiesDao {
     private readonly treatyRepo: Repository<Treaty>,
   ) {}
 
-  findAll(search?: string, isActive?: boolean): Promise<Treaty[]> {
+  findAll(search?: string): Promise<Treaty[]> {
     const where: FindOptionsWhere<Treaty>[] = [];
     if (search) {
       where.push({
         name: ILike(`%${search}%`),
         isDeleted: false,
-        ...(isActive !== undefined ? { isActive } : {}),
       });
       where.push({
         treatyCode: ILike(`%${search}%`),
         isDeleted: false,
-        ...(isActive !== undefined ? { isActive } : {}),
       });
     } else {
-      const obj: FindOptionsWhere<Treaty> = { isDeleted: false };
-      if (isActive !== undefined) obj.isActive = isActive;
-      where.push(obj);
+      where.push({ isDeleted: false });
     }
     return this.treatyRepo.find({
       where,

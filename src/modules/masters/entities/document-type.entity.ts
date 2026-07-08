@@ -12,10 +12,10 @@ export class DocumentType {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'code', type: 'varchar', unique: true })
-  code: string;
+  @Column({ name: 'type_code', type: 'varchar', unique: true })
+  typeCode: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', unique: true })
   name: string;
 
   @Column({ type: 'varchar', nullable: true })
@@ -28,8 +28,14 @@ export class DocumentType {
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy: string | null;
+
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
+
+  @Column({ name: 'updated_by', type: 'uuid', nullable: true })
+  updatedBy: string | null;
 
   @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })

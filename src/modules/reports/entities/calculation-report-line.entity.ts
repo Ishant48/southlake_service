@@ -1,4 +1,16 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { JournalEntryBatch } from '../../journal-entries/entities/journal-entry-batch.entity';
+import { StateMaster } from '../../masters/entities/state-master.entity';
+import { ChartOfAccount } from '../../chart-of-accounts/entities/chart-of-account.entity';
 
 @Entity('calculation_report_lines')
 export class CalculationReportLine {
@@ -6,20 +18,42 @@ export class CalculationReportLine {
   id: string;
 
   @Index()
-  @Column({ name: 'treaty_id', type: 'uuid', nullable: true })
-  treatyId: string | null;
+  @Column({ name: 'batch_id', type: 'uuid' })
+  batchId: string;
 
-  @Column({ name: 'line_number', type: 'integer' })
-  lineNumber: number;
+  @ManyToOne(() => JournalEntryBatch, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'batch_id' })
+  batch: JournalEntryBatch;
 
-  @Column({ name: 'line_label', type: 'varchar' })
-  lineLabel: string;
+  @Column({ name: 'state_id', type: 'uuid', nullable: true })
+  stateId: string | null;
 
-  @Column({ name: 'formula_expression', type: 'text', nullable: true })
-  formulaExpression: string | null;
+  @ManyToOne(() => StateMaster, { nullable: true })
+  @JoinColumn({ name: 'state_id' })
+  state: StateMaster | null;
 
-  @Column({ name: 'is_bold', type: 'boolean', default: false })
-  isBold: boolean;
+  @Column({ name: 'is_total', type: 'boolean', default: false })
+  isTotal: boolean;
+
+  @Index()
+  @Column({ name: 'coa_id', type: 'uuid' })
+  coaId: string;
+
+  @ManyToOne(() => ChartOfAccount, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'coa_id' })
+  coa: ChartOfAccount;
+
+  @Column({ name: 'line_item', type: 'varchar' })
+  lineItem: string;
+
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  amount: number;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
+  updatedAt: Date | null;
 
   @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })

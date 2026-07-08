@@ -15,9 +15,10 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
 import { CreateDocumentTypeDto, UpdateDocumentTypeDto } from '../dto/document-type.dto';
 import {
-  CreateSequencePrefixCounterDto,
-  UpdateSequencePrefixCounterDto,
+  CreateSequencePrefixMasterDto,
+  UpdateSequencePrefixMasterDto,
 } from '../dto/sequence-prefix-counter.dto';
+import { CreateTreatyTypeDto, UpdateTreatyTypeDto } from '../dto/treaty-type.dto';
 
 @ApiTags('masters')
 @ApiBearerAuth()
@@ -111,7 +112,7 @@ export class MastersConfigController {
   @Post('sequence-prefix-counters')
   @ApiOperation({ summary: 'Create sequence prefix & counter' })
   createSequencePrefixCounter(
-    @Body() dto: CreateSequencePrefixCounterDto,
+    @Body() dto: CreateSequencePrefixMasterDto,
     @CurrentUser() user: User,
   ) {
     return this.service.createSequencePrefixCounter(dto, user.id);
@@ -121,7 +122,7 @@ export class MastersConfigController {
   @ApiOperation({ summary: 'Update sequence prefix & counter' })
   updateSequencePrefixCounter(
     @Param('id') id: string,
-    @Body() dto: UpdateSequencePrefixCounterDto,
+    @Body() dto: UpdateSequencePrefixMasterDto,
     @CurrentUser() user: User,
   ) {
     return this.service.updateSequencePrefixCounter(id, dto, user.id);
@@ -131,5 +132,44 @@ export class MastersConfigController {
   @ApiOperation({ summary: 'Delete sequence prefix & counter' })
   deleteSequencePrefixCounter(@Param('id') id: string, @CurrentUser() user: User) {
     return this.service.deleteSequencePrefixCounter(id, user.id);
+  }
+
+  // ==========================================
+  // TREATY TYPES ENDPOINTS
+  // ==========================================
+  @Get('treaty-types')
+  @ApiOperation({ summary: 'Get all treaty types' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
+  findAllTreatyTypes(@Query('search') search?: string, @Query('isActive') isActive?: boolean) {
+    return this.service.findAllTreatyTypes(search, isActive);
+  }
+
+  @Get('treaty-types/:id')
+  @ApiOperation({ summary: 'Get treaty type by id' })
+  findOneTreatyType(@Param('id') id: string) {
+    return this.service.findOneTreatyType(id);
+  }
+
+  @Post('treaty-types')
+  @ApiOperation({ summary: 'Create treaty type' })
+  createTreatyType(@Body() dto: CreateTreatyTypeDto, @CurrentUser() user: User) {
+    return this.service.createTreatyType(dto, user.id);
+  }
+
+  @Patch('treaty-types/:id')
+  @ApiOperation({ summary: 'Update treaty type' })
+  updateTreatyType(
+    @Param('id') id: string,
+    @Body() dto: UpdateTreatyTypeDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.updateTreatyType(id, dto, user.id);
+  }
+
+  @Delete('treaty-types/:id')
+  @ApiOperation({ summary: 'Delete treaty type' })
+  deleteTreatyType(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteTreatyType(id, user.id);
   }
 }

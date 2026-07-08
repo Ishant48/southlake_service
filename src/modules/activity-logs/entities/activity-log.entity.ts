@@ -44,18 +44,15 @@ export class ActivityLog {
   @Column({ type: 'varchar' })
   action: string;
 
-  @Index()
-  @Column({ name: 'entity_type', type: 'varchar', nullable: true })
-  entityType: string;
-
-  @Index()
-  @Column({ name: 'entity_id', type: 'varchar', nullable: true })
-  entityId: string;
-
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  /** Field-level diff for updates: [{ field, oldValue, newValue }]. Null for create/delete/view actions. */
+  @Column({ type: 'jsonb', nullable: true })
+  oldValues: Record<string, unknown> | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  newValues: Record<string, unknown> | null;
+
   @Column({ type: 'jsonb', nullable: true })
   changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> | null;
 
@@ -68,4 +65,14 @@ export class ActivityLog {
   @Index()
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
+
+  @Index()
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

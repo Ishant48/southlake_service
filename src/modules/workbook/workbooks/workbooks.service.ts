@@ -155,8 +155,6 @@ export class WorkbooksService {
       userId,
       moduleId: 'reinsurance',
       action: 'delete',
-      entityType: 'workbook',
-      entityId: String(id),
       description: `Deleted workbook ${workbook.program} (${workbook.monthLabel})`,
     });
   }
@@ -170,8 +168,6 @@ export class WorkbooksService {
       userId,
       moduleId: 'reinsurance',
       action: status === 'Approved' ? 'approve' : 'edit',
-      entityType: 'workbook',
-      entityId: String(id),
       description: `Workbook status updated to ${status} for ${workbook.program} (${workbook.monthLabel})`,
     });
     return saved;

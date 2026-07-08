@@ -14,10 +14,8 @@ export class TreatiesController {
   @Get('treaties')
   @ApiOperation({ summary: 'Get all treaties' })
   @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
-  findAllTreaties(@Query('search') search?: string, @Query('is_active') isActive?: boolean) {
-    const active = isActive !== undefined ? String(isActive) === 'true' : undefined;
-    return this.service.findAllTreaties(search, active);
+  findAllTreaties(@Query('search') search?: string) {
+    return this.service.findAllTreaties(search);
   }
 
   @Get('treaties/:id')
@@ -40,7 +38,7 @@ export class TreatiesController {
 
   @Delete('treaties/:id')
   @ApiOperation({ summary: 'Delete treaty' })
-  deleteTreaty(@Param('id') id: string) {
-    return this.service.deleteTreaty(id);
+  deleteTreaty(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.service.deleteTreaty(id, user.id);
   }
 }

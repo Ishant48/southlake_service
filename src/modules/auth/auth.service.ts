@@ -265,15 +265,23 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async getMe(
-    user: User,
-  ): Promise<(User & { permissions: { id: string; action: string }[] }) | null> {
+  async getMe(user: User): Promise<
+    | (User & {
+        permissions: { id: string; action: string }[];
+        effective_permissions: string[];
+      })
+    | null
+  > {
     const fullUser = await this.authDao.findUserByEmail(user.email);
     if (!fullUser) return null;
-    const permissions = await this.usersService.getPermissions(fullUser.id);
+    const [permissions, effectivePermissions] = await Promise.all([
+      this.usersService.getPermissions(fullUser.id),
+      this.usersService.getEffectivePermissions(fullUser.id),
+    ]);
     return {
       ...fullUser,
       permissions,
+      effective_permissions: effectivePermissions,
     };
   }
 
@@ -355,8 +363,6 @@ export class AuthService {
       userType: invite.userType,
       department: invite.department,
       title: invite.title,
-      userEntityType: invite.userEntityType,
-      userEntityId: invite.userEntityId,
       status: 'active',
       passwordHash,
       initials,

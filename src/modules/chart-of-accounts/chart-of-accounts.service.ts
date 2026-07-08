@@ -113,8 +113,6 @@ export class ChartOfAccountsService {
       userId,
       moduleId: 'chart_of_accounts',
       action: 'create',
-      entityType: 'chart_of_account',
-      entityId: saved.id,
       description: `Created Chart of Account ${saved.description} (${saved.accountCode})`,
     });
 
@@ -178,8 +176,6 @@ export class ChartOfAccountsService {
       userId,
       moduleId: 'chart_of_accounts',
       action: 'edit',
-      entityType: 'chart_of_account',
-      entityId: saved.id,
       description: `Updated Chart of Account ${saved.description} (${saved.accountCode})`,
     });
 
@@ -204,8 +200,6 @@ export class ChartOfAccountsService {
       userId,
       moduleId: 'chart_of_accounts',
       action: 'delete',
-      entityType: 'chart_of_account',
-      entityId: id,
       description: `Deleted Chart of Account ${coa.description} (${coa.accountCode})`,
     });
   }
@@ -229,7 +223,7 @@ export class ChartOfAccountsService {
       coaId,
       fileName,
       fileUrl,
-      documentType,
+      documentTypeId: documentType,
       uploadedBy: userId,
     });
 

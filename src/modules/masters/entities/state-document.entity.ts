@@ -1,4 +1,13 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { DocumentType } from './document-type.entity';
 
 @Entity('state_documents')
 export class StateDocument {
@@ -15,8 +24,8 @@ export class StateDocument {
   @Column({ name: 'file_url', type: 'varchar' })
   fileUrl: string;
 
-  @Column({ name: 'document_type', type: 'varchar', nullable: true })
-  documentType: string | null;
+  @Column({ name: 'document_type_id', type: 'uuid' })
+  documentTypeId: string;
 
   @CreateDateColumn({ name: 'uploaded_at', type: 'timestamp' })
   uploadedAt: Date;
@@ -33,4 +42,8 @@ export class StateDocument {
 
   @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
   deletedBy: string | null;
+
+  @ManyToOne(() => DocumentType)
+  @JoinColumn({ name: 'document_type_id' })
+  documentType: DocumentType;
 }

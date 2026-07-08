@@ -83,8 +83,6 @@ export class UsersService {
       userType: dto.user_type ?? undefined,
       department: dto.department ?? undefined,
       title: dto.title ?? undefined,
-      userEntityType: dto.user_entity_type ?? undefined,
-      userEntityId: dto.user_entity_id ?? undefined,
       invitedBy: invitedBy.id,
       expiresAt,
       token,
@@ -101,7 +99,6 @@ export class UsersService {
       userId: invitedBy.id,
       moduleId: 'user_management',
       action: 'create',
-      entityType: 'pending_invite',
       description: `Invited ${dto.email}`,
     });
 
@@ -148,8 +145,6 @@ export class UsersService {
       userId: updatedBy.id,
       moduleId: 'user_management',
       action: 'edit',
-      entityType: 'user',
-      entityId: id,
       description: `Updated user ${id}`,
     });
 
@@ -158,6 +153,12 @@ export class UsersService {
 
   async updateStatus(id: string, dto: UpdateUserStatusDto, updatedBy: User): Promise<User> {
     await this.findOne(id);
+
+    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin || updatedBy.role?.name === 'superadmin';
+    if (id === updatedBy.id && !isUpdatedBySuperAdmin) {
+      throw new ForbiddenException('You cannot change your own status');
+    }
+
     const updated = await this.dao.update(id, { status: dto.status, updatedBy: updatedBy.id });
 
     if (dto.status !== 'active') {
@@ -170,8 +171,6 @@ export class UsersService {
       userId: updatedBy.id,
       moduleId: 'user_management',
       action: 'edit',
-      entityType: 'user',
-      entityId: id,
       description: `Set user ${id} status to ${dto.status}`,
     });
 
@@ -180,6 +179,12 @@ export class UsersService {
 
   async deactivate(id: string, updatedBy: User): Promise<{ message: string }> {
     await this.findOne(id);
+
+    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin || updatedBy.role?.name === 'superadmin';
+    if (id === updatedBy.id && !isUpdatedBySuperAdmin) {
+      throw new ForbiddenException('You cannot deactivate your own account');
+    }
+
     await this.dao.update(id, { status: 'inactive', updatedBy: updatedBy.id });
     this.permissionCache.invalidate(id);
 
@@ -187,8 +192,6 @@ export class UsersService {
       userId: updatedBy.id,
       moduleId: 'user_management',
       action: 'edit',
-      entityType: 'user',
-      entityId: id,
       description: `Deactivated user ${id}`,
     });
 
@@ -199,6 +202,11 @@ export class UsersService {
     ids: string[],
     updatedBy: User,
   ): Promise<{ message: string; count: number }> {
+    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin || updatedBy.role?.name === 'superadmin';
+    if (ids.includes(updatedBy.id) && !isUpdatedBySuperAdmin) {
+      throw new ForbiddenException('You cannot deactivate your own account');
+    }
+
     await this.dao.deactivateBulk(ids, updatedBy.id);
     for (const id of ids) {
       this.permissionCache.invalidate(id);
@@ -208,7 +216,6 @@ export class UsersService {
       userId: updatedBy.id,
       moduleId: 'user_management',
       action: 'edit',
-      entityType: 'user',
       description: `Bulk deactivated ${ids.length} users`,
     });
 
@@ -223,8 +230,6 @@ export class UsersService {
       userId: deletedBy.id,
       moduleId: 'user_management',
       action: 'delete',
-      entityType: 'user',
-      entityId: id,
       description: `Soft deleted user ${id}`,
     });
 
@@ -323,8 +328,6 @@ export class UsersService {
       userId: updatedBy.id,
       moduleId: 'user_management',
       action: 'edit',
-      entityType: 'user_permission',
-      entityId: userId,
       description: `Updated permissions for user ${userId}`,
     });
 
@@ -375,8 +378,6 @@ export class UsersService {
       userId: revokedBy.id,
       moduleId: 'user_management',
       action: 'delete',
-      entityType: 'pending_invite',
-      entityId: id,
       description: `Revoked invite ${id}`,
     });
 

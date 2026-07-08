@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsNumber, IsArray } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class CreateMgaDto {
   @IsString()
@@ -8,10 +8,6 @@ export class CreateMgaDto {
   @IsString()
   @IsNotEmpty()
   name: string;
-
-  @IsBoolean()
-  @IsOptional()
-  tax_payable_inhouse?: boolean;
 
   @IsBoolean()
   @IsOptional()
@@ -54,26 +50,6 @@ export class CreateMgaDto {
 
   @IsOptional()
   op_start_date?: string | Date;
-
-  @IsArray()
-  @IsOptional()
-  other_names?: { state: string; displayName: string }[];
-
-  @IsString()
-  @IsOptional()
-  naics_code?: string;
-
-  @IsString()
-  @IsOptional()
-  contact_name?: string;
-
-  @IsString()
-  @IsOptional()
-  contact_email?: string;
-
-  @IsString()
-  @IsOptional()
-  contact_phone?: string;
 }
 
 export class UpdateMgaDto {
@@ -87,10 +63,6 @@ export class UpdateMgaDto {
 
   @IsBoolean()
   @IsOptional()
-  tax_payable_inhouse?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
   is_active?: boolean;
 
   @IsNumber()
@@ -130,24 +102,4 @@ export class UpdateMgaDto {
 
   @IsOptional()
   op_start_date?: string | Date;
-
-  @IsArray()
-  @IsOptional()
-  other_names?: { state: string; displayName: string }[];
-
-  @IsString()
-  @IsOptional()
-  naics_code?: string;
-
-  @IsString()
-  @IsOptional()
-  contact_name?: string;
-
-  @IsString()
-  @IsOptional()
-  contact_email?: string;
-
-  @IsString()
-  @IsOptional()
-  contact_phone?: string;
 }

@@ -29,19 +29,11 @@ export class JournalEntryBatch {
   treatyId: string | null;
 
   @Index()
-  @Column({ name: 'month_key', type: 'varchar', nullable: true })
-  monthKey: string | null;
-
-  @Index()
   @Column({ name: 'workbook_id', type: 'integer', nullable: true })
   workbookId: number | null;
 
   @Index()
-  @Column({ name: 'state_code', type: 'varchar', nullable: true })
-  stateCode: string | null;
-
-  @Index()
-  @Column({ type: 'varchar', default: 'posted' })
+  @Column({ type: 'varchar', default: 'pending_review' })
   status: string;
 
   @Column({ name: 'total_amount', type: 'numeric', precision: 15, scale: 2, default: 0 })
@@ -49,6 +41,12 @@ export class JournalEntryBatch {
 
   @Column({ type: 'integer', default: 0 })
   count: number; // Count of distinct journals/JE numbers in the batch
+
+  @Column({ name: 'approved_at', type: 'timestamp', nullable: true })
+  approvedAt: Date | null;
+
+  @Column({ name: 'approved_by', type: 'uuid', nullable: true })
+  approvedBy: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

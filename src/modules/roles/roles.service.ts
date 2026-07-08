@@ -85,8 +85,6 @@ export class RolesService {
       userId: createdBy.id,
       moduleId: 'user_management',
       action: 'create',
-      entityType: 'role',
-      entityId: role.id,
       description: `Created role ${role.name}`,
     });
 
@@ -116,8 +114,6 @@ export class RolesService {
       userId: updatedBy.id,
       moduleId: 'user_management',
       action: 'edit',
-      entityType: 'role',
-      entityId: id,
       description: `Updated role ${role.name}`,
     });
 
@@ -146,8 +142,6 @@ export class RolesService {
       userId: deletedBy.id,
       moduleId: 'user_management',
       action: 'delete',
-      entityType: 'role',
-      entityId: id,
       description: `Deleted role ${role.name}`,
     });
 
@@ -178,8 +172,6 @@ export class RolesService {
       userId: updatedBy.id,
       moduleId: 'user_management',
       action: 'edit',
-      entityType: 'role_permission',
-      entityId: roleId,
       description: `Updated permissions for role ${role.name}`,
     });
 

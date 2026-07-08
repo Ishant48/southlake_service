@@ -1,21 +1,30 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Index,
+  OneToOne,
+  JoinColumn,
+  Unique,
+} from 'typeorm';
 import { Workbook } from './workbook.entity';
 
+@Unique(['batchId', 'reinsurerId'])
 @Entity('cash_settlements')
 export class CashSettlement {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  workbookId: number;
+  @Column({ nullable: true })
+  workbookId: number | null;
 
   @Index()
-  @Column({ name: 'batch_id', type: 'uuid', nullable: true })
-  batchId: string | null;
+  @Column({ name: 'batch_id', type: 'uuid' })
+  batchId: string;
 
   @Index()
-  @Column({ name: 'reinsurer_id', type: 'uuid', nullable: true })
-  reinsurerId: string | null;
+  @Column({ name: 'reinsurer_id', type: 'uuid' })
+  reinsurerId: string;
 
   @Column('numeric', { precision: 15, scale: 2, default: 0 })
   begBal: number;

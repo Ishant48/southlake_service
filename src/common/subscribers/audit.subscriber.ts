@@ -54,8 +54,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     if (SKIP_ENTITIES.has(event.metadata.name)) return;
     await this.writeLog(event.manager.getRepository(ActivityLog), {
       action: 'create',
-      entityType: event.metadata.name,
-      entityId: this.getId(event.entity, event.metadata),
+      newValues: event.entity,
     });
   }
 
@@ -63,8 +62,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     if (SKIP_ENTITIES.has(event.metadata.name) || !event.entity) return;
     await this.writeLog(event.manager.getRepository(ActivityLog), {
       action: 'delete',
-      entityType: event.metadata.name,
-      entityId: this.getId(event.entity, event.metadata),
+      oldValues: event.entity,
     });
   }
 
@@ -82,10 +80,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         oldValue: databaseEntity[col.propertyName] as unknown,
         newValue: col.getEntityValue(entity) as unknown,
       }))
-      // Audit columns changing on every write (updatedBy/updatedAt) aren't
-      // meaningful "what changed" entries on their own. A soft-delete's own
-      // bookkeeping columns (isDeleted/deletedAt/deletedBy) are represented
-      // by the 'delete' action itself, not as a diff.
       .filter(c => !['updatedAt', 'updatedBy'].includes(c.field))
       .filter(
         c => !(becameSoftDeleted && ['isDeleted', 'deletedAt', 'deletedBy'].includes(c.field)),
@@ -96,37 +90,44 @@ export class AuditSubscriber implements EntitySubscriberInterface {
 
     await this.writeLog(event.manager.getRepository(ActivityLog), {
       action: becameSoftDeleted ? 'delete' : 'update',
-      entityType: event.metadata.name,
-      entityId: this.getId(event.databaseEntity, event.metadata),
+      oldValues: databaseEntity,
+      newValues: entity,
       changes,
     });
   }
 
   private async writeLog(
     repo: ReturnType<DataSource['getRepository']>,
-    fields: { action: string; entityType: string; entityId: string; changes?: FieldChange[] },
+    fields: {
+      action: string;
+      oldValues?: Record<string, unknown>;
+      newValues?: Record<string, unknown>;
+      changes?: FieldChange[];
+    },
   ): Promise<void> {
     const userId = this.requestContext.getUserId();
+    const entityName = fields.newValues
+      ? (fields.newValues.constructor?.name ?? '')
+      : fields.oldValues
+        ? (fields.oldValues.constructor?.name ?? '')
+        : '';
+    const entityId = String(
+      (fields as Record<string, unknown>).newValues?.id ??
+        (fields as Record<string, unknown>).oldValues?.id ??
+        '',
+    );
     await repo.save(
       repo.create({
         userId: userId ?? undefined,
         action: fields.action,
-        entityType: fields.entityType,
-        entityId: fields.entityId,
-        description: `${fields.action} ${fields.entityType} ${fields.entityId}`,
+        description: entityId ? `${fields.action} ${entityName} ${entityId}` : fields.action,
+        oldValues: fields.oldValues ?? null,
+        newValues: fields.newValues ?? null,
+        changes: fields.changes && fields.changes.length > 0 ? fields.changes : null,
         ipAddress: this.requestContext.getIpAddress() ?? undefined,
         userAgent: this.requestContext.getUserAgent() ?? undefined,
-        changes: fields.changes && fields.changes.length > 0 ? fields.changes : null,
       }),
     );
-  }
-
-  private getId(
-    entity: ObjectLiteral | undefined,
-    metadata: UpdateEvent<ObjectLiteral>['metadata'],
-  ): string {
-    const idColumn = metadata.primaryColumns[0]?.propertyName ?? 'id';
-    return entity?.[idColumn] != null ? String(entity[idColumn]) : '';
   }
 
   private stampAuditColumns(

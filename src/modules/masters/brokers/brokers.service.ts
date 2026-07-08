@@ -39,8 +39,6 @@ export class BrokersService {
       userId,
       moduleId: 'master_data',
       action: 'create',
-      entityType: 'broker',
-      entityId: saved.id,
       description: `Created Broker ${saved.name} (${saved.brokerCode})`,
     });
     return saved;
@@ -66,8 +64,6 @@ export class BrokersService {
       userId,
       moduleId: 'master_data',
       action: 'edit',
-      entityType: 'broker',
-      entityId: saved.id,
       description: `Updated Broker ${saved.name} (${saved.brokerCode})`,
     });
     return saved;
@@ -80,8 +76,6 @@ export class BrokersService {
       userId,
       moduleId: 'master_data',
       action: 'delete',
-      entityType: 'broker',
-      entityId: id,
       description: `Deleted Broker ${broker.name} (${broker.brokerCode})`,
     });
   }

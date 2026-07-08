@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -36,12 +37,6 @@ export class PendingInvite {
   @Column({ type: 'varchar', nullable: true })
   title: string;
 
-  @Column({ name: 'user_entity_type', type: 'varchar', nullable: true })
-  userEntityType: string;
-
-  @Column({ name: 'user_entity_id', type: 'uuid', nullable: true })
-  userEntityId: string;
-
   @Column({ name: 'invited_by', type: 'uuid', nullable: true })
   invitedBy: string;
 
@@ -60,4 +55,14 @@ export class PendingInvite {
 
   @Column({ type: 'varchar', default: 'pending' })
   status: string;
+
+  @Index()
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

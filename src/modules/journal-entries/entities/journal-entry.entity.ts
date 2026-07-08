@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 import { JournalEntryBatch } from './journal-entry-batch.entity';
 import { ChartOfAccount } from '../../chart-of-accounts/entities/chart-of-account.entity';
+import { StateMaster } from '../../masters/entities/state-master.entity';
+import { Product } from '../../masters/entities/product.entity';
 
 @Entity('journal_entries')
 export class JournalEntry {
@@ -38,6 +40,22 @@ export class JournalEntry {
   @JoinColumn({ name: 'coa_id' })
   coa: ChartOfAccount;
 
+  @Index()
+  @Column({ name: 'state_id', type: 'uuid', nullable: true })
+  stateId: string | null;
+
+  @ManyToOne(() => StateMaster)
+  @JoinColumn({ name: 'state_id' })
+  state: StateMaster | null;
+
+  @Index()
+  @Column({ name: 'product_id', type: 'uuid', nullable: true })
+  productId: string | null;
+
+  @ManyToOne(() => Product)
+  @JoinColumn({ name: 'product_id' })
+  product: Product | null;
+
   @Column({ type: 'varchar', nullable: true })
   sub: string | null;
 
@@ -65,4 +83,14 @@ export class JournalEntry {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
+
+  @Index()
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

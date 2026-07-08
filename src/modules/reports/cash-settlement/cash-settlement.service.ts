@@ -87,7 +87,7 @@ export class CashSettlementService {
     const xolRate = Number(workbook.rates?.xol ?? 2.0) / 100;
     const lrCapRate = Number(workbook.rates?.lossRatioCap ?? 0) / 100;
 
-    const reinsurerName = treaty?.reinsurer?.name ?? 'Starlight Re';
+    const reinsurerName = treaty?.treatyReinsurers?.[0]?.reinsurer?.name ?? 'Starlight Re';
 
     return {
       qsPct,

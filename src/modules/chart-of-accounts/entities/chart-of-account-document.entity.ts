@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { ChartOfAccount } from './chart-of-account.entity';
 import { User } from '../../users/entities/user.entity';
+import { DocumentType } from '../../masters/entities/document-type.entity';
 
 @Entity('chart_of_account_documents')
 export class ChartOfAccountDocument {
@@ -29,8 +30,12 @@ export class ChartOfAccountDocument {
   @Column({ name: 'file_url', type: 'varchar' })
   fileUrl: string;
 
-  @Column({ name: 'document_type', type: 'varchar', nullable: true })
-  documentType: string | null;
+  @Column({ name: 'document_type_id', type: 'uuid' })
+  documentTypeId: string;
+
+  @ManyToOne(() => DocumentType)
+  @JoinColumn({ name: 'document_type_id' })
+  documentType: DocumentType;
 
   @CreateDateColumn({ name: 'uploaded_at', type: 'timestamp' })
   uploadedAt: Date;

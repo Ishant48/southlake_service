@@ -40,8 +40,6 @@ import { RiskCompany } from './modules/masters/entities/risk-company.entity';
 import { LineOfBusiness } from './modules/masters/entities/line-of-business.entity';
 import { CobMaster } from './modules/masters/entities/cob-master.entity';
 import { Treaty } from './modules/masters/entities/treaty.entity';
-import { TreatyLob } from './modules/masters/entities/treaty-lob.entity';
-import { TreatyLobCob } from './modules/masters/entities/treaty-lob-cob.entity';
 import { TreatyState } from './modules/masters/entities/treaty-state.entity';
 import { StateDocument } from './modules/masters/entities/state-document.entity';
 import { RiskCompanyDocument } from './modules/masters/entities/risk-company-document.entity';
@@ -67,7 +65,11 @@ import { Broker } from './modules/masters/entities/broker.entity';
 import { Product } from './modules/masters/entities/product.entity';
 import { LockedPeriod } from './modules/masters/entities/locked-period.entity';
 import { DocumentType } from './modules/masters/entities/document-type.entity';
-import { SequencePrefixCounter } from './modules/masters/entities/sequence-prefix-counter.entity';
+import { SequencePrefixMaster } from './modules/masters/entities/sequence-prefix-counter.entity';
+import { TreatyTypeMaster } from './modules/masters/entities/treaty-type-master.entity';
+import { TreatyProduct } from './modules/masters/entities/treaty-product.entity';
+import { ProductLob } from './modules/masters/entities/product-lob.entity';
+import { ProductCob } from './modules/masters/entities/product-cob.entity';
 
 @Module({
   imports: [
@@ -113,8 +115,6 @@ import { SequencePrefixCounter } from './modules/masters/entities/sequence-prefi
           LineOfBusiness,
           CobMaster,
           Treaty,
-          TreatyLob,
-          TreatyLobCob,
           TreatyState,
           TreatyMga,
           TreatyCarrier,
@@ -128,7 +128,11 @@ import { SequencePrefixCounter } from './modules/masters/entities/sequence-prefi
           Product,
           LockedPeriod,
           DocumentType,
-          SequencePrefixCounter,
+          SequencePrefixMaster,
+          TreatyTypeMaster,
+          TreatyProduct,
+          ProductLob,
+          ProductCob,
         ],
         synchronize: false,
         logging: process.env.NODE_ENV !== 'production',

@@ -2,7 +2,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } 
 import { Treaty } from './treaty.entity';
 import { RiskCompany } from './risk-company.entity';
 import { StateMaster } from './state-master.entity';
-import { Broker } from './broker.entity';
 import { ColumnNumericTransformer } from '../../../common/utils';
 
 @Entity('treaty_state_carriers')
@@ -14,43 +13,34 @@ export class TreatyCarrier {
   @Column({ name: 'treaty_id', type: 'uuid' })
   treatyId: string;
 
-  @ManyToOne(() => Treaty, t => t.treatyCarriers, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Treaty, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'treaty_id' })
   treaty: Treaty;
 
   @Index()
-  @Column({ name: 'risk_company_id', type: 'uuid' })
-  riskCompanyId: string;
+  @Column({ name: 'carrier_id', type: 'uuid' })
+  carrierId: string;
 
   @ManyToOne(() => RiskCompany, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'risk_company_id' })
-  riskCompany: RiskCompany;
+  @JoinColumn({ name: 'carrier_id' })
+  carrier: RiskCompany;
 
   @Column({
-    name: 'retention_pct',
+    name: 'pct',
     type: 'decimal',
     precision: 6,
     scale: 2,
-    nullable: true,
     transformer: new ColumnNumericTransformer(),
   })
-  retentionPct: number | null;
+  pct: number;
 
   @Index()
   @Column({ name: 'state_id', type: 'uuid', nullable: true })
   stateId: string | null;
 
-  @ManyToOne(() => StateMaster, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => StateMaster, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'state_id' })
   state: StateMaster | null;
-
-  @Index()
-  @Column({ name: 'broker_id', type: 'uuid', nullable: true })
-  brokerId: string | null;
-
-  @ManyToOne(() => Broker, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'broker_id' })
-  broker: Broker | null;
 
   @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })

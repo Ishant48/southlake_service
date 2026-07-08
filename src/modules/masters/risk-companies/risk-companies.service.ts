@@ -95,10 +95,10 @@ export class RiskCompaniesService {
     if (!rc) throw new NotFoundException('Risk Company not found');
 
     const doc = this.dao.createDocument({
-      riskCompanyId,
+      carrierId: riskCompanyId,
       fileName,
       fileUrl,
-      documentType,
+      documentTypeId: documentType,
       uploadedBy: userId,
     });
     return this.dao.saveDocument(doc);

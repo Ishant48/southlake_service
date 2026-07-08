@@ -34,6 +34,9 @@ const MODULES: Record<string, { label: string; extraActions?: string[] }> = {
   workbook: { label: 'Workbooks' },
   financial_reports: { label: 'Financial Reports' },
   database_seeder: { label: 'Database Seeder', extraActions: ['manage'] },
+  user_management: { label: 'User Management' },
+  master_data: { label: 'Master Data' },
+  reinsurance: { label: 'Reinsurance' },
 };
 
 const CRUD_ACTIONS = ['view', 'create', 'edit', 'delete'];
@@ -67,7 +70,7 @@ export async function seedPermissions(externalQueryRunner?: QueryRunner): Promis
     // 'rbac' is not a real feature module — it's the module_id role_permissions
     // uses to group access-control grants. 'user_management' is a legacy alias
     // still referenced by some role_permissions rows.
-    const pseudoModuleIds = ['rbac', 'user_management', 'master_data', 'reinsurance'];
+    const pseudoModuleIds = ['rbac'];
     for (const modId of [...Object.keys(MODULES), ...pseudoModuleIds]) {
       const label =
         MODULES[modId]?.label ??
@@ -127,6 +130,9 @@ export async function seedPermissions(externalQueryRunner?: QueryRunner): Promis
         'user.edit',
         'activity_log.view',
         'activity_log.export',
+        'user_management.view',
+        'master_data.view',
+        'reinsurance.view',
       ];
 
       for (const perm of perms) {

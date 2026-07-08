@@ -31,7 +31,6 @@ export class MgasService {
     const mga = this.dao.create({
       mgaCode: dto.mga_code,
       name: dto.name,
-      taxPayableInhouse: dto.tax_payable_inhouse ?? false,
       isActive: dto.is_active ?? true,
       ledgerAmount: dto.ledger_amount ?? 0.0,
       companyId: dto.company_id ? String(dto.company_id) : null,
@@ -43,11 +42,6 @@ export class MgasService {
       phone: dto.phone ?? null,
       openItem: dto.open_item ?? false,
       opStartDate: dto.op_start_date ?? null,
-      otherNames: dto.other_names ?? null,
-      naicsCode: dto.naics_code ?? null,
-      contactName: dto.contact_name ?? null,
-      contactEmail: dto.contact_email ?? null,
-      contactPhone: dto.contact_phone ?? null,
       createdBy: userId,
       updatedBy: userId,
     });
@@ -56,8 +50,6 @@ export class MgasService {
       userId,
       moduleId: 'master_data',
       action: 'create',
-      entityType: 'mga',
-      entityId: saved.id,
       description: `Created MGA master ${saved.name} (${saved.mgaCode})`,
     });
     return saved;
@@ -75,7 +67,6 @@ export class MgasService {
     Object.assign(mga, {
       mgaCode: dto.mga_code ?? mga.mgaCode,
       name: dto.name ?? mga.name,
-      taxPayableInhouse: dto.tax_payable_inhouse ?? mga.taxPayableInhouse,
       isActive: dto.is_active ?? mga.isActive,
       ledgerAmount: dto.ledger_amount ?? mga.ledgerAmount,
       companyId:
@@ -92,11 +83,6 @@ export class MgasService {
       phone: dto.phone ?? mga.phone,
       openItem: dto.open_item ?? mga.openItem,
       opStartDate: dto.op_start_date ?? mga.opStartDate,
-      otherNames: dto.other_names ?? mga.otherNames,
-      naicsCode: dto.naics_code ?? mga.naicsCode,
-      contactName: dto.contact_name ?? mga.contactName,
-      contactEmail: dto.contact_email ?? mga.contactEmail,
-      contactPhone: dto.contact_phone ?? mga.contactPhone,
       updatedBy: userId,
     });
     const saved = await this.dao.save(mga);
@@ -104,8 +90,6 @@ export class MgasService {
       userId,
       moduleId: 'master_data',
       action: 'edit',
-      entityType: 'mga',
-      entityId: saved.id,
       description: `Updated MGA master ${saved.name} (${saved.mgaCode})`,
     });
     return saved;
@@ -119,8 +103,6 @@ export class MgasService {
       userId,
       moduleId: 'master_data',
       action: 'delete',
-      entityType: 'mga',
-      entityId: id,
       description: `Deleted MGA master ${mga.name} (${mga.mgaCode})`,
     });
   }
@@ -139,7 +121,7 @@ export class MgasService {
       mgaId,
       fileName,
       fileUrl,
-      documentType,
+      documentTypeId: documentType,
       uploadedBy: userId,
     });
     return this.dao.saveDocument(doc);

@@ -1,6 +1,5 @@
 import {
   IsArray,
-  IsBoolean,
   IsDateString,
   IsNotEmpty,
   IsNumber,
@@ -11,33 +10,24 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class TreatyLobDto {
+export class TreatyProductDto {
   @IsUUID()
   @IsNotEmpty()
-  lob_id: string;
-
-  @IsArray()
-  @IsUUID(undefined, { each: true })
-  @IsOptional()
-  cob_ids?: string[];
+  product_id: string;
 }
 
 export class TreatyCarrierDto {
   @IsUUID()
   @IsNotEmpty()
-  risk_company_id: string;
+  carrier_id: string;
 
   @IsNumber()
   @IsNotEmpty()
-  retention_pct: number;
+  pct: number;
 
   @IsUUID()
   @IsOptional()
   state_id?: string;
-
-  @IsUUID()
-  @IsOptional()
-  broker_id?: string;
 }
 
 export class TreatyReinsurerDto {
@@ -47,15 +37,7 @@ export class TreatyReinsurerDto {
 
   @IsNumber()
   @IsNotEmpty()
-  cession_pct: number;
-
-  @IsUUID()
-  @IsOptional()
-  state_id?: string;
-
-  @IsUUID()
-  @IsOptional()
-  broker_id?: string;
+  quota_share: number;
 }
 
 export class CreateTreatyDto {
@@ -78,10 +60,6 @@ export class CreateTreatyDto {
 
   @IsUUID()
   @IsOptional()
-  reinsurer_id?: string;
-
-  @IsUUID()
-  @IsOptional()
   risk_company_id?: string;
 
   @IsDateString()
@@ -132,18 +110,6 @@ export class CreateTreatyDto {
   @IsOptional()
   lae_aoe_pct?: number;
 
-  @IsNumber()
-  @IsOptional()
-  carrier_retention_pct?: number;
-
-  @IsNumber()
-  @IsOptional()
-  reinsurer_cession_pct?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  is_active?: boolean;
-
   @IsArray()
   @IsUUID(undefined, { each: true })
   @IsOptional()
@@ -151,9 +117,9 @@ export class CreateTreatyDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => TreatyLobDto)
+  @Type(() => TreatyProductDto)
   @IsOptional()
-  lobs?: TreatyLobDto[];
+  products?: TreatyProductDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -167,9 +133,13 @@ export class CreateTreatyDto {
   @IsOptional()
   reinsurers?: TreatyReinsurerDto[];
 
+  @IsUUID()
+  @IsOptional()
+  treaty_type_id?: string;
+
   @IsString()
   @IsOptional()
-  treaty_type?: string;
+  carrier_allocation_type?: string;
 
   @IsString()
   @IsOptional()
@@ -182,30 +152,6 @@ export class CreateTreatyDto {
   @IsNumber()
   @IsOptional()
   ulae_flat_amount?: number;
-
-  @IsString()
-  @IsOptional()
-  policy_seq_prefix?: string;
-
-  @IsNumber()
-  @IsOptional()
-  policy_seq_start?: number;
-
-  @IsNumber()
-  @IsOptional()
-  policy_seq_next?: number;
-
-  @IsString()
-  @IsOptional()
-  claim_seq_prefix?: string;
-
-  @IsNumber()
-  @IsOptional()
-  claim_seq_start?: number;
-
-  @IsNumber()
-  @IsOptional()
-  claim_seq_next?: number;
 }
 
 export class UpdateTreatyDto {
@@ -228,10 +174,6 @@ export class UpdateTreatyDto {
 
   @IsUUID()
   @IsOptional()
-  reinsurer_id?: string;
-
-  @IsUUID()
-  @IsOptional()
   risk_company_id?: string;
 
   @IsDateString()
@@ -282,18 +224,6 @@ export class UpdateTreatyDto {
   @IsOptional()
   lae_aoe_pct?: number;
 
-  @IsNumber()
-  @IsOptional()
-  carrier_retention_pct?: number;
-
-  @IsNumber()
-  @IsOptional()
-  reinsurer_cession_pct?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  is_active?: boolean;
-
   @IsArray()
   @IsUUID(undefined, { each: true })
   @IsOptional()
@@ -301,9 +231,9 @@ export class UpdateTreatyDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => TreatyLobDto)
+  @Type(() => TreatyProductDto)
   @IsOptional()
-  lobs?: TreatyLobDto[];
+  products?: TreatyProductDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -317,9 +247,13 @@ export class UpdateTreatyDto {
   @IsOptional()
   reinsurers?: TreatyReinsurerDto[];
 
+  @IsUUID()
+  @IsOptional()
+  treaty_type_id?: string;
+
   @IsString()
   @IsOptional()
-  treaty_type?: string;
+  carrier_allocation_type?: string;
 
   @IsString()
   @IsOptional()
@@ -332,28 +266,4 @@ export class UpdateTreatyDto {
   @IsNumber()
   @IsOptional()
   ulae_flat_amount?: number;
-
-  @IsString()
-  @IsOptional()
-  policy_seq_prefix?: string;
-
-  @IsNumber()
-  @IsOptional()
-  policy_seq_start?: number;
-
-  @IsNumber()
-  @IsOptional()
-  policy_seq_next?: number;
-
-  @IsString()
-  @IsOptional()
-  claim_seq_prefix?: string;
-
-  @IsNumber()
-  @IsOptional()
-  claim_seq_start?: number;
-
-  @IsNumber()
-  @IsOptional()
-  claim_seq_next?: number;
 }

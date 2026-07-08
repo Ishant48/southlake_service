@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { ActivityLogsService } from '../../activity-logs/activity-logs.service';
 import { ProductsDao } from './dao/products.dao';
 import { Product } from '../entities/product.entity';
+import { ProductLob } from '../entities/product-lob.entity';
+import { ProductCob } from '../entities/product-cob.entity';
 import { CreateProductDto, UpdateProductDto } from '../dto/product.dto';
 
-/** CRUD for product master records. */
+/** CRUD for product master records, including LOB/COB junction tables. */
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly dao: ProductsDao,
     private readonly activityLogsService: ActivityLogsService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAllProducts(search?: string, isActive?: boolean): Promise<Product[]> {
@@ -23,54 +27,118 @@ export class ProductsService {
   }
 
   async createProduct(dto: CreateProductDto, userId?: string): Promise<Product> {
-    const exists = await this.dao.findByProductId(dto.product_id);
-    if (exists) throw new BadRequestException(`Product ID ${dto.product_id} already exists`);
+    const exists = await this.dao.findByProductCode(dto.product_code);
+    if (exists) throw new BadRequestException(`Product ID ${dto.product_code} already exists`);
 
-    const product = this.dao.create({
-      productId: dto.product_id,
-      lobId: dto.lob_id,
-      cobId: dto.cob_id,
-      name: dto.name,
-      description: dto.description ?? null,
-      isActive: dto.is_active ?? true,
-    });
-    const saved = await this.dao.save(product);
-    await this.activityLogsService.log({
-      userId,
-      moduleId: 'master_data',
-      action: 'create',
-      entityType: 'product',
-      entityId: saved.id,
-      description: `Created Product ${saved.name} (${saved.productId})`,
-    });
-    return this.findOneProduct(saved.id);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const product = queryRunner.manager.create(Product, {
+        productCode: dto.product_code,
+        name: dto.name,
+        description: dto.description ?? null,
+        isActive: dto.is_active ?? true,
+      });
+      const saved = await queryRunner.manager.save(Product, product);
+
+      if (dto.lob_ids && dto.lob_ids.length > 0) {
+        const lobs = dto.lob_ids.map(lobId =>
+          queryRunner.manager.create(ProductLob, {
+            productId: saved.id,
+            lobId,
+          }),
+        );
+        await queryRunner.manager.save(ProductLob, lobs);
+      }
+
+      if (dto.cob_ids && dto.cob_ids.length > 0) {
+        const cobs = dto.cob_ids.map(cobId =>
+          queryRunner.manager.create(ProductCob, {
+            productId: saved.id,
+            cobId,
+          }),
+        );
+        await queryRunner.manager.save(ProductCob, cobs);
+      }
+
+      await queryRunner.commitTransaction();
+      await this.activityLogsService.log({
+        userId,
+        moduleId: 'master_data',
+        action: 'create',
+        description: `Created Product ${saved.name} (${saved.productCode})`,
+      });
+      return this.findOneProduct(saved.id);
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async updateProduct(id: string, dto: UpdateProductDto, userId?: string): Promise<Product> {
     const product = await this.findOneProduct(id);
-    if (dto.product_id !== undefined && dto.product_id !== product.productId) {
-      const exists = await this.dao.findByProductId(dto.product_id);
-      if (exists) throw new BadRequestException(`Product ID ${dto.product_id} already exists`);
+    if (dto.product_code !== undefined && dto.product_code !== product.productCode) {
+      const exists = await this.dao.findByProductCode(dto.product_code);
+      if (exists) throw new BadRequestException(`Product ID ${dto.product_code} already exists`);
     }
 
-    Object.assign(product, {
-      productId: dto.product_id ?? product.productId,
-      lobId: dto.lob_id ?? product.lobId,
-      cobId: dto.cob_id ?? product.cobId,
-      name: dto.name ?? product.name,
-      description: dto.description ?? product.description,
-      isActive: dto.is_active ?? product.isActive,
-    });
-    const saved = await this.dao.save(product);
-    await this.activityLogsService.log({
-      userId,
-      moduleId: 'master_data',
-      action: 'edit',
-      entityType: 'product',
-      entityId: saved.id,
-      description: `Updated Product ${saved.name} (${saved.productId})`,
-    });
-    return this.findOneProduct(saved.id);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      Object.assign(product, {
+        productCode: dto.product_code ?? product.productCode,
+        name: dto.name ?? product.name,
+        description: dto.description ?? product.description,
+        isActive: dto.is_active ?? product.isActive,
+      });
+      await queryRunner.manager.save(Product, product);
+
+      if (dto.lob_ids !== undefined) {
+        await queryRunner.manager.delete(ProductLob, { productId: id });
+        if (dto.lob_ids.length > 0) {
+          const lobs = dto.lob_ids.map(lobId =>
+            queryRunner.manager.create(ProductLob, {
+              productId: id,
+              lobId,
+            }),
+          );
+          await queryRunner.manager.save(ProductLob, lobs);
+        }
+      }
+
+      if (dto.cob_ids !== undefined) {
+        await queryRunner.manager.delete(ProductCob, { productId: id });
+        if (dto.cob_ids.length > 0) {
+          const cobs = dto.cob_ids.map(cobId =>
+            queryRunner.manager.create(ProductCob, {
+              productId: id,
+              cobId,
+            }),
+          );
+          await queryRunner.manager.save(ProductCob, cobs);
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      await this.activityLogsService.log({
+        userId,
+        moduleId: 'master_data',
+        action: 'edit',
+        description: `Updated Product ${product.name} (${product.productCode})`,
+      });
+      return this.findOneProduct(id);
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async deleteProduct(id: string, userId?: string): Promise<void> {
@@ -80,9 +148,7 @@ export class ProductsService {
       userId,
       moduleId: 'master_data',
       action: 'delete',
-      entityType: 'product',
-      entityId: id,
-      description: `Deleted Product ${product.name} (${product.productId})`,
+      description: `Deleted Product ${product.name} (${product.productCode})`,
     });
   }
 }

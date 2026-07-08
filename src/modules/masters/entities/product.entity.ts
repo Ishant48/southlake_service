@@ -3,37 +3,17 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { LineOfBusiness } from './line-of-business.entity';
-import { CobMaster } from './cob-master.entity';
 
 @Entity('product_master')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'product_id', type: 'varchar', unique: true })
-  productId: string;
-
-  @Index()
-  @Column({ name: 'lob_id', type: 'uuid', nullable: true })
-  lobId: string | null;
-
-  @ManyToOne(() => LineOfBusiness, { onDelete: 'RESTRICT', nullable: true })
-  @JoinColumn({ name: 'lob_id' })
-  lob: LineOfBusiness;
-
-  @Index()
-  @Column({ name: 'cob_id', type: 'uuid', nullable: true })
-  cobId: string | null;
-
-  @ManyToOne(() => CobMaster, { onDelete: 'RESTRICT', nullable: true })
-  @JoinColumn({ name: 'cob_id' })
-  cob: CobMaster;
+  @Column({ name: 'product_code', type: 'varchar', unique: true })
+  productCode: string;
 
   @Column({ type: 'varchar' })
   name: string;
@@ -48,8 +28,14 @@ export class Product {
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy: string | null;
+
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updatedAt: Date | null;
+
+  @Column({ name: 'updated_by', type: 'uuid', nullable: true })
+  updatedBy: string | null;
 
   @Index()
   @Column({ name: 'is_deleted', type: 'boolean', default: false })

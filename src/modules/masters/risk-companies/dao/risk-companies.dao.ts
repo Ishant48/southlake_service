@@ -58,9 +58,9 @@ export class RiskCompaniesDao {
     await this.riskCompanyRepo.save(entity);
   }
 
-  findDocumentsByRiskCompanyId(riskCompanyId: string): Promise<RiskCompanyDocument[]> {
+  findDocumentsByRiskCompanyId(carrierId: string): Promise<RiskCompanyDocument[]> {
     return this.riskCompanyDocRepo.find({
-      where: { riskCompanyId },
+      where: { carrierId },
       order: { uploadedAt: 'DESC' },
     });
   }

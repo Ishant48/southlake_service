@@ -18,9 +18,6 @@ export class MgaMaster {
   @Column({ type: 'varchar' })
   name: string;
 
-  @Column({ name: 'tax_payable_inhouse', type: 'boolean', default: false })
-  taxPayableInhouse: boolean;
-
   @Index()
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
@@ -54,21 +51,6 @@ export class MgaMaster {
 
   @Column({ name: 'op_start_date', type: 'date', nullable: true })
   opStartDate: Date | string | null;
-
-  @Column({ name: 'other_names', type: 'jsonb', nullable: true })
-  otherNames: { state: string; displayName: string }[] | null;
-
-  @Column({ name: 'naics_code', type: 'varchar', nullable: true })
-  naicsCode: string | null;
-
-  @Column({ name: 'contact_name', type: 'varchar', nullable: true })
-  contactName: string | null;
-
-  @Column({ name: 'contact_email', type: 'varchar', nullable: true })
-  contactEmail: string | null;
-
-  @Column({ name: 'contact_phone', type: 'varchar', nullable: true })
-  contactPhone: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

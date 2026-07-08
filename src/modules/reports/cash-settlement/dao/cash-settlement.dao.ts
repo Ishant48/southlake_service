@@ -13,7 +13,7 @@ export class CashSettlementDao {
   findTreatyByProgramWithReinsurer(program: string): Promise<Treaty | null> {
     return this.treatyRepo.findOne({
       where: { name: program },
-      relations: { reinsurer: true },
+      relations: { treatyReinsurers: { reinsurer: true } },
     });
   }
 }

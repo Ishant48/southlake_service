@@ -1,17 +1,19 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
-  product_id: string;
+  product_code: string;
 
-  @IsUUID()
-  @IsNotEmpty()
-  lob_id: string;
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  lob_ids?: string[];
 
-  @IsUUID()
-  @IsNotEmpty()
-  cob_id: string;
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  cob_ids?: string[];
 
   @IsString()
   @IsNotEmpty()
@@ -29,15 +31,17 @@ export class CreateProductDto {
 export class UpdateProductDto {
   @IsString()
   @IsOptional()
-  product_id?: string;
+  product_code?: string;
 
-  @IsUUID()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
   @IsOptional()
-  lob_id?: string;
+  lob_ids?: string[];
 
-  @IsUUID()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
   @IsOptional()
-  cob_id?: string;
+  cob_ids?: string[];
 
   @IsString()
   @IsOptional()

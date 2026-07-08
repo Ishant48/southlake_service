@@ -1,4 +1,13 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { DocumentType } from './document-type.entity';
 
 @Entity('carrier_documents')
 export class RiskCompanyDocument {
@@ -6,8 +15,8 @@ export class RiskCompanyDocument {
   id: string;
 
   @Index()
-  @Column({ name: 'risk_company_id', type: 'uuid' })
-  riskCompanyId: string;
+  @Column({ name: 'carrier_id', type: 'uuid' })
+  carrierId: string;
 
   @Column({ name: 'file_name', type: 'varchar' })
   fileName: string;
@@ -15,12 +24,9 @@ export class RiskCompanyDocument {
   @Column({ name: 'file_url', type: 'varchar' })
   fileUrl: string;
 
-  @Column({ name: 'document_type', type: 'varchar', nullable: true })
-  documentType: string | null;
-
   @Index()
-  @Column({ name: 'document_type_id', type: 'uuid', nullable: true })
-  documentTypeId: string | null;
+  @Column({ name: 'document_type_id', type: 'uuid' })
+  documentTypeId: string;
 
   @CreateDateColumn({ name: 'uploaded_at', type: 'timestamp' })
   uploadedAt: Date;
@@ -37,4 +43,8 @@ export class RiskCompanyDocument {
 
   @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
   deletedBy: string | null;
+
+  @ManyToOne(() => DocumentType)
+  @JoinColumn({ name: 'document_type_id' })
+  documentType: DocumentType;
 }

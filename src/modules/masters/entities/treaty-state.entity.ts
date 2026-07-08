@@ -31,4 +31,14 @@ export class TreatyState {
   @ManyToOne(() => StateMaster, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'state_id' })
   state: StateMaster;
+
+  @Index()
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'uuid', nullable: true })
+  deletedBy: string | null;
 }

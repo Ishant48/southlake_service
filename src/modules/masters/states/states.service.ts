@@ -49,8 +49,6 @@ export class StatesService {
       userId,
       moduleId: 'master_data',
       action: 'create',
-      entityType: 'state',
-      entityId: saved.id,
       description: `Created state master ${saved.name} (${saved.stateAbbr})`,
     });
     return saved;
@@ -86,8 +84,6 @@ export class StatesService {
       userId,
       moduleId: 'master_data',
       action: 'edit',
-      entityType: 'state',
-      entityId: saved.id,
       description: `Updated state master ${saved.name} (${saved.stateAbbr})`,
     });
     return saved;
@@ -101,8 +97,6 @@ export class StatesService {
       userId,
       moduleId: 'master_data',
       action: 'delete',
-      entityType: 'state',
-      entityId: id,
       description: `Deleted state master ${state.name} (${state.stateAbbr})`,
     });
   }
@@ -121,7 +115,7 @@ export class StatesService {
       stateId,
       fileName,
       fileUrl,
-      documentType,
+      documentTypeId: documentType,
       uploadedBy: userId,
     });
     return this.dao.saveDocument(doc);

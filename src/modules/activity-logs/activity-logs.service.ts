@@ -7,12 +7,12 @@ export interface LogEntry {
   moduleId?: string;
   submoduleId?: string;
   action: string;
-  entityType?: string;
-  entityId?: string;
   description?: string;
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
+  changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
   ipAddress?: string;
   userAgent?: string;
-  changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
 }
 
 @Injectable()
@@ -25,12 +25,12 @@ export class ActivityLogsService {
       moduleId: entry.moduleId ?? undefined,
       submoduleId: entry.submoduleId ?? undefined,
       action: entry.action,
-      entityType: entry.entityType ?? undefined,
-      entityId: entry.entityId ?? undefined,
       description: entry.description ?? undefined,
+      oldValues: entry.oldValues ?? null,
+      newValues: entry.newValues ?? null,
+      changes: entry.changes ?? null,
       ipAddress: entry.ipAddress ?? undefined,
       userAgent: entry.userAgent ?? undefined,
-      changes: entry.changes ?? null,
     });
   }
 

@@ -10,13 +10,13 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { MgaMaster } from './mga-master.entity';
-import { ReinsurerCompany } from './reinsurer-company.entity';
 import { RiskCompany } from './risk-company.entity';
-import { TreatyLob } from './treaty-lob.entity';
 import { TreatyState } from './treaty-state.entity';
 import { TreatyMga } from './treaty-mga.entity';
-import { TreatyCarrier } from './treaty-carrier.entity';
 import { TreatyReinsurer } from './treaty-reinsurer.entity';
+import { TreatyCarrier } from './treaty-carrier.entity';
+import { TreatyProduct } from './treaty-product.entity';
+import { TreatyTypeMaster } from './treaty-type-master.entity';
 import { ColumnNumericTransformer } from '../../../common/utils';
 
 @Entity('treaties')
@@ -37,14 +37,6 @@ export class Treaty {
   @ManyToOne(() => MgaMaster, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'mga_id' })
   mga: MgaMaster | null;
-
-  @Index()
-  @Column({ name: 'reinsurer_id', type: 'uuid', nullable: true })
-  reinsurerId: string | null;
-
-  @ManyToOne(() => ReinsurerCompany, { onDelete: 'RESTRICT', nullable: true })
-  @JoinColumn({ name: 'reinsurer_id' })
-  reinsurer: ReinsurerCompany | null;
 
   @Index()
   @Column({ name: 'risk_company_id', type: 'uuid', nullable: true })
@@ -161,28 +153,16 @@ export class Treaty {
   })
   laeAoePct: number | null;
 
-  @Column({
-    name: 'carrier_retention_pct',
-    type: 'decimal',
-    precision: 6,
-    scale: 2,
-    transformer: new ColumnNumericTransformer(),
-    nullable: true,
-  })
-  carrierRetentionPct: number | null;
+  @Index()
+  @Column({ name: 'treaty_type_id', type: 'uuid', nullable: true })
+  treatyTypeId: string | null;
 
-  @Column({
-    name: 'reinsurer_cession_pct',
-    type: 'decimal',
-    precision: 6,
-    scale: 2,
-    transformer: new ColumnNumericTransformer(),
-    nullable: true,
-  })
-  reinsurerCessionPct: number | null;
+  @ManyToOne(() => TreatyTypeMaster, { nullable: true })
+  @JoinColumn({ name: 'treaty_type_id' })
+  treatyType: TreatyTypeMaster | null;
 
-  @Column({ name: 'treaty_type', type: 'varchar', default: 'Quota Share' })
-  treatyType: string;
+  @Column({ name: 'carrier_allocation_type', type: 'varchar', nullable: true })
+  carrierAllocationType: string | null;
 
   @Column({ name: 'ulae_type', type: 'varchar', default: 'percentage' })
   ulaeType: string;
@@ -200,42 +180,20 @@ export class Treaty {
   })
   ulaeFlatAmount: number | null;
 
-  @Column({ name: 'policy_seq_prefix', type: 'varchar', nullable: true })
-  policySeqPrefix: string | null;
-
-  @Column({ name: 'policy_seq_start', type: 'integer', nullable: true })
-  policySeqStart: number | null;
-
-  @Column({ name: 'policy_seq_next', type: 'integer', nullable: true })
-  policySeqNext: number | null;
-
-  @Column({ name: 'claim_seq_prefix', type: 'varchar', nullable: true })
-  claimSeqPrefix: string | null;
-
-  @Column({ name: 'claim_seq_start', type: 'integer', nullable: true })
-  claimSeqStart: number | null;
-
-  @Column({ name: 'claim_seq_next', type: 'integer', nullable: true })
-  claimSeqNext: number | null;
-
-  @Index()
-  @Column({ name: 'is_active', type: 'boolean', default: true })
-  isActive: boolean;
-
-  @OneToMany(() => TreatyLob, tl => tl.treaty, { cascade: true })
-  treatyLobs: TreatyLob[];
-
   @OneToMany(() => TreatyState, ts => ts.treaty, { cascade: true })
   treatyStates: TreatyState[];
 
   @OneToMany(() => TreatyMga, tm => tm.treaty, { cascade: true })
   treatyMgas: TreatyMga[];
 
+  @OneToMany(() => TreatyReinsurer, tr => tr.treaty, { cascade: true })
+  treatyReinsurers: TreatyReinsurer[];
+
   @OneToMany(() => TreatyCarrier, tc => tc.treaty, { cascade: true })
   treatyCarriers: TreatyCarrier[];
 
-  @OneToMany(() => TreatyReinsurer, tr => tr.treaty, { cascade: true })
-  treatyReinsurers: TreatyReinsurer[];
+  @OneToMany(() => TreatyProduct, tp => tp.treaty, { cascade: true })
+  treatyProducts: TreatyProduct[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
