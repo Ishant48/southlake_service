@@ -6,4 +6,5 @@ export default registerAs('app', () => ({
   sessionExpiryHours: parseInt(process.env.SESSION_EXPIRY_HOURS ?? '', 10) || 1,
   otpExpiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES ?? '', 10) || 5,
   otpMaxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS ?? '', 10) || 5,
+  passwordResetExpiryMinutes: parseInt(process.env.PASSWORD_RESET_EXPIRY_MINUTES ?? '', 10) || 30,
 }));

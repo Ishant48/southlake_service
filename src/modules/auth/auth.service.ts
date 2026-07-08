@@ -16,6 +16,8 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserSession } from './entities/user-session.entity';
 import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
@@ -391,6 +393,82 @@ export class AuthService {
         permissions,
       },
     };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto, ipAddress: string): Promise<{ message: string }> {
+    const genericResponse = {
+      message: 'If an account exists for that email, a password reset link has been sent.',
+    };
+
+    const user = await this.authDao.findUserByEmail(dto.email);
+    if (!user) {
+      return genericResponse;
+    }
+
+    const rateLimitWindow = new Date(Date.now() - 15 * 60 * 1000);
+    const recentCount = await this.authDao.countRecentPasswordResets(user.id, rateLimitWindow);
+
+    if (recentCount >= 3) {
+      // Cooldown hit: suppress silently. Throwing here (like login()'s OTP
+      // cooldown does) would leak account existence via a distinguishable
+      // response, so this path returns the exact same generic response.
+      return genericResponse;
+    }
+
+    const resetExpiryMinutes =
+      this.configService.get<number>('app.passwordResetExpiryMinutes') ?? 30;
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + resetExpiryMinutes * 60 * 1000);
+
+    await this.authDao.saveResetToken({
+      userId: user.id,
+      tokenHash: hashToken(token),
+      expiresAt,
+    });
+
+    const appUrl = this.configService.get<string>('app.appUrl');
+    const resetLink = `${appUrl}/reset-password?token=${token}`;
+    this.mailService
+      .sendPasswordReset(user.email, resetLink)
+      .catch(err => this.logger.error(`Failed to send password reset email to ${user.email}`, err));
+
+    await this.activityLogsService.log({
+      userId: user.id,
+      action: 'password_reset_requested',
+      description: `Password reset requested for ${user.email}`,
+      ipAddress,
+    });
+
+    return genericResponse;
+  }
+
+  async validateResetToken(token: string): Promise<{ valid: boolean }> {
+    const resetToken = await this.authDao.findActiveResetToken(hashToken(token));
+    if (!resetToken) {
+      throw new NotFoundException('Invalid or expired reset token.');
+    }
+    return { valid: true };
+  }
+
+  async resetPassword(dto: ResetPasswordDto, ipAddress: string): Promise<{ message: string }> {
+    const resetToken = await this.authDao.findActiveResetToken(hashToken(dto.token));
+    if (!resetToken) {
+      throw new NotFoundException('Invalid or expired reset token.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    await this.authDao.updateUserPassword(resetToken.userId, passwordHash);
+    await this.authDao.markResetTokenUsed(resetToken);
+    await this.authDao.revokeAllSessionsForUser(resetToken.userId, 'password_reset');
+
+    await this.activityLogsService.log({
+      userId: resetToken.userId,
+      action: 'password_reset_completed',
+      description: 'Password reset completed',
+      ipAddress,
+    });
+
+    return { message: 'Your password has been reset successfully. Please log in.' };
   }
 
   private sanitizeUser(user: User): Partial<User> {

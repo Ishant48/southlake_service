@@ -4,6 +4,7 @@ import { Repository, MoreThan } from 'typeorm';
 import { LoginOtp } from '../entities/login-otp.entity';
 import { UserSession } from '../entities/user-session.entity';
 import { LoginChallenge } from '../entities/login-challenge.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { User } from '../../users/entities/user.entity';
 import { PendingInvite } from '../../users/entities/pending-invite.entity';
 
@@ -16,6 +17,8 @@ export class AuthDao {
     private readonly sessionRepo: Repository<UserSession>,
     @InjectRepository(LoginChallenge)
     private readonly challengeRepo: Repository<LoginChallenge>,
+    @InjectRepository(PasswordResetToken)
+    private readonly resetTokenRepo: Repository<PasswordResetToken>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(PendingInvite)
@@ -134,6 +137,48 @@ export class AuthDao {
   // observes save()/remove() — this bypasses it on purpose).
   async updateUserLastLogin(userId: string): Promise<void> {
     await this.userRepo.update(userId, { lastLoginAt: new Date() });
+  }
+
+  async countRecentPasswordResets(userId: string, since: Date): Promise<number> {
+    return this.resetTokenRepo.count({
+      where: {
+        userId,
+        createdAt: MoreThan(since),
+      },
+    });
+  }
+
+  saveResetToken(entry: Partial<PasswordResetToken>): Promise<PasswordResetToken> {
+    return this.resetTokenRepo.save(this.resetTokenRepo.create(entry));
+  }
+
+  findActiveResetToken(tokenHash: string): Promise<PasswordResetToken | null> {
+    return this.resetTokenRepo.findOne({
+      where: {
+        tokenHash,
+        isUsed: false,
+        expiresAt: MoreThan(new Date()),
+      },
+    });
+  }
+
+  async markResetTokenUsed(token: PasswordResetToken): Promise<void> {
+    token.isUsed = true;
+    await this.resetTokenRepo.save(token);
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await this.userRepo.save({ id: userId, passwordHash });
+  }
+
+  async revokeAllSessionsForUser(userId: string, reason: string): Promise<void> {
+    await this.sessionRepo
+      .createQueryBuilder()
+      .update(UserSession)
+      .set({ isActive: false, revokedAt: new Date(), revokeReason: reason })
+      .where('user_id = :userId', { userId })
+      .andWhere('is_active = :isActive', { isActive: true })
+      .execute();
   }
 
   findInviteByToken(token: string): Promise<PendingInvite | null> {

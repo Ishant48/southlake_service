@@ -28,6 +28,7 @@ import { UserPermission } from './modules/users/entities/user-permission.entity'
 import { LoginOtp } from './modules/auth/entities/login-otp.entity';
 import { UserSession } from './modules/auth/entities/user-session.entity';
 import { LoginChallenge } from './modules/auth/entities/login-challenge.entity';
+import { PasswordResetToken } from './modules/auth/entities/password-reset-token.entity';
 import { PendingInvite } from './modules/users/entities/pending-invite.entity';
 import { ActivityLog } from './modules/activity-logs/entities/activity-log.entity';
 import { ChartOfAccount } from './modules/chart-of-accounts/entities/chart-of-account.entity';
@@ -99,6 +100,7 @@ import { TreatyTypeMaster } from './modules/masters/entities/treaty-type-master.
           LoginOtp,
           UserSession,
           LoginChallenge,
+          PasswordResetToken,
           PendingInvite,
           ActivityLog,
           Workbook,
