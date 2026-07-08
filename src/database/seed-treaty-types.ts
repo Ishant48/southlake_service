@@ -4,8 +4,6 @@ export async function seedTreatyTypes(queryRunner: QueryRunner): Promise<void> {
   const treatyTypes = [
     { typeCode: 'QS', name: 'Quota Share', description: 'Quota Share' },
     { typeCode: 'FAC', name: 'Facultative', description: 'Facultative' },
-    { typeCode: 'XL', name: 'Excess of Loss', description: 'Excess of Loss' },
-    { typeCode: 'SS', name: 'Surplus Share', description: 'Surplus Share' },
   ];
 
   console.warn('Seeding Treaty Types...');
@@ -28,4 +26,9 @@ export async function seedTreatyTypes(queryRunner: QueryRunner): Promise<void> {
       );
     }
   }
+
+  // Delete any other treaty types
+  await queryRunner.query(
+    `DELETE FROM treaty_type_master WHERE type_code NOT IN ('QS', 'FAC')`
+  );
 }

@@ -61,10 +61,6 @@ export class CreateMgaDto {
 
   @IsString()
   @IsOptional()
-  naics_code?: string;
-
-  @IsString()
-  @IsOptional()
   contact_name?: string;
 
   @IsString()
@@ -134,10 +130,6 @@ export class UpdateMgaDto {
   @IsArray()
   @IsOptional()
   other_names?: { state: string; displayName: string }[];
-
-  @IsString()
-  @IsOptional()
-  naics_code?: string;
 
   @IsString()
   @IsOptional()
