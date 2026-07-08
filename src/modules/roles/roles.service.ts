@@ -7,6 +7,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Role } from './entities/role.entity';
 import { RolePermission } from './entities/role-permission.entity';
+import { Permission } from '../permissions/entities/permission.entity';
 import { User } from '../users/entities/user.entity';
 import { PermissionCacheService } from '../../common/cache/permission-cache.service';
 
@@ -187,10 +188,24 @@ export class RolesService {
   }
 
   async saveFlatPermissions(roleId: string, permissionIds: string[]): Promise<void> {
-    const upsertEntries: UpsertRolePermissionEntry[] = permissionIds.map(pid => ({
-      moduleId: 'rbac',
-      permissionId: pid,
-    }));
+    const allPerms = await this.dao.findAllPermissionsList();
+    const permMap = new Map<string, Permission>();
+    for (const p of allPerms) {
+      permMap.set(p.id, p);
+    }
+
+    const upsertEntries: UpsertRolePermissionEntry[] = permissionIds
+      .map(pid => {
+        const perm = permMap.get(pid);
+        if (!perm) return null;
+        const parts = perm.action.split('.');
+        const prefix = parts.length > 1 ? parts[0] : 'rbac';
+        return {
+          moduleId: prefix,
+          permissionId: pid,
+        };
+      })
+      .filter((entry): entry is UpsertRolePermissionEntry => entry !== null);
 
     await this.dao.upsertPermissions(roleId, upsertEntries);
 

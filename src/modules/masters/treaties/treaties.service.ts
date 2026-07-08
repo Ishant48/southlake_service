@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, QueryRunner } from 'typeorm';
 import { TreatiesDao } from './dao/treaties.dao';
 import { Treaty } from '../entities/treaty.entity';
 import { TreatyLob } from '../entities/treaty-lob.entity';
@@ -8,6 +8,8 @@ import { TreatyState } from '../entities/treaty-state.entity';
 import { TreatyMga } from '../entities/treaty-mga.entity';
 import { TreatyCarrier } from '../entities/treaty-carrier.entity';
 import { TreatyReinsurer } from '../entities/treaty-reinsurer.entity';
+import { ReinsurerCompany } from '../entities/reinsurer-company.entity';
+import { RiskCompany } from '../entities/risk-company.entity';
 import { CreateTreatyDto, UpdateTreatyDto } from '../dto/treaty.dto';
 
 /** CRUD for treaty master records, including their carriers, reinsurers, MGAs, states, LOBs and COBs. */
@@ -53,11 +55,22 @@ export class TreatiesService {
     try {
       const firstMgaId =
         dto.mga_ids && dto.mga_ids.length > 0 ? dto.mga_ids[0] : (dto.mga_id ?? null);
+
+      const firstReinsurerId = firstReinsurer ? firstReinsurer.reinsurer_id : (dto.reinsurer_id ?? null);
+      if (firstReinsurerId) {
+        await this.ensureReinsurerExists(queryRunner, firstReinsurerId, userId);
+      }
+      if (dto.reinsurers && dto.reinsurers.length > 0) {
+        for (const r of dto.reinsurers) {
+          await this.ensureReinsurerExists(queryRunner, r.reinsurer_id, userId);
+        }
+      }
+
       const treaty = queryRunner.manager.create(Treaty, {
         treatyCode: dto.treaty_code,
         name: dto.name,
         mgaId: firstMgaId,
-        reinsurerId: firstReinsurer ? firstReinsurer.reinsurer_id : (dto.reinsurer_id ?? null),
+        reinsurerId: firstReinsurerId,
         riskCompanyId: firstCarrier ? firstCarrier.risk_company_id : (dto.risk_company_id ?? null),
         effectiveDate: dto.effective_date ? new Date(dto.effective_date) : null,
         expirationDate: dto.expiration_date ? new Date(dto.expiration_date) : null,
@@ -115,6 +128,7 @@ export class TreatiesService {
             cessionPct: r.cession_pct,
             stateId: r.state_id ?? null,
             brokerId: r.broker_id ?? null,
+            brokerCommType: r.broker_comm_type ?? null,
           });
         });
         await queryRunner.manager.save(TreatyReinsurer, reinsurers);
@@ -221,6 +235,15 @@ export class TreatiesService {
         updateReinsurerCession = dto.reinsurer_cession_pct ?? treaty.reinsurerCessionPct;
       }
 
+      if (updateReinsurerId) {
+        await this.ensureReinsurerExists(queryRunner, updateReinsurerId, userId);
+      }
+      if (dto.reinsurers) {
+        for (const r of dto.reinsurers) {
+          await this.ensureReinsurerExists(queryRunner, r.reinsurer_id, userId);
+        }
+      }
+
       Object.assign(treaty, {
         treatyCode: dto.treaty_code ?? treaty.treatyCode,
         name: dto.name ?? treaty.name,
@@ -293,6 +316,7 @@ export class TreatiesService {
               cessionPct: r.cession_pct,
               stateId: r.state_id ?? null,
               brokerId: r.broker_id ?? null,
+              brokerCommType: r.broker_comm_type ?? null,
             });
           });
           await queryRunner.manager.save(TreatyReinsurer, reinsurers);
@@ -356,6 +380,24 @@ export class TreatiesService {
       throw err;
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  private async ensureReinsurerExists(queryRunner: QueryRunner, id: string, userId: string): Promise<void> {
+    const exists = await queryRunner.manager.findOne(ReinsurerCompany, { where: { id } });
+    if (exists) return;
+
+    const riskCo = await queryRunner.manager.findOne(RiskCompany, { where: { id } });
+    if (riskCo) {
+      const newReinsurer = queryRunner.manager.create(ReinsurerCompany, {
+        id: riskCo.id,
+        reinsurerCompanyId: riskCo.riskCompanyId || 'RC-' + riskCo.id.slice(0, 5),
+        name: riskCo.name,
+        isActive: true,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+      await queryRunner.manager.save(ReinsurerCompany, newReinsurer);
     }
   }
 

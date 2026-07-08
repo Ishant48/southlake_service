@@ -104,7 +104,7 @@ export class InitialSchema1783223589374 implements MigrationInterface {
       `CREATE TABLE "carrier_documents" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "risk_company_id" uuid NOT NULL, "file_name" character varying NOT NULL, "file_url" character varying NOT NULL, "document_type" character varying, "document_type_id" uuid, "uploaded_at" TIMESTAMP NOT NULL DEFAULT now(), "uploaded_by" uuid, "is_deleted" boolean NOT NULL DEFAULT false, "deleted_at" TIMESTAMP, "deleted_by" uuid, CONSTRAINT "PK_7081696bf11ad039a072b6d1e62" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "product_master" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "product_id" character varying NOT NULL, "lob_id" uuid, "cob_id" uuid, "name" character varying NOT NULL, "description" text, "is_active" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP DEFAULT now(), "is_deleted" boolean NOT NULL DEFAULT false, "deleted_at" TIMESTAMP, "deleted_by" uuid, CONSTRAINT "UQ_c91a860e2497176139ca5b4aeb4" UNIQUE ("product_id"), CONSTRAINT "PK_1966e0275e801d4d8a11f3fd6ea" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "product_master" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "product_id" character varying NOT NULL, "lob_id" text, "cob_id" text, "name" character varying NOT NULL, "description" text, "is_active" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP DEFAULT now(), "is_deleted" boolean NOT NULL DEFAULT false, "deleted_at" TIMESTAMP, "deleted_by" uuid, CONSTRAINT "UQ_c91a860e2497176139ca5b4aeb4" UNIQUE ("product_id"), CONSTRAINT "PK_1966e0275e801d4d8a11f3fd6ea" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "product_lobs" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "product_id" uuid NOT NULL, "lob_id" uuid NOT NULL, "is_deleted" boolean NOT NULL DEFAULT false, "deleted_at" TIMESTAMP, "deleted_by" uuid, CONSTRAINT "PK_67ad0031de607606c0c91e466ce" PRIMARY KEY ("id"))`,
@@ -263,12 +263,6 @@ export class InitialSchema1783223589374 implements MigrationInterface {
       `ALTER TABLE "treaties" ADD CONSTRAINT "FK_0cb77ced5a092aa8f5e4377e110" FOREIGN KEY ("risk_company_id") REFERENCES "carriers"("id") ON DELETE RESTRICT ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "product_master" ADD CONSTRAINT "FK_7155d70022733f235f7295d7200" FOREIGN KEY ("lob_id") REFERENCES "lines_of_business"("id") ON DELETE RESTRICT ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "product_master" ADD CONSTRAINT "FK_fd254674561c941338f3d1615b0" FOREIGN KEY ("cob_id") REFERENCES "cob_master"("id") ON DELETE RESTRICT ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "locked_periods" ADD CONSTRAINT "FK_cdd6f47bd9c3e881078015e081e" FOREIGN KEY ("locked_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
@@ -366,12 +360,6 @@ export class InitialSchema1783223589374 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "locked_periods" DROP CONSTRAINT "FK_cdd6f47bd9c3e881078015e081e"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "product_master" DROP CONSTRAINT "FK_fd254674561c941338f3d1615b0"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "product_master" DROP CONSTRAINT "FK_7155d70022733f235f7295d7200"`,
     );
     await queryRunner.query(
       `ALTER TABLE "treaties" DROP CONSTRAINT "FK_0cb77ced5a092aa8f5e4377e110"`,

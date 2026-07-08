@@ -56,6 +56,10 @@ export class TreatyReinsurerDto {
   @IsUUID()
   @IsOptional()
   broker_id?: string;
+
+  @IsString()
+  @IsOptional()
+  broker_comm_type?: string;
 }
 
 export class CreateTreatyDto {

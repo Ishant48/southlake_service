@@ -50,4 +50,7 @@ export class TreatyReinsurer {
   @ManyToOne(() => Broker, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'broker_id' })
   broker: Broker | null;
+
+  @Column({ name: 'broker_comm_type', type: 'varchar', nullable: true })
+  brokerCommType: string | null;
 }

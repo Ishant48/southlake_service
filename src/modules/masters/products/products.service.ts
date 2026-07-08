@@ -4,6 +4,14 @@ import { ProductsDao } from './dao/products.dao';
 import { Product } from '../entities/product.entity';
 import { CreateProductDto, UpdateProductDto } from '../dto/product.dto';
 
+function toCommaString(val: any): string | null {
+  if (!val) return null;
+  if (Array.isArray(val)) {
+    return val.filter(Boolean).map(v => String(v).trim()).join(',');
+  }
+  return String(val).trim();
+}
+
 /** CRUD for product master records. */
 @Injectable()
 export class ProductsService {
@@ -12,24 +20,64 @@ export class ProductsService {
     private readonly activityLogsService: ActivityLogsService,
   ) {}
 
-  async findAllProducts(search?: string, isActive?: boolean): Promise<Product[]> {
-    return this.dao.findAll(search, isActive);
+  async findAllProducts(search?: string, isActive?: boolean): Promise<any[]> {
+    const products = await this.dao.findAll(search, isActive);
+    const lobs = await this.dao.findAllLobs();
+    const cobs = await this.dao.findAllCobs();
+
+    const lobMap = new Map(lobs.map(l => [l.id, l]));
+    const cobMap = new Map(cobs.map(c => [c.id, c]));
+
+    return products.map(product => {
+      const lobIds = product.lobId ? product.lobId.split(',') : [];
+      const cobIds = product.cobId ? product.cobId.split(',') : [];
+
+      const productLobs = lobIds.map(id => lobMap.get(id)).filter(Boolean);
+      const productCobs = cobIds.map(id => cobMap.get(id)).filter(Boolean);
+
+      return {
+        ...product,
+        lobs: productLobs,
+        cobs: productCobs,
+        lob: productLobs[0] || null,
+        cob: productCobs[0] || null,
+      };
+    });
   }
 
-  async findOneProduct(id: string): Promise<Product> {
+  async findOneProduct(id: string): Promise<any> {
     const product = await this.dao.findById(id);
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+
+    const lobs = await this.dao.findAllLobs();
+    const cobs = await this.dao.findAllCobs();
+
+    const lobMap = new Map(lobs.map(l => [l.id, l]));
+    const cobMap = new Map(cobs.map(c => [c.id, c]));
+
+    const lobIds = product.lobId ? product.lobId.split(',') : [];
+    const cobIds = product.cobId ? product.cobId.split(',') : [];
+
+    const productLobs = lobIds.map(id => lobMap.get(id)).filter(Boolean);
+    const productCobs = cobIds.map(id => cobMap.get(id)).filter(Boolean);
+
+    return {
+      ...product,
+      lobs: productLobs,
+      cobs: productCobs,
+      lob: productLobs[0] || null,
+      cob: productCobs[0] || null,
+    };
   }
 
-  async createProduct(dto: CreateProductDto, userId?: string): Promise<Product> {
+  async createProduct(dto: CreateProductDto, userId?: string): Promise<any> {
     const exists = await this.dao.findByProductId(dto.product_id);
     if (exists) throw new BadRequestException(`Product ID ${dto.product_id} already exists`);
 
     const product = this.dao.create({
       productId: dto.product_id,
-      lobId: dto.lob_id,
-      cobId: dto.cob_id,
+      lobId: toCommaString(dto.lob_id),
+      cobId: toCommaString(dto.cob_id),
       name: dto.name,
       description: dto.description ?? null,
       isActive: dto.is_active ?? true,
@@ -46,8 +94,10 @@ export class ProductsService {
     return this.findOneProduct(saved.id);
   }
 
-  async updateProduct(id: string, dto: UpdateProductDto, userId?: string): Promise<Product> {
-    const product = await this.findOneProduct(id);
+  async updateProduct(id: string, dto: UpdateProductDto, userId?: string): Promise<any> {
+    const product = await this.dao.findById(id);
+    if (!product) throw new NotFoundException('Product not found');
+
     if (dto.product_id !== undefined && dto.product_id !== product.productId) {
       const exists = await this.dao.findByProductId(dto.product_id);
       if (exists) throw new BadRequestException(`Product ID ${dto.product_id} already exists`);
@@ -55,8 +105,8 @@ export class ProductsService {
 
     Object.assign(product, {
       productId: dto.product_id ?? product.productId,
-      lobId: dto.lob_id ?? product.lobId,
-      cobId: dto.cob_id ?? product.cobId,
+      lobId: dto.lob_id !== undefined ? toCommaString(dto.lob_id) : product.lobId,
+      cobId: dto.cob_id !== undefined ? toCommaString(dto.cob_id) : product.cobId,
       name: dto.name ?? product.name,
       description: dto.description ?? product.description,
       isActive: dto.is_active ?? product.isActive,

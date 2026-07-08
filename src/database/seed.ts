@@ -3,6 +3,8 @@ import { seedRoles } from './seed-roles';
 import { seedPermissions } from './seed-permissions';
 import { seedCoa } from './seed-coa';
 import { seedFalconData } from './seed-falcon-data';
+import { seedGlMappings } from './seed-gl-mappings';
+import { seedDocumentTypes } from './seed-document-types';
 
 /**
  * Single entry point for all repeatable fixture seeding — run via `npm run seed`.
@@ -33,6 +35,12 @@ async function seed(): Promise<void> {
 
     console.warn('Seeding Falcon master data (states, LOBs, COBs, risk companies)...');
     await seedFalconData(queryRunner);
+
+    console.warn('Seeding GL Mappings...');
+    await seedGlMappings(queryRunner);
+
+    console.warn('Seeding Document Types...');
+    await seedDocumentTypes(queryRunner);
 
     await queryRunner.commitTransaction();
     console.warn('Seeding completed successfully.');

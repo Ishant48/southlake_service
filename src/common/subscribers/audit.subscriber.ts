@@ -19,6 +19,30 @@ import { ActivityLog } from '../../modules/activity-logs/entities/activity-log.e
  */
 const SKIP_ENTITIES = new Set(['ActivityLog', 'UserSession', 'LoginOtp', 'LoginChallenge']);
 
+const ENTITY_TO_MODULE_MAP: Record<string, string> = {
+  User: 'user',
+  Role: 'role',
+  Permission: 'permission',
+  ChartOfAccount: 'chart_of_accounts',
+  ChartOfAccounts: 'chart_of_accounts',
+  GlMapping: 'gl_mapping',
+  JournalEntry: 'journal_entry',
+  JournalEntryBatch: 'journal_entry',
+  BrokerMaster: 'broker',
+  CobMaster: 'cob',
+  LobMaster: 'lob',
+  StateMaster: 'state',
+  ReinsurerCompany: 'reinsurer',
+  Carrier: 'risk_company',
+  Treaty: 'treaty',
+  ProductMaster: 'product',
+  DocumentTypeMaster: 'masters_config',
+  SequencePrefixMaster: 'masters_config',
+  LockedPeriod: 'masters_config',
+  Workbook: 'workbook',
+  MgaMaster: 'mga',
+};
+
 export interface FieldChange {
   field: string;
   oldValue: unknown;
@@ -56,6 +80,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
       action: 'create',
       entityType: event.metadata.name,
       entityId: this.getId(event.entity, event.metadata),
+      entityObj: event.entity,
     });
   }
 
@@ -65,6 +90,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
       action: 'delete',
       entityType: event.metadata.name,
       entityId: this.getId(event.entity, event.metadata),
+      entityObj: event.entity,
     });
   }
 
@@ -99,24 +125,86 @@ export class AuditSubscriber implements EntitySubscriberInterface {
       entityType: event.metadata.name,
       entityId: this.getId(event.databaseEntity, event.metadata),
       changes,
+      entityObj: event.entity,
     });
   }
 
   private async writeLog(
     repo: ReturnType<DataSource['getRepository']>,
-    fields: { action: string; entityType: string; entityId: string; changes?: FieldChange[] },
+    fields: { action: string; entityType: string; entityId: string; changes?: FieldChange[]; entityObj?: any },
   ): Promise<void> {
     const userId = this.requestContext.getUserId();
+    const rawType = fields.entityType;
+    const entity = fields.entityObj;
+
+    const moduleId = ENTITY_TO_MODULE_MAP[rawType] || 'rbac';
+
+    let displayEntityName = rawType;
+    if (entity) {
+      const nameVal = entity.name || entity.label || entity.batchNumber || entity.treatyCode || entity.code || '';
+      if (nameVal) {
+        let typeName = rawType;
+        if (rawType === 'Carrier') typeName = 'Risk Company';
+        else if (rawType === 'MgaMaster') typeName = 'MGA';
+        else if (rawType === 'CobMaster') typeName = 'COB';
+        else if (rawType === 'LobMaster') typeName = 'LOB';
+        else if (rawType === 'StateMaster') typeName = 'State';
+        else if (rawType === 'ReinsurerCompany') typeName = 'Reinsurer';
+        else if (rawType === 'BrokerMaster') typeName = 'Broker';
+        else if (rawType === 'ProductMaster') typeName = 'Product';
+        else if (rawType === 'JournalEntryBatch') typeName = 'Journal Entry';
+
+        displayEntityName = `${typeName} - ${nameVal}`;
+      }
+    }
+
+    let description = `${fields.action} ${rawType} ${fields.entityId}`;
+    if (entity) {
+      const name = entity.name || entity.label || entity.batchNumber || entity.treatyCode || entity.code || 'Item';
+      if (rawType === 'User') {
+        if (fields.action === 'create') description = `Created a new user account for ${name}`;
+        else if (fields.action === 'update') description = `Updated user profile for ${name}`;
+        else if (fields.action === 'delete') description = `Deactivated user account for ${name}`;
+      } else if (rawType === 'Role') {
+        if (fields.action === 'create') description = `Created a new security role: ${name}`;
+        else if (fields.action === 'update') description = `Updated permissions and configurations for role ${name}`;
+        else if (fields.action === 'delete') description = `Deleted role ${name}`;
+      } else {
+        let typeName = rawType;
+        if (rawType === 'Carrier') typeName = 'risk company';
+        else if (rawType === 'MgaMaster') typeName = 'MGA';
+        else if (rawType === 'CobMaster') typeName = 'COB';
+        else if (rawType === 'LobMaster') typeName = 'LOB';
+        else if (rawType === 'StateMaster') typeName = 'state';
+        else if (rawType === 'ReinsurerCompany') typeName = 'reinsurer';
+        else if (rawType === 'BrokerMaster') typeName = 'broker';
+        else if (rawType === 'ProductMaster') typeName = 'product';
+        else if (rawType === 'JournalEntryBatch') typeName = 'journal entry';
+
+        if (fields.action === 'create') description = `Created a new ${typeName.toLowerCase()}: ${name}`;
+        else if (fields.action === 'update') description = `Updated details for ${typeName.toLowerCase()}: ${name}`;
+        else if (fields.action === 'delete') description = `Deleted ${typeName.toLowerCase()}: ${name}`;
+      }
+    }
+
     await repo.save(
       repo.create({
         userId: userId ?? undefined,
+        moduleId,
         action: fields.action,
-        entityType: fields.entityType,
+        entityType: displayEntityName,
         entityId: fields.entityId,
-        description: `${fields.action} ${fields.entityType} ${fields.entityId}`,
+        description,
         ipAddress: this.requestContext.getIpAddress() ?? undefined,
         userAgent: this.requestContext.getUserAgent() ?? undefined,
-        changes: fields.changes && fields.changes.length > 0 ? fields.changes : null,
+        fieldChanges: fields.changes && fields.changes.length > 0 ? fields.changes : null,
+        status: 'Success',
+        device: this.requestContext.getDevice() ?? undefined,
+        os: this.requestContext.getOs() ?? undefined,
+        browser: this.requestContext.getBrowser() ?? undefined,
+        location: this.requestContext.getLocation() ?? undefined,
+        sessionId: this.requestContext.getSessionId() ?? undefined,
+        correlationId: this.requestContext.getCorrelationId() ?? undefined,
       }),
     );
   }

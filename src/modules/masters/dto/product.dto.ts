@@ -5,13 +5,11 @@ export class CreateProductDto {
   @IsNotEmpty()
   product_id: string;
 
-  @IsUUID()
-  @IsNotEmpty()
-  lob_id: string;
+  @IsOptional()
+  lob_id?: any;
 
-  @IsUUID()
-  @IsNotEmpty()
-  cob_id: string;
+  @IsOptional()
+  cob_id?: any;
 
   @IsString()
   @IsNotEmpty()
@@ -31,13 +29,11 @@ export class UpdateProductDto {
   @IsOptional()
   product_id?: string;
 
-  @IsUUID()
   @IsOptional()
-  lob_id?: string;
+  lob_id?: any;
 
-  @IsUUID()
   @IsOptional()
-  cob_id?: string;
+  cob_id?: any;
 
   @IsString()
   @IsOptional()

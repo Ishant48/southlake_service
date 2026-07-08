@@ -26,6 +26,8 @@ export class JournalEntriesDao {
   ): Promise<JournalEntryBatch[]> {
     const queryBuilder = this.batchRepo.createQueryBuilder('batch');
 
+    queryBuilder.andWhere('batch.isDeleted = :isDeleted', { isDeleted: false });
+
     if (period) {
       queryBuilder.andWhere('batch.period = :period', { period });
     }
@@ -43,7 +45,7 @@ export class JournalEntriesDao {
   }
 
   findBatchById(id: string): Promise<JournalEntryBatch | null> {
-    return this.batchRepo.findOne({ where: { id } });
+    return this.batchRepo.findOne({ where: { id, isDeleted: false } });
   }
 
   findLockedPeriod(period: string): Promise<LockedPeriod | null> {
@@ -51,11 +53,11 @@ export class JournalEntriesDao {
   }
 
   findAllBatches(): Promise<JournalEntryBatch[]> {
-    return this.batchRepo.find();
+    return this.batchRepo.find({ where: { isDeleted: false } });
   }
 
   findBatchByBatchNumber(batchNumber: string): Promise<JournalEntryBatch | null> {
-    return this.batchRepo.findOne({ where: { batchNumber } });
+    return this.batchRepo.findOne({ where: { batchNumber, isDeleted: false } });
   }
 
   createBatchEntity(data: Partial<JournalEntryBatch>): JournalEntryBatch {

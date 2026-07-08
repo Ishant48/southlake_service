@@ -56,8 +56,29 @@ export class ActivityLog {
   description: string;
 
   /** Field-level diff for updates: [{ field, oldValue, newValue }]. Null for create/delete/view actions. */
-  @Column({ type: 'jsonb', nullable: true })
-  changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> | null;
+  @Column({ name: 'changes', type: 'jsonb', nullable: true })
+  fieldChanges: Array<{ field: string; oldValue: unknown; newValue: unknown }> | null;
+
+  @Column({ type: 'varchar', nullable: true, default: 'success' })
+  status: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  device: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  os: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  browser: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  location: string;
+
+  @Column({ name: 'session_id', type: 'varchar', nullable: true })
+  sessionId: string;
+
+  @Column({ name: 'correlation_id', type: 'varchar', nullable: true })
+  correlationId: string;
 
   @Column({ name: 'ip_address', type: 'varchar', nullable: true })
   ipAddress: string;

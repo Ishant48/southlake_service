@@ -20,20 +20,20 @@ export class Product {
   productId: string;
 
   @Index()
-  @Column({ name: 'lob_id', type: 'uuid', nullable: true })
+  @Column({ name: 'lob_id', type: 'text', nullable: true })
   lobId: string | null;
 
-  @ManyToOne(() => LineOfBusiness, { onDelete: 'RESTRICT', nullable: true })
-  @JoinColumn({ name: 'lob_id' })
-  lob: LineOfBusiness;
+  // @ManyToOne(() => LineOfBusiness, { onDelete: 'RESTRICT', nullable: true })
+  // @JoinColumn({ name: 'lob_id' })
+  // lob: LineOfBusiness;
 
   @Index()
-  @Column({ name: 'cob_id', type: 'uuid', nullable: true })
+  @Column({ name: 'cob_id', type: 'text', nullable: true })
   cobId: string | null;
 
-  @ManyToOne(() => CobMaster, { onDelete: 'RESTRICT', nullable: true })
-  @JoinColumn({ name: 'cob_id' })
-  cob: CobMaster;
+  // @ManyToOne(() => CobMaster, { onDelete: 'RESTRICT', nullable: true })
+  // @JoinColumn({ name: 'cob_id' })
+  // cob: CobMaster;
 
   @Column({ type: 'varchar' })
   name: string;

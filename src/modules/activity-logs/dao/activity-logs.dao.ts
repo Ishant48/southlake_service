@@ -104,4 +104,36 @@ export class ActivityLogsDao {
 
     return this.repo.find(findOpts);
   }
+
+  async getStats(): Promise<{
+    total: number;
+    successful: number;
+    failed: number;
+    critical: number;
+    activeUsers: number;
+  }> {
+    const manager = this.repo.manager;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [total, successful, failed, critical, activeUsersResult] = await Promise.all([
+      this.repo.count(),
+      this.repo.countBy({ status: 'Success' }),
+      this.repo.countBy({ status: 'Failed' }),
+      this.repo.countBy({ status: 'Critical' }),
+      manager.createQueryBuilder()
+        .select('COUNT(DISTINCT(user_id))', 'count')
+        .from('activity_logs', 'al')
+        .where('al.created_at >= :today', { today: startOfToday })
+        .getRawOne(),
+    ]);
+
+    return {
+      total,
+      successful,
+      failed: failed || 0,
+      critical: critical || 0,
+      activeUsers: parseInt(activeUsersResult?.count || '0', 10),
+    };
+  }
 }

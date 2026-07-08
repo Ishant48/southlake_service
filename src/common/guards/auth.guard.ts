@@ -127,6 +127,7 @@ export class AuthGuard implements CanActivate {
     request.user = authenticatedUser;
     request.session = session;
     this.requestContext.setUser(user.id, user.name);
+    this.requestContext.setSessionId(session.id);
     return true;
   }
 }

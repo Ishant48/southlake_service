@@ -64,4 +64,12 @@ export class ActivityLogsController {
       limit: parseInt(perPage, 10),
     });
   }
+
+  @Get('stats')
+  @RequirePermission('activity_log.view')
+  @ApiOperation({ summary: 'Get summary statistics of activity logs' })
+  @ApiResponse({ status: 200, description: 'Summary statistics' })
+  getStats() {
+    return this.service.getStats();
+  }
 }

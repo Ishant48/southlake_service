@@ -30,15 +30,21 @@ export class ProductsDao {
     }
     return this.productRepo.find({
       where: where.length > 1 ? where : where[0],
-      relations: ['lob', 'cob'],
       order: { productId: 'ASC' },
     });
+  }
+
+  findAllLobs(): Promise<any[]> {
+    return this.productRepo.manager.find('LineOfBusiness', { where: { isDeleted: false } });
+  }
+
+  findAllCobs(): Promise<any[]> {
+    return this.productRepo.manager.find('CobMaster', { where: { isDeleted: false } });
   }
 
   findById(id: string): Promise<Product | null> {
     return this.productRepo.findOne({
       where: { id },
-      relations: ['lob', 'cob'],
     });
   }
 

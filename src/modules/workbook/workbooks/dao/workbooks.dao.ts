@@ -30,12 +30,15 @@ export class WorkbooksDao {
   }
 
   findAllWorkbooks(): Promise<Workbook[]> {
-    return this.workbookRepo.find({ order: { createdAt: 'DESC' } });
+    return this.workbookRepo.find({
+      where: { isDeleted: false },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   findWorkbookById(id: number): Promise<Workbook | null> {
     return this.workbookRepo.findOne({
-      where: { id },
+      where: { id, isDeleted: false },
       relations: { stateExhibits: true, cashSettlement: true },
     });
   }

@@ -5,6 +5,12 @@ export interface RequestContextStore {
   userName?: string;
   ipAddress?: string;
   userAgent?: string;
+  device?: string;
+  os?: string;
+  browser?: string;
+  location?: string;
+  sessionId?: string;
+  correlationId?: string;
 }
 
 /**
@@ -34,6 +40,13 @@ export class RequestContextService {
     }
   }
 
+  setSessionId(sessionId: string): void {
+    const store = this.getStore();
+    if (store) {
+      store.sessionId = sessionId;
+    }
+  }
+
   getUserId(): string | undefined {
     return this.getStore()?.userId;
   }
@@ -48,5 +61,29 @@ export class RequestContextService {
 
   getUserAgent(): string | undefined {
     return this.getStore()?.userAgent;
+  }
+
+  getDevice(): string | undefined {
+    return this.getStore()?.device;
+  }
+
+  getOs(): string | undefined {
+    return this.getStore()?.os;
+  }
+
+  getBrowser(): string | undefined {
+    return this.getStore()?.browser;
+  }
+
+  getLocation(): string | undefined {
+    return this.getStore()?.location;
+  }
+
+  getSessionId(): string | undefined {
+    return this.getStore()?.sessionId;
+  }
+
+  getCorrelationId(): string | undefined {
+    return this.getStore()?.correlationId;
   }
 }
