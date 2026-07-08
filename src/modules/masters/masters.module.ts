@@ -23,6 +23,7 @@ import { DocumentType } from './entities/document-type.entity';
 import { SequencePrefixCounter } from './entities/sequence-prefix-counter.entity';
 import { TreatyCarrier } from './entities/treaty-carrier.entity';
 import { TreatyReinsurer } from './entities/treaty-reinsurer.entity';
+import { TreatyTypeMaster } from './entities/treaty-type-master.entity';
 
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
 
@@ -62,6 +63,10 @@ import { ProductsController } from './products/products.controller';
 import { ProductsService } from './products/products.service';
 import { ProductsDao } from './products/dao/products.dao';
 
+import { TreatyTypesController } from './treaty-types/treaty-types.controller';
+import { TreatyTypesService } from './treaty-types/treaty-types.service';
+import { TreatyTypesDao } from './treaty-types/dao/treaty-types.dao';
+
 import { MastersConfigController } from './masters-config/masters-config.controller';
 import { MastersConfigService } from './masters-config/masters-config.service';
 import { MastersConfigDao } from './masters-config/dao/masters-config.dao';
@@ -96,6 +101,7 @@ if (!existsSync(uploadDir)) {
       SequencePrefixCounter,
       TreatyCarrier,
       TreatyReinsurer,
+      TreatyTypeMaster,
     ]),
     ActivityLogsModule,
   ],
@@ -109,6 +115,7 @@ if (!existsSync(uploadDir)) {
     TreatiesController,
     BrokersController,
     ProductsController,
+    TreatyTypesController,
     MastersConfigController,
   ],
   providers: [
@@ -130,6 +137,8 @@ if (!existsSync(uploadDir)) {
     BrokersDao,
     ProductsService,
     ProductsDao,
+    TreatyTypesService,
+    TreatyTypesDao,
     MastersConfigService,
     MastersConfigDao,
   ],
@@ -143,6 +152,7 @@ if (!existsSync(uploadDir)) {
     TreatiesService,
     BrokersService,
     ProductsService,
+    TreatyTypesService,
     MastersConfigService,
   ],
 })
