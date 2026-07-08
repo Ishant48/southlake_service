@@ -35,7 +35,7 @@ export class CashSettlementService {
     const premiums = this.calculatePremiums(ex, rates.qShare, rates.ssicShare);
     const lossesAndComm = this.calculateCommissionsAndLosses(ex, premiums, rates);
     const feesAndBalances = this.calculateFeesAndBalances(workbook, premiums, lossesAndComm, rates);
-    const reserves = this.calculateReserves(ex, rates.qShare, rates.ssicShare);
+    const reserves = this.calculateReserves(ex, rates.qShare, rates.ssicShare, workbook.source);
 
     const rows = this.buildRows(premiums, lossesAndComm, feesAndBalances, reserves);
 
@@ -309,22 +309,23 @@ export class CashSettlementService {
     };
   }
 
-  private calculateReserves(ex: StateExhibit, qShare: number, ssicShare: number) {
+  private calculateReserves(ex: StateExhibit, qShare: number, ssicShare: number, source: string) {
     const uep = getEndVal(ex.uep);
     const reins_uep = uep * qShare;
     const ssic_uep = uep * ssicShare;
 
-    const loss_reserves = getEndVal(ex.loss_reserves) || getEndVal(ex.lu);
+    const loss_reserves =
+      source === 'FUT' ? getEndVal(ex.lu) : getEndVal(ex.loss_reserves) || getEndVal(ex.lu);
     const reins_loss_reserves = loss_reserves * qShare;
     const ssic_loss_reserves = loss_reserves * ssicShare;
 
     const lae_reserves =
-      (getEndVal(ex.lae_reserves_dcc) || getEndVal(ex.laeu)) +
-      (getEndVal(ex.lae_reserves_aoe) || getEndVal(ex.aeu));
+      source === 'FUT' ? getEndVal(ex.laeu) : getEndVal(ex.lae_reserves_dcc) || getEndVal(ex.laeu);
     const reins_lae_reserves = lae_reserves * qShare;
     const ssic_lae_reserves = lae_reserves * ssicShare;
 
-    const ulae_reserves = getEndVal(ex.ulae_ibnr);
+    const ulae_reserves =
+      source === 'FUT' ? getEndVal(ex.aeu) : getEndVal(ex.lae_reserves_aoe) || getEndVal(ex.aeu);
     const reins_ulae_reserves = ulae_reserves * qShare;
     const ssic_ulae_reserves = ulae_reserves * ssicShare;
 
