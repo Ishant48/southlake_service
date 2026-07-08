@@ -16,6 +16,7 @@ import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { User } from './entities/user.entity';
 import { PendingInvite } from './entities/pending-invite.entity';
 import { PermissionCacheService } from '../../common/cache/permission-cache.service';
+import { PermissionResolutionService } from '../permissions/permission-resolution.service';
 
 export interface UpsertPermissionEntry {
   moduleId: string;
@@ -35,10 +36,11 @@ export class UsersService {
     private readonly activityLogsService: ActivityLogsService,
     private readonly configService: ConfigService,
     private readonly permissionCache: PermissionCacheService,
+    private readonly permissionResolution: PermissionResolutionService,
   ) {}
 
   private isSuperAdmin(u: User): boolean {
-    return u.isSuperAdmin || u.role?.name === 'superadmin';
+    return u.isSuperAdmin;
   }
 
   private async assertLastSuperAdminSafe(targetIds: string[]): Promise<void> {
@@ -126,7 +128,7 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto, updatedBy: User): Promise<User> {
     const user = await this.findOne(id);
 
-    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin || updatedBy.role?.name === 'superadmin';
+    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin;
 
     if (dto.role_id !== undefined && dto.role_id !== user.roleId) {
       if (id === updatedBy.id && !isUpdatedBySuperAdmin) {
@@ -302,40 +304,7 @@ export class UsersService {
 
   async getPermissions(userId: string): Promise<{ id: string; action: string }[]> {
     const user = await this.findOne(userId);
-    const roleId = user.roleId;
-
-    const [rolePerms, userOverrides] = await Promise.all([
-      roleId ? this.dao.findRolePermissions(roleId) : Promise.resolve([]),
-      this.dao.findUserPermissions(userId),
-    ]);
-
-    const permissionSet = new Map<string, { id: string; action: string; accessType: string }>();
-
-    for (const rp of rolePerms) {
-      if (rp.permission?.action) {
-        permissionSet.set(rp.permission.id, {
-          id: rp.permission.id,
-          action: rp.permission.action,
-          accessType: 'grant',
-        });
-      }
-    }
-
-    for (const up of userOverrides) {
-      if (up.permission?.action) {
-        if (up.accessType === 'grant') {
-          permissionSet.set(up.permission.id, {
-            id: up.permission.id,
-            action: up.permission.action,
-            accessType: 'grant',
-          });
-        } else if (up.accessType === 'revoke') {
-          permissionSet.delete(up.permission.id);
-        }
-      }
-    }
-
-    return Array.from(permissionSet.values()).map(({ id, action }) => ({ id, action }));
+    return this.permissionResolution.resolveEffectivePermissions(user);
   }
 
   async upsertPermissions(
@@ -345,7 +314,7 @@ export class UsersService {
   ): Promise<{ id: string; action: string }[]> {
     const user = await this.findOne(userId);
 
-    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin || updatedBy.role?.name === 'superadmin';
+    const isUpdatedBySuperAdmin = updatedBy.isSuperAdmin;
 
     if (userId === updatedBy.id && !isUpdatedBySuperAdmin) {
       throw new ForbiddenException('You cannot modify your own permissions');
@@ -398,39 +367,6 @@ export class UsersService {
     });
 
     return this.getPermissions(userId);
-  }
-
-  async getEffectivePermissions(userId: string): Promise<string[]> {
-    const user = await this.findOne(userId);
-
-    if (user.role?.name === 'superadmin') {
-      const allPerms = await this.dao.findAllPermissionsList();
-      return allPerms.map(p => p.action);
-    }
-
-    const permissionSet = new Set<string>();
-
-    if (user.roleId) {
-      const rolePerms = await this.dao.findRolePermissions(user.roleId);
-      for (const rp of rolePerms) {
-        if (rp.permission?.action) {
-          permissionSet.add(rp.permission.action);
-        }
-      }
-    }
-
-    const userPerms = await this.dao.findUserPermissions(userId);
-    for (const up of userPerms) {
-      if (up.permission?.action) {
-        if (up.accessType === 'grant') {
-          permissionSet.add(up.permission.action);
-        } else if (up.accessType === 'revoke') {
-          permissionSet.delete(up.permission.action);
-        }
-      }
-    }
-
-    return Array.from(permissionSet);
   }
 
   getPendingInvites(): Promise<PendingInvite[]> {

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class InviteUserDto {
   @ApiProperty({ example: 'jane@example.com' })
@@ -8,6 +8,7 @@ export class InviteUserDto {
 
   @ApiProperty({ example: 'Jane Doe' })
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiProperty({ example: 'uuid-of-role' })

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PermissionsDao } from './dao/permissions.dao';
+import { PermissionResolutionService } from './permission-resolution.service';
 import { Permission } from './entities/permission.entity';
 import { Module } from './entities/module.entity';
-import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 
 export interface NavItem {
@@ -21,7 +21,7 @@ export interface NavGroup extends NavItem {
 export class PermissionsService {
   constructor(
     private readonly dao: PermissionsDao,
-    private readonly usersService: UsersService,
+    private readonly permissionResolution: PermissionResolutionService,
   ) {}
 
   findAll(): Promise<Permission[]> {
@@ -33,10 +33,12 @@ export class PermissionsService {
   }
 
   async getMyModules(user: User): Promise<NavGroup[]> {
-    const isSuperAdmin = user.isSuperAdmin || user.role?.name === 'superadmin';
+    const isSuperAdmin = this.permissionResolution.isSuperAdmin(user);
     const effectivePermissions = isSuperAdmin
       ? new Set<string>()
-      : new Set(await this.usersService.getEffectivePermissions(user.id));
+      : new Set(
+          (await this.permissionResolution.resolveEffectivePermissions(user)).map(p => p.action),
+        );
 
     const isVisible = (m: Module): boolean => {
       if (isSuperAdmin) return true;

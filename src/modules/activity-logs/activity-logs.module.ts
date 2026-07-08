@@ -7,10 +7,7 @@ import { ActivityLog } from './entities/activity-log.entity';
 import { AuditModule } from '../../common/interceptors/audit.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ActivityLog]),
-    AuditModule,
-  ],
+  imports: [TypeOrmModule.forFeature([ActivityLog]), AuditModule],
   controllers: [ActivityLogsController],
   providers: [ActivityLogsService, ActivityLogsDao],
   exports: [ActivityLogsService],

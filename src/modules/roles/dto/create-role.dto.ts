@@ -2,10 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, Matches, IsArray, IsUUID } from 'class-validator';
 
 export class CreateRoleDto {
-  @ApiProperty({ example: 'underwriter' })
-  @IsString()
-  name: string;
-
   @ApiProperty({ example: 'Underwriter' })
   @IsString()
   label: string;

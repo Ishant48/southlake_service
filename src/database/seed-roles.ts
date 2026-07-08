@@ -5,11 +5,11 @@ import * as bcrypt from 'bcryptjs';
 const DEFAULT_SUPERADMIN_PASSWORD = 'Admin@123';
 
 /**
- * Seeds the two system roles and the initial superadmin user. Previously
+ * Seeds the system role and the initial superadmin user. Previously
  * done as data embedded in migrations 002/003 — moved here because schema
  * migrations shouldn't carry seed data (a `migration:generate` diff against
  * entities can never reproduce hand-written INSERT statements). Must run
- * before seedPermissions(), which assumes these roles already exist.
+ * before seedPermissions(), which assumes this role already exists.
  */
 export async function seedRoles(externalQueryRunner?: QueryRunner): Promise<void> {
   const isInitialized = AppDataSource.isInitialized;
@@ -30,8 +30,7 @@ export async function seedRoles(externalQueryRunner?: QueryRunner): Promise<void
     await queryRunner.query(`
       INSERT INTO "roles" ("name", "label", "color", "is_system", "description")
       VALUES
-        ('superadmin', 'Super Admin', '#0d1b4b', true, 'Full access to all modules and user management'),
-        ('admin', 'Admin', '#e05470', true, 'Administrative access with user management')
+        ('superadmin', 'Super Admin', '#0d1b4b', true, 'Full access to all modules and user management')
       ON CONFLICT ("name") DO NOTHING
     `);
 

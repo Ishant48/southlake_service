@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { Product } from '../../entities/product.entity';
+import { LineOfBusiness } from '../../entities/line-of-business.entity';
+import { CobMaster } from '../../entities/cob-master.entity';
 
 @Injectable()
 export class ProductsDao {
@@ -34,12 +36,12 @@ export class ProductsDao {
     });
   }
 
-  findAllLobs(): Promise<any[]> {
-    return this.productRepo.manager.find('LineOfBusiness', { where: { isDeleted: false } });
+  findAllLobs(): Promise<LineOfBusiness[]> {
+    return this.productRepo.manager.find(LineOfBusiness, { where: { isDeleted: false } });
   }
 
-  findAllCobs(): Promise<any[]> {
-    return this.productRepo.manager.find('CobMaster', { where: { isDeleted: false } });
+  findAllCobs(): Promise<CobMaster[]> {
+    return this.productRepo.manager.find(CobMaster, { where: { isDeleted: false } });
   }
 
   findById(id: string): Promise<Product | null> {

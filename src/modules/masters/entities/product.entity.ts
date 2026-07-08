@@ -3,13 +3,9 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { LineOfBusiness } from './line-of-business.entity';
-import { CobMaster } from './cob-master.entity';
 
 @Entity('product_master')
 export class Product {

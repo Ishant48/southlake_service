@@ -11,6 +11,7 @@ import { UserPermission } from './entities/user-permission.entity';
 import { PendingInvite } from './entities/pending-invite.entity';
 import { Role } from '../roles/entities/role.entity';
 import { PermissionCacheModule } from '../../common/cache/permission-cache.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PermissionCacheModule } from '../../common/cache/permission-cache.modul
     MailModule,
     ActivityLogsModule,
     PermissionCacheModule,
+    PermissionsModule,
   ],
   controllers: [UsersController, InvitesController],
   providers: [UsersService, UsersDao],
