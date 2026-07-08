@@ -132,12 +132,6 @@ const NAV_META: Record<string, NavMeta> = {
     sortOrder: 10,
     parentModuleId: 'master_data',
   },
-  treaty_type: {
-    icon: 'treaty-type',
-    route: '/masters?tab=treaty-types',
-    sortOrder: 11,
-    parentModuleId: 'master_data',
-  },
 
   user_management: { icon: 'admin', sortOrder: 30, label: 'System Admin' },
   user: {
