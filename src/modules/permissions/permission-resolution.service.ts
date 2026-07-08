@@ -8,6 +8,7 @@ import { Permission } from './entities/permission.entity';
 export interface EffectivePermission {
   id: string;
   action: string;
+  moduleId: string | null;
 }
 
 /**
@@ -46,7 +47,7 @@ export class PermissionResolutionService {
   async resolveEffectivePermissions(user: PermissionSubject): Promise<EffectivePermission[]> {
     if (this.isSuperAdmin(user)) {
       const allPerms = await this.permRepo.find();
-      return allPerms.map(p => ({ id: p.id, action: p.action }));
+      return allPerms.map(p => ({ id: p.id, action: p.action, moduleId: null }));
     }
 
     const permissionMap = new Map<string, EffectivePermission>();
@@ -61,6 +62,7 @@ export class PermissionResolutionService {
           permissionMap.set(rp.permission.id, {
             id: rp.permission.id,
             action: rp.permission.action,
+            moduleId: rp.moduleId,
           });
         }
       }
@@ -76,6 +78,7 @@ export class PermissionResolutionService {
           permissionMap.set(up.permission.id, {
             id: up.permission.id,
             action: up.permission.action,
+            moduleId: up.moduleId,
           });
         } else if (up.accessType === 'revoke') {
           permissionMap.delete(up.permission.id);

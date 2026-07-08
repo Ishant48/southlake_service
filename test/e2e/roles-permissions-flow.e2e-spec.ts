@@ -10,6 +10,7 @@ import { PendingInvite } from '../../src/modules/users/entities/pending-invite.e
 import { Role } from '../../src/modules/roles/entities/role.entity';
 import { RolePermission } from '../../src/modules/roles/entities/role-permission.entity';
 import { User } from '../../src/modules/users/entities/user.entity';
+import { SnakeCaseInterceptor } from '../../src/common/interceptors/snake-case.interceptor';
 
 describe('Roles & Permissions flow (e2e)', () => {
   let app: INestApplication;
@@ -44,6 +45,10 @@ describe('Roles & Permissions flow (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
+    // Mirror main.ts's bootstrap so this test observes the real wire shape
+    // (snake_case) the frontend actually receives, not the raw camelCase
+    // entity shape createNestApplication() would otherwise skip straight to.
+    app.useGlobalInterceptors(new SnakeCaseInterceptor());
     await app.init();
 
     const sessionRepo = moduleFixture.get(getRepositoryToken(UserSession));
@@ -183,10 +188,19 @@ describe('Roles & Permissions flow (e2e)', () => {
       .set('Authorization', `Bearer ${newUserToken}`)
       .expect(200);
 
-    const mePermissions = (meRes.body.permissions as { id: string; action: string }[])
-      .map(p => p.action)
-      .sort();
+    const meBodyPermissions = meRes.body.permissions as {
+      id: string;
+      action: string;
+      module_id: string;
+    }[];
+    const mePermissions = meBodyPermissions.map(p => p.action).sort();
     expect(mePermissions).toEqual(assignedActions);
+
+    // Regression guard: module_id must be present on every effective permission.
+    // The frontend's sidebar/route guards key group visibility off module_id
+    // (e.g. "does this user have view on any module under System Admin"), so
+    // a dropped module_id silently hides entire nav sections for real roles.
+    meBodyPermissions.forEach(p => expect(p.module_id).toBe('broker'));
 
     // 8. GET /roles never contains a role named 'admin'.
     const rolesRes = await request(app.getHttpServer())
