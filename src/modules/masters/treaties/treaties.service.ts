@@ -126,7 +126,8 @@ export class TreatiesService {
             treatyId: savedTreaty.id,
             reinsurerId: r.reinsurer_id,
             cessionPct: r.cession_pct,
-            stateId: r.state_id ?? null,
+            stateId: r.state_ids && r.state_ids.length > 0 ? r.state_ids[0] : (r.state_id ?? null),
+            stateIds: r.state_ids ?? null,
             brokerId: r.broker_id ?? null,
             brokerCommType: r.broker_comm_type ?? null,
           });
@@ -314,7 +315,8 @@ export class TreatiesService {
               treatyId: id,
               reinsurerId: r.reinsurer_id,
               cessionPct: r.cession_pct,
-              stateId: r.state_id ?? null,
+              stateId: r.state_ids && r.state_ids.length > 0 ? r.state_ids[0] : (r.state_id ?? null),
+              stateIds: r.state_ids ?? null,
               brokerId: r.broker_id ?? null,
               brokerCommType: r.broker_comm_type ?? null,
             });
