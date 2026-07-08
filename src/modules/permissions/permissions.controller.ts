@@ -1,6 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PermissionsService } from './permissions.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('permissions')
 @ApiBearerAuth()
@@ -20,5 +22,14 @@ export class PermissionsController {
   @ApiResponse({ status: 200, description: 'All modules with submodules' })
   findModules() {
     return this.service.findAllModules();
+  }
+
+  @Get('my-modules')
+  @ApiOperation({
+    summary: 'Navigation tree of modules the current user can access, for a dynamic sidebar',
+  })
+  @ApiResponse({ status: 200, description: 'Permission-filtered navigation tree' })
+  getMyModules(@CurrentUser() user: User) {
+    return this.service.getMyModules(user);
   }
 }

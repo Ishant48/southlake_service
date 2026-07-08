@@ -77,6 +77,10 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('User account is inactive');
     }
 
+    if (user.role?.isActive === false && !user.isSuperAdmin) {
+      throw new UnauthorizedException('Your role has been deactivated');
+    }
+
     const cachedPermissions = this.permissionCache.get(user.id);
     let effectivePermissions: string[];
 

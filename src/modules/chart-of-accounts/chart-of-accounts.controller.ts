@@ -31,6 +31,7 @@ import { ChartOfAccountsService } from './chart-of-accounts.service';
 import { CreateChartOfAccountDto } from './dto/create-chart-of-account.dto';
 import { UpdateChartOfAccountDto } from './dto/update-chart-of-account.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { User } from '../users/entities/user.entity';
 
 interface UploadedMulterFile {
@@ -62,6 +63,7 @@ export class ChartOfAccountsController {
   constructor(private readonly service: ChartOfAccountsService) {}
 
   @Get()
+  @RequirePermission('chart_of_accounts.view')
   @ApiOperation({ summary: 'Get all chart of accounts' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'is_active', required: false, type: Boolean })
@@ -73,6 +75,7 @@ export class ChartOfAccountsController {
   }
 
   @Get(':id')
+  @RequirePermission('chart_of_accounts.view')
   @ApiOperation({ summary: 'Get a single chart of account by ID' })
   @ApiResponse({ status: 200, description: 'Account details with documents' })
   findOne(@Param('id') id: string) {
@@ -80,6 +83,7 @@ export class ChartOfAccountsController {
   }
 
   @Post()
+  @RequirePermission('chart_of_accounts.create')
   @ApiOperation({ summary: 'Create a new chart of account' })
   @ApiResponse({ status: 201, description: 'Account created' })
   create(@Body() dto: CreateChartOfAccountDto, @CurrentUser() user: User) {
@@ -87,6 +91,7 @@ export class ChartOfAccountsController {
   }
 
   @Patch(':id')
+  @RequirePermission('chart_of_accounts.edit')
   @ApiOperation({ summary: 'Update an existing chart of account' })
   @ApiResponse({ status: 200, description: 'Account updated' })
   update(@Param('id') id: string, @Body() dto: UpdateChartOfAccountDto, @CurrentUser() user: User) {
@@ -94,6 +99,7 @@ export class ChartOfAccountsController {
   }
 
   @Delete(':id')
+  @RequirePermission('chart_of_accounts.delete')
   @ApiOperation({ summary: 'Delete a chart of account' })
   @ApiResponse({ status: 200, description: 'Account deleted' })
   delete(@Param('id') id: string, @CurrentUser() user: User) {
@@ -104,6 +110,7 @@ export class ChartOfAccountsController {
   // DOCUMENT ENDPOINTS
   // ==========================================
   @Post(':id/documents')
+  @RequirePermission('chart_of_accounts.edit')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -149,6 +156,7 @@ export class ChartOfAccountsController {
   }
 
   @Get('documents/download/:filename')
+  @RequirePermission('chart_of_accounts.view')
   @ApiOperation({ summary: 'Download an attached document' })
   downloadDocument(@Param('filename') filename: string, @Res() res: Response) {
     const filePath = join(process.cwd(), 'uploads', filename);
@@ -159,6 +167,7 @@ export class ChartOfAccountsController {
   }
 
   @Delete('documents/:docId')
+  @RequirePermission('chart_of_accounts.edit')
   @ApiOperation({ summary: 'Delete a document attachment' })
   @ApiResponse({ status: 200, description: 'Document deleted' })
   async deleteDocument(@Param('docId') docId: string) {

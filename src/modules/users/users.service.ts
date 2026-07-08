@@ -37,6 +37,21 @@ export class UsersService {
     private readonly permissionCache: PermissionCacheService,
   ) {}
 
+  private isSuperAdmin(u: User): boolean {
+    return u.isSuperAdmin || u.role?.name === 'superadmin';
+  }
+
+  private async assertLastSuperAdminSafe(targetIds: string[]): Promise<void> {
+    const activeSuperAdmins = await this.dao.countActiveSuperAdmins();
+    if (activeSuperAdmins - targetIds.length <= 0) {
+      throw new BadRequestException(
+        targetIds.length > 1
+          ? 'Cannot deactivate all active superadmins'
+          : 'Cannot deactivate the last active superadmin',
+      );
+    }
+  }
+
   async getStats(): Promise<{
     total: number;
     active: number;
@@ -157,7 +172,19 @@ export class UsersService {
   }
 
   async updateStatus(id: string, dto: UpdateUserStatusDto, updatedBy: User): Promise<User> {
-    await this.findOne(id);
+    const user = await this.findOne(id);
+    const isUpdatedBySuperAdmin = this.isSuperAdmin(updatedBy);
+
+    if (id === updatedBy.id && !isUpdatedBySuperAdmin) {
+      throw new ForbiddenException('You cannot change your own status');
+    }
+    if (this.isSuperAdmin(user) && !isUpdatedBySuperAdmin) {
+      throw new ForbiddenException("Only a superadmin can change another superadmin's status");
+    }
+    if (dto.status === 'inactive' && this.isSuperAdmin(user)) {
+      await this.assertLastSuperAdminSafe([id]);
+    }
+
     const updated = await this.dao.update(id, { status: dto.status, updatedBy: updatedBy.id });
 
     if (dto.status !== 'active') {
@@ -179,7 +206,19 @@ export class UsersService {
   }
 
   async deactivate(id: string, updatedBy: User): Promise<{ message: string }> {
-    await this.findOne(id);
+    const user = await this.findOne(id);
+    const isUpdatedBySuperAdmin = this.isSuperAdmin(updatedBy);
+
+    if (id === updatedBy.id && !isUpdatedBySuperAdmin) {
+      throw new ForbiddenException('You cannot deactivate your own account');
+    }
+    if (this.isSuperAdmin(user) && !isUpdatedBySuperAdmin) {
+      throw new ForbiddenException('Only a superadmin can deactivate another superadmin');
+    }
+    if (this.isSuperAdmin(user)) {
+      await this.assertLastSuperAdminSafe([id]);
+    }
+
     await this.dao.update(id, { status: 'inactive', updatedBy: updatedBy.id });
     this.permissionCache.invalidate(id);
 
@@ -199,6 +238,24 @@ export class UsersService {
     ids: string[],
     updatedBy: User,
   ): Promise<{ message: string; count: number }> {
+    const isUpdatedBySuperAdmin = this.isSuperAdmin(updatedBy);
+    const targets = await this.dao.findByIdsWithRole(ids);
+
+    if (!isUpdatedBySuperAdmin) {
+      if (ids.includes(updatedBy.id)) {
+        throw new ForbiddenException('You cannot deactivate your own account');
+      }
+      const targetSuperAdmin = targets.find(t => this.isSuperAdmin(t));
+      if (targetSuperAdmin) {
+        throw new ForbiddenException('Only a superadmin can deactivate another superadmin');
+      }
+    }
+
+    const targetedSuperAdminIds = targets.filter(t => this.isSuperAdmin(t)).map(t => t.id);
+    if (targetedSuperAdminIds.length > 0) {
+      await this.assertLastSuperAdminSafe(targetedSuperAdminIds);
+    }
+
     await this.dao.deactivateBulk(ids, updatedBy.id);
     for (const id of ids) {
       this.permissionCache.invalidate(id);
@@ -216,7 +273,19 @@ export class UsersService {
   }
 
   async remove(id: string, deletedBy: User): Promise<{ message: string }> {
-    await this.findOne(id);
+    const user = await this.findOne(id);
+    const isDeletedBySuperAdmin = this.isSuperAdmin(deletedBy);
+
+    if (id === deletedBy.id && !isDeletedBySuperAdmin) {
+      throw new ForbiddenException('You cannot delete your own account');
+    }
+    if (this.isSuperAdmin(user) && !isDeletedBySuperAdmin) {
+      throw new ForbiddenException('Only a superadmin can delete another superadmin');
+    }
+    if (this.isSuperAdmin(user)) {
+      await this.assertLastSuperAdminSafe([id]);
+    }
+
     await this.dao.softDelete(id, deletedBy.id);
 
     await this.activityLogsService.log({

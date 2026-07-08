@@ -1,15 +1,15 @@
 import { Controller, Get, Post, Param, ParseIntPipe, Body } from '@nestjs/common';
 import { GlJournalEntriesService, GlJournalEntryRow } from './gl-journal-entries.service';
-import { Public } from '../../../common/decorators/public.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
 
 @Controller('workbooks')
-@Public()
 export class GlJournalEntriesController {
   constructor(private readonly glJournalEntriesService: GlJournalEntriesService) {}
 
   @Get(':id/gl-journal-entries/:stateCode')
+  @RequirePermission('reinsurance.view')
   async getGLJournalEntries(
     @Param('id', ParseIntPipe) id: number,
     @Param('stateCode') stateCode: string,
@@ -18,6 +18,7 @@ export class GlJournalEntriesController {
   }
 
   @Post(':id/post-to-journal-entries/:stateCode')
+  @RequirePermission('journal_entry.post')
   async postToJournalEntries(
     @Param('id', ParseIntPipe) id: number,
     @Param('stateCode') stateCode: string,

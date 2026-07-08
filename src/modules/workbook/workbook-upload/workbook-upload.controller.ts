@@ -2,7 +2,7 @@ import { Controller, Post, Body, UploadedFile, UseInterceptors, Res } from '@nes
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { WorkbookUploadService, ManualItdDto } from './workbook-upload.service';
-import { Public } from '../../../common/decorators/public.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { MAX_UPLOAD_FILE_SIZE_BYTES } from '../workbook.constants';
 
 interface UploadedMulterFile {
@@ -11,11 +11,11 @@ interface UploadedMulterFile {
 }
 
 @Controller('workbooks')
-@Public()
 export class WorkbookUploadController {
   constructor(private readonly workbookUploadService: WorkbookUploadService) {}
 
   @Post('upload')
+  @RequirePermission('workbook.create')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } }))
   async uploadFile(
     @UploadedFile() file: UploadedMulterFile,
@@ -32,6 +32,7 @@ export class WorkbookUploadController {
   }
 
   @Post('generate-itd')
+  @RequirePermission('workbook.view')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } }))
   generateITDExcel(
     @UploadedFile() file: UploadedMulterFile,
@@ -49,6 +50,7 @@ export class WorkbookUploadController {
   }
 
   @Post('manual-itd')
+  @RequirePermission('workbook.create')
   async createManualITD(@Body() body: ManualItdDto) {
     return this.workbookUploadService.createManualITD(body);
   }

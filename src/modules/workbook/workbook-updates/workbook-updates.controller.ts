@@ -4,16 +4,16 @@ import { UpdateExhibitDto } from '../dto/update-exhibit.dto';
 import { UpdateRatesDto } from '../dto/update-rates.dto';
 import { UpdateCashSettlementDto } from '../dto/update-cash-settlement.dto';
 import { UpdateMappingsDto } from '../dto/update-mappings.dto';
-import { Public } from '../../../common/decorators/public.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
 
 @Controller('workbooks')
-@Public()
 export class WorkbookUpdatesController {
   constructor(private readonly workbookUpdatesService: WorkbookUpdatesService) {}
 
   @Put(':id/mappings')
+  @RequirePermission('workbook.edit')
   async updateMappings(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateMappingsDto,
@@ -22,6 +22,7 @@ export class WorkbookUpdatesController {
   }
 
   @Put(':id/exhibits/:stateCode')
+  @RequirePermission('workbook.edit')
   async updateExhibit(
     @Param('id', ParseIntPipe) id: number,
     @Param('stateCode') stateCode: string,
@@ -31,6 +32,7 @@ export class WorkbookUpdatesController {
   }
 
   @Put(':id/rates')
+  @RequirePermission('workbook.edit')
   async updateRates(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateRatesDto,
@@ -40,6 +42,7 @@ export class WorkbookUpdatesController {
   }
 
   @Put(':id/cash-settlement')
+  @RequirePermission('workbook.edit')
   async updateCashSettlement(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateCashSettlementDto,

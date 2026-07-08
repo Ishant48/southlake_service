@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestj
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CobsService } from './cobs.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { User } from '../../users/entities/user.entity';
 import { CreateCobDto, UpdateCobDto } from '../dto/cob.dto';
 
@@ -12,6 +13,7 @@ export class CobsController {
   constructor(private readonly service: CobsService) {}
 
   @Get('cobs')
+  @RequirePermission('cob.view')
   @ApiOperation({ summary: 'Get all COBs' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'is_active', required: false, type: Boolean })
@@ -21,18 +23,21 @@ export class CobsController {
   }
 
   @Post('cobs')
+  @RequirePermission('cob.create')
   @ApiOperation({ summary: 'Create COB' })
   createCob(@Body() dto: CreateCobDto, @CurrentUser() user: User) {
     return this.service.createCob(dto, user.id);
   }
 
   @Patch('cobs/:id')
+  @RequirePermission('cob.edit')
   @ApiOperation({ summary: 'Update COB' })
   updateCob(@Param('id') id: string, @Body() dto: UpdateCobDto, @CurrentUser() user: User) {
     return this.service.updateCob(id, dto, user.id);
   }
 
   @Delete('cobs/:id')
+  @RequirePermission('cob.delete')
   @ApiOperation({ summary: 'Delete COB' })
   deleteCob(@Param('id') id: string) {
     return this.service.deleteCob(id);

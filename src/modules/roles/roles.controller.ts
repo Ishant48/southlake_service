@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@ne
 import { RolesService, UpsertRolePermissionEntry } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { UpdateRoleStatusDto } from './dto/update-role-status.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
@@ -51,6 +52,18 @@ export class RolesController {
     @CurrentUser() user: User,
   ) {
     return this.service.update(id, dto, user);
+  }
+
+  @Patch(':id/status')
+  @RequirePermission('role.manage')
+  @ApiOperation({ summary: 'Activate or deactivate a role' })
+  @ApiResponse({ status: 200, description: 'Role status updated' })
+  updateStatus(
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() dto: UpdateRoleStatusDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.service.updateStatus(id, dto, user);
   }
 
   @Delete(':id')

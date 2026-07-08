@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestj
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { TreatiesService } from './treaties.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { User } from '../../users/entities/user.entity';
 import { CreateTreatyDto, UpdateTreatyDto } from '../dto/treaty.dto';
 
@@ -12,6 +13,7 @@ export class TreatiesController {
   constructor(private readonly service: TreatiesService) {}
 
   @Get('treaties')
+  @RequirePermission('treaty.view')
   @ApiOperation({ summary: 'Get all treaties' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'is_active', required: false, type: Boolean })
@@ -21,24 +23,28 @@ export class TreatiesController {
   }
 
   @Get('treaties/:id')
+  @RequirePermission('treaty.view')
   @ApiOperation({ summary: 'Get one treaty details' })
   findOneTreaty(@Param('id') id: string) {
     return this.service.findOneTreaty(id);
   }
 
   @Post('treaties')
+  @RequirePermission('treaty.create')
   @ApiOperation({ summary: 'Create treaty' })
   createTreaty(@Body() dto: CreateTreatyDto, @CurrentUser() user: User) {
     return this.service.createTreaty(dto, user.id);
   }
 
   @Patch('treaties/:id')
+  @RequirePermission('treaty.edit')
   @ApiOperation({ summary: 'Update treaty' })
   updateTreaty(@Param('id') id: string, @Body() dto: UpdateTreatyDto, @CurrentUser() user: User) {
     return this.service.updateTreaty(id, dto, user.id);
   }
 
   @Delete('treaties/:id')
+  @RequirePermission('treaty.delete')
   @ApiOperation({ summary: 'Delete treaty' })
   deleteTreaty(@Param('id') id: string) {
     return this.service.deleteTreaty(id);

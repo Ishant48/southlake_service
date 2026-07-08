@@ -84,6 +84,21 @@ export class UsersDao {
     return this.roleRepo.findOne({ where: { id } });
   }
 
+  findByIdsWithRole(ids: string[]): Promise<User[]> {
+    if (!ids.length) return Promise.resolve([]);
+    return this.userRepo.find({ where: { id: In(ids), isDeleted: false }, relations: ['role'] });
+  }
+
+  countActiveSuperAdmins(): Promise<number> {
+    return this.userRepo
+      .createQueryBuilder('u')
+      .leftJoin('u.role', 'role')
+      .where('u.is_deleted = false')
+      .andWhere('u.status = :status', { status: 'active' })
+      .andWhere('(u.is_superadmin = true OR role.name = :roleName)', { roleName: 'superadmin' })
+      .getCount();
+  }
+
   findByEmail(email: string): Promise<User | null> {
     return this.userRepo.findOne({ where: { email, isDeleted: false } });
   }

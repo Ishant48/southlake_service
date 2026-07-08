@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { MastersConfigService } from './masters-config.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { User } from '../../users/entities/user.entity';
 import { CreateDocumentTypeDto, UpdateDocumentTypeDto } from '../dto/document-type.dto';
 import {
@@ -29,6 +30,7 @@ export class MastersConfigController {
   // LOCKED PERIODS ENDPOINTS
   // ==========================================
   @Get('locked-periods')
+  @RequirePermission('masters_config.view')
   @ApiOperation({ summary: 'Get all locked periods' })
   @ApiQuery({ name: 'search', required: false })
   findAllLockedPeriods(@Query('search') search?: string) {
@@ -36,6 +38,7 @@ export class MastersConfigController {
   }
 
   @Post('locked-periods/lock')
+  @RequirePermission('masters_config.edit')
   @ApiOperation({ summary: 'Lock a period' })
   lockPeriod(@Body('period') period: string, @CurrentUser() user: User) {
     if (!period) throw new BadRequestException('Period is required');
@@ -43,6 +46,7 @@ export class MastersConfigController {
   }
 
   @Post('locked-periods/unlock')
+  @RequirePermission('masters_config.edit')
   @ApiOperation({ summary: 'Unlock a period' })
   unlockPeriod(@Body('period') period: string, @CurrentUser() user: User) {
     if (!period) throw new BadRequestException('Period is required');
@@ -53,6 +57,7 @@ export class MastersConfigController {
   // DOCUMENT TYPES ENDPOINTS
   // ==========================================
   @Get('document-types')
+  @RequirePermission('masters_config.view')
   @ApiOperation({ summary: 'Get all document types' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
@@ -61,18 +66,21 @@ export class MastersConfigController {
   }
 
   @Get('document-types/:id')
+  @RequirePermission('masters_config.view')
   @ApiOperation({ summary: 'Get document type by id' })
   findOneDocumentType(@Param('id') id: string) {
     return this.service.findOneDocumentType(id);
   }
 
   @Post('document-types')
+  @RequirePermission('masters_config.create')
   @ApiOperation({ summary: 'Create document type' })
   createDocumentType(@Body() dto: CreateDocumentTypeDto, @CurrentUser() user: User) {
     return this.service.createDocumentType(dto, user.id);
   }
 
   @Patch('document-types/:id')
+  @RequirePermission('masters_config.edit')
   @ApiOperation({ summary: 'Update document type' })
   updateDocumentType(
     @Param('id') id: string,
@@ -83,6 +91,7 @@ export class MastersConfigController {
   }
 
   @Delete('document-types/:id')
+  @RequirePermission('masters_config.delete')
   @ApiOperation({ summary: 'Delete document type' })
   deleteDocumentType(@Param('id') id: string, @CurrentUser() user: User) {
     return this.service.deleteDocumentType(id, user.id);
@@ -92,6 +101,7 @@ export class MastersConfigController {
   // SEQUENCE PREFIX & COUNTERS ENDPOINTS
   // ==========================================
   @Get('sequence-prefix-counters')
+  @RequirePermission('masters_config.view')
   @ApiOperation({ summary: 'Get all sequence prefix & counters' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
@@ -103,12 +113,14 @@ export class MastersConfigController {
   }
 
   @Get('sequence-prefix-counters/:id')
+  @RequirePermission('masters_config.view')
   @ApiOperation({ summary: 'Get sequence prefix & counter by id' })
   findOneSequencePrefixCounter(@Param('id') id: string) {
     return this.service.findOneSequencePrefixCounter(id);
   }
 
   @Post('sequence-prefix-counters')
+  @RequirePermission('masters_config.create')
   @ApiOperation({ summary: 'Create sequence prefix & counter' })
   createSequencePrefixCounter(
     @Body() dto: CreateSequencePrefixCounterDto,
@@ -118,6 +130,7 @@ export class MastersConfigController {
   }
 
   @Patch('sequence-prefix-counters/:id')
+  @RequirePermission('masters_config.edit')
   @ApiOperation({ summary: 'Update sequence prefix & counter' })
   updateSequencePrefixCounter(
     @Param('id') id: string,
@@ -128,6 +141,7 @@ export class MastersConfigController {
   }
 
   @Delete('sequence-prefix-counters/:id')
+  @RequirePermission('masters_config.delete')
   @ApiOperation({ summary: 'Delete sequence prefix & counter' })
   deleteSequencePrefixCounter(@Param('id') id: string, @CurrentUser() user: User) {
     return this.service.deleteSequencePrefixCounter(id, user.id);

@@ -28,6 +28,7 @@ import { existsSync, unlinkSync } from 'fs';
 import { Request, Response } from 'express';
 import { MgasService } from './mgas.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { User } from '../../users/entities/user.entity';
 import { CreateMgaDto, UpdateMgaDto } from '../dto/mga.dto';
 
@@ -54,6 +55,7 @@ export class MgasController {
   constructor(private readonly service: MgasService) {}
 
   @Get('mgas')
+  @RequirePermission('mga.view')
   @ApiOperation({ summary: 'Get all MGAs' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'is_active', required: false, type: Boolean })
@@ -63,24 +65,28 @@ export class MgasController {
   }
 
   @Get('mgas/:id')
+  @RequirePermission('mga.view')
   @ApiOperation({ summary: 'Get one MGA with documents' })
   findOneMga(@Param('id') id: string) {
     return this.service.findOneMga(id);
   }
 
   @Post('mgas')
+  @RequirePermission('mga.create')
   @ApiOperation({ summary: 'Create MGA' })
   createMga(@Body() dto: CreateMgaDto, @CurrentUser() user: User) {
     return this.service.createMga(dto, user.id);
   }
 
   @Patch('mgas/:id')
+  @RequirePermission('mga.edit')
   @ApiOperation({ summary: 'Update MGA' })
   updateMga(@Param('id') id: string, @Body() dto: UpdateMgaDto, @CurrentUser() user: User) {
     return this.service.updateMga(id, dto, user.id);
   }
 
   @Delete('mgas/:id')
+  @RequirePermission('mga.delete')
   @ApiOperation({ summary: 'Delete MGA' })
   deleteMga(@Param('id') id: string, @CurrentUser() user: User) {
     return this.service.deleteMga(id, user.id);
@@ -98,6 +104,7 @@ export class MgasController {
       }),
     }),
   )
+  @RequirePermission('mga.edit')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload MGA attachment document' })
   @ApiBody({
@@ -127,6 +134,7 @@ export class MgasController {
   }
 
   @Get('mgas/documents/download/:filename')
+  @RequirePermission('mga.view')
   @ApiOperation({ summary: 'Download MGA document' })
   downloadMgaDocument(@Param('filename') filename: string, @Res() res: Response) {
     const filePath = join(process.cwd(), 'uploads', filename);
@@ -137,6 +145,7 @@ export class MgasController {
   }
 
   @Delete('mgas/documents/:docId')
+  @RequirePermission('mga.edit')
   @ApiOperation({ summary: 'Delete MGA document' })
   async deleteMgaDocument(@Param('docId') docId: string) {
     const doc = await this.service.findMgaDocument(docId);
@@ -154,6 +163,7 @@ export class MgasController {
   }
 
   @Post('mgas/:id/add-to-treaties')
+  @RequirePermission('mga.edit')
   @ApiOperation({ summary: 'Add MGA to multiple treaties' })
   async addMgaToTreaties(
     @Param('id') id: string,

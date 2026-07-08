@@ -28,6 +28,7 @@ import { existsSync, unlinkSync } from 'fs';
 import { Request, Response } from 'express';
 import { StatesService } from './states.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { User } from '../../users/entities/user.entity';
 import { CreateStateDto, UpdateStateDto } from '../dto/state.dto';
 
@@ -54,6 +55,7 @@ export class StatesController {
   constructor(private readonly service: StatesService) {}
 
   @Get('states')
+  @RequirePermission('state.view')
   @ApiOperation({ summary: 'Get all states' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'is_active', required: false, type: Boolean })
@@ -63,24 +65,28 @@ export class StatesController {
   }
 
   @Post('states')
+  @RequirePermission('state.create')
   @ApiOperation({ summary: 'Create state' })
   createState(@Body() dto: CreateStateDto, @CurrentUser() user: User) {
     return this.service.createState(dto, user.id);
   }
 
   @Patch('states/:id')
+  @RequirePermission('state.edit')
   @ApiOperation({ summary: 'Update state' })
   updateState(@Param('id') id: string, @Body() dto: UpdateStateDto, @CurrentUser() user: User) {
     return this.service.updateState(id, dto, user.id);
   }
 
   @Delete('states/:id')
+  @RequirePermission('state.delete')
   @ApiOperation({ summary: 'Delete state' })
   deleteState(@Param('id') id: string, @CurrentUser() user: User) {
     return this.service.deleteState(id, user.id);
   }
 
   @Get('states/:id')
+  @RequirePermission('state.view')
   @ApiOperation({ summary: 'Get one State with documents' })
   findOneState(@Param('id') id: string) {
     return this.service.findOneState(id);
@@ -98,6 +104,7 @@ export class StatesController {
       }),
     }),
   )
+  @RequirePermission('state.edit')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload State attachment document' })
   @ApiBody({
@@ -133,6 +140,7 @@ export class StatesController {
   }
 
   @Get('states/documents/download/:filename')
+  @RequirePermission('state.view')
   @ApiOperation({ summary: 'Download State document' })
   downloadStateDocument(@Param('filename') filename: string, @Res() res: Response) {
     const filePath = join(process.cwd(), 'uploads', filename);
@@ -143,6 +151,7 @@ export class StatesController {
   }
 
   @Delete('states/documents/:docId')
+  @RequirePermission('state.edit')
   @ApiOperation({ summary: 'Delete State document' })
   async deleteStateDocument(@Param('docId') docId: string) {
     const doc = await this.service.findStateDocument(docId);

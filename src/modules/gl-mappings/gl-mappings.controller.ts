@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { GlMappingsService } from './gl-mappings.service';
 import { CreateGlMappingDto, UpdateGlMappingDto } from './dto/gl-mapping.dto';
 import { GlMapping } from './entities/gl-mapping.entity';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
 @ApiTags('GL Mappings')
 @ApiBearerAuth()
@@ -11,6 +12,7 @@ export class GlMappingsController {
   constructor(private readonly glMappingsService: GlMappingsService) {}
 
   @Get()
+  @RequirePermission('gl_mapping.view')
   @ApiOperation({ summary: 'Get all GL mappings' })
   @ApiResponse({ status: 200, description: 'Return all GL mappings.' })
   async findAll(): Promise<GlMapping[]> {
@@ -18,6 +20,7 @@ export class GlMappingsController {
   }
 
   @Get(':id')
+  @RequirePermission('gl_mapping.view')
   @ApiOperation({ summary: 'Get a GL mapping by ID' })
   @ApiResponse({ status: 200, description: 'Return the GL mapping.' })
   @ApiResponse({ status: 404, description: 'GL Mapping not found.' })
@@ -26,6 +29,7 @@ export class GlMappingsController {
   }
 
   @Post()
+  @RequirePermission('gl_mapping.create')
   @ApiOperation({ summary: 'Create a new GL mapping' })
   @ApiResponse({ status: 201, description: 'The GL mapping has been successfully created.' })
   @ApiResponse({ status: 400, description: 'Invalid input or duplicate mapping type.' })
@@ -34,6 +38,7 @@ export class GlMappingsController {
   }
 
   @Patch(':id')
+  @RequirePermission('gl_mapping.edit')
   @ApiOperation({ summary: 'Update a GL mapping' })
   @ApiResponse({ status: 200, description: 'The GL mapping has been successfully updated.' })
   @ApiResponse({ status: 404, description: 'GL Mapping not found.' })
@@ -43,6 +48,7 @@ export class GlMappingsController {
   }
 
   @Delete(':id')
+  @RequirePermission('gl_mapping.delete')
   @ApiOperation({ summary: 'Delete a GL mapping' })
   @ApiResponse({ status: 200, description: 'The GL mapping has been successfully deleted.' })
   @ApiResponse({ status: 404, description: 'GL Mapping not found.' })

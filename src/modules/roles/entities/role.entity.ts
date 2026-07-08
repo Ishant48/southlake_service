@@ -26,6 +26,9 @@ export class Role {
   @Column({ name: 'is_system', type: 'boolean', default: false })
   isSystem: boolean;
 
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 

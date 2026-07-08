@@ -28,6 +28,7 @@ import { existsSync, unlinkSync } from 'fs';
 import { Request, Response } from 'express';
 import { RiskCompaniesService } from './risk-companies.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { User } from '../../users/entities/user.entity';
 import { CreateRiskCompanyDto, UpdateRiskCompanyDto } from '../dto/risk-company.dto';
 
@@ -54,6 +55,7 @@ export class RiskCompaniesController {
   constructor(private readonly service: RiskCompaniesService) {}
 
   @Get('risk-companies')
+  @RequirePermission('risk_company.view')
   @ApiOperation({ summary: 'Get all risk companies' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'is_active', required: false, type: Boolean })
@@ -63,12 +65,14 @@ export class RiskCompaniesController {
   }
 
   @Post('risk-companies')
+  @RequirePermission('risk_company.create')
   @ApiOperation({ summary: 'Create risk company' })
   createRiskCompany(@Body() dto: CreateRiskCompanyDto, @CurrentUser() user: User) {
     return this.service.createRiskCompany(dto, user.id);
   }
 
   @Patch('risk-companies/:id')
+  @RequirePermission('risk_company.edit')
   @ApiOperation({ summary: 'Update risk company' })
   updateRiskCompany(
     @Param('id') id: string,
@@ -79,12 +83,14 @@ export class RiskCompaniesController {
   }
 
   @Delete('risk-companies/:id')
+  @RequirePermission('risk_company.delete')
   @ApiOperation({ summary: 'Delete risk company' })
   deleteRiskCompany(@Param('id') id: string) {
     return this.service.deleteRiskCompany(id);
   }
 
   @Get('risk-companies/:id')
+  @RequirePermission('risk_company.view')
   @ApiOperation({ summary: 'Get one Risk Company with documents' })
   findOneRiskCompany(@Param('id') id: string) {
     return this.service.findOneRiskCompany(id);
@@ -102,6 +108,7 @@ export class RiskCompaniesController {
       }),
     }),
   )
+  @RequirePermission('risk_company.edit')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload Risk Company attachment document' })
   @ApiBody({
@@ -137,6 +144,7 @@ export class RiskCompaniesController {
   }
 
   @Get('risk-companies/documents/download/:filename')
+  @RequirePermission('risk_company.view')
   @ApiOperation({ summary: 'Download Risk Company document' })
   downloadRiskCompanyDocument(@Param('filename') filename: string, @Res() res: Response) {
     const filePath = join(process.cwd(), 'uploads', filename);
@@ -147,6 +155,7 @@ export class RiskCompaniesController {
   }
 
   @Delete('risk-companies/documents/:docId')
+  @RequirePermission('risk_company.edit')
   @ApiOperation({ summary: 'Delete Risk Company document' })
   async deleteRiskCompanyDocument(@Param('docId') docId: string) {
     const doc = await this.service.findRiskCompanyDocument(docId);

@@ -24,4 +24,11 @@ export class PermissionsDao {
       order: { id: 'ASC' },
     });
   }
+
+  findNavModules(): Promise<Module[]> {
+    return this.moduleRepo.find({
+      where: { isActive: true },
+      order: { sortOrder: 'ASC' },
+    });
+  }
 }

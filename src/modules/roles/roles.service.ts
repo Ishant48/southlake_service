@@ -5,6 +5,7 @@ import { RolesDao } from './dao/roles.dao';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { UpdateRoleStatusDto } from './dto/update-role-status.dto';
 import { Role } from './entities/role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { Permission } from '../permissions/entities/permission.entity';
@@ -120,6 +121,36 @@ export class RolesService {
       entityType: 'role',
       entityId: id,
       description: `Updated role ${role.name}`,
+    });
+
+    const user_count = await this.userRepo.count({ where: { roleId: id, isDeleted: false } });
+    return { ...updated, user_count };
+  }
+
+  async updateStatus(
+    id: string,
+    dto: UpdateRoleStatusDto,
+    updatedBy: User,
+  ): Promise<Role & { user_count: number }> {
+    const role = await this.dao.findById(id);
+    if (!role) throw new NotFoundException(`Role ${id} not found`);
+
+    if (role.isSystem) {
+      throw new BadRequestException('Cannot deactivate system roles');
+    }
+
+    const updated = await this.dao.update(id, {
+      isActive: dto.status === 'active',
+      updatedBy: updatedBy.id,
+    });
+
+    await this.activityLogsService.log({
+      userId: updatedBy.id,
+      moduleId: 'user_management',
+      action: 'edit',
+      entityType: 'role',
+      entityId: id,
+      description: `Set role ${role.name} status to ${dto.status}`,
     });
 
     const user_count = await this.userRepo.count({ where: { roleId: id, isDeleted: false } });
