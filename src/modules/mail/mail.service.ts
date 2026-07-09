@@ -86,4 +86,36 @@ export class MailService {
       this.logger.warn(`Failed to send invite email to ${to} (mail not configured)`);
     }
   }
+
+  async sendPasswordReset(to: string, resetLink: string): Promise<void> {
+    const from = this.configService.get<string>('mail.from');
+    try {
+      await this.transporter.sendMail({
+        from,
+        to,
+        subject: 'Reset Your Southlake Insurance Password',
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+            <h2 style="color: #0d1b4b;">Southlake Insurance</h2>
+            <p>We received a request to reset your password.</p>
+            <p>Click the button below to choose a new password. This link expires in 30 minutes.</p>
+            <a href="${resetLink}" style="
+              display: inline-block;
+              background: #0d1b4b;
+              color: white;
+              padding: 12px 24px;
+              text-decoration: none;
+              border-radius: 4px;
+              margin: 16px 0;
+            ">Reset Password</a>
+            <p style="color: #888; font-size: 12px;">
+              If you did not request a password reset, you can safely ignore this email.
+            </p>
+          </div>
+        `,
+      });
+    } catch {
+      this.logger.warn(`Failed to send password reset email to ${to} (mail not configured)`);
+    }
+  }
 }

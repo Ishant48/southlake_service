@@ -2,12 +2,24 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { ActivityLogsService } from '../../activity-logs/activity-logs.service';
 import { ProductsDao } from './dao/products.dao';
 import { Product } from '../entities/product.entity';
+import { LineOfBusiness } from '../entities/line-of-business.entity';
+import { CobMaster } from '../entities/cob-master.entity';
 import { CreateProductDto, UpdateProductDto } from '../dto/product.dto';
 
-function toCommaString(val: any): string | null {
+export interface ProductWithRelations extends Product {
+  lobs: LineOfBusiness[];
+  cobs: CobMaster[];
+  lob: LineOfBusiness | null;
+  cob: CobMaster | null;
+}
+
+function toCommaString(val: string | string[] | undefined | null): string | null {
   if (!val) return null;
   if (Array.isArray(val)) {
-    return val.filter(Boolean).map(v => String(v).trim()).join(',');
+    return val
+      .filter(Boolean)
+      .map(v => String(v).trim())
+      .join(',');
   }
   return String(val).trim();
 }
@@ -20,7 +32,7 @@ export class ProductsService {
     private readonly activityLogsService: ActivityLogsService,
   ) {}
 
-  async findAllProducts(search?: string, isActive?: boolean): Promise<any[]> {
+  async findAllProducts(search?: string, isActive?: boolean): Promise<ProductWithRelations[]> {
     const products = await this.dao.findAll(search, isActive);
     const lobs = await this.dao.findAllLobs();
     const cobs = await this.dao.findAllCobs();
@@ -32,20 +44,20 @@ export class ProductsService {
       const lobIds = product.lobId ? product.lobId.split(',') : [];
       const cobIds = product.cobId ? product.cobId.split(',') : [];
 
-      const productLobs = lobIds.map(id => lobMap.get(id)).filter(Boolean);
-      const productCobs = cobIds.map(id => cobMap.get(id)).filter(Boolean);
+      const productLobs = lobIds.map(id => lobMap.get(id)).filter((l): l is LineOfBusiness => !!l);
+      const productCobs = cobIds.map(id => cobMap.get(id)).filter((c): c is CobMaster => !!c);
 
       return {
         ...product,
         lobs: productLobs,
         cobs: productCobs,
-        lob: productLobs[0] || null,
-        cob: productCobs[0] || null,
+        lob: productLobs[0] ?? null,
+        cob: productCobs[0] ?? null,
       };
     });
   }
 
-  async findOneProduct(id: string): Promise<any> {
+  async findOneProduct(id: string): Promise<ProductWithRelations> {
     const product = await this.dao.findById(id);
     if (!product) throw new NotFoundException('Product not found');
 
@@ -58,19 +70,19 @@ export class ProductsService {
     const lobIds = product.lobId ? product.lobId.split(',') : [];
     const cobIds = product.cobId ? product.cobId.split(',') : [];
 
-    const productLobs = lobIds.map(id => lobMap.get(id)).filter(Boolean);
-    const productCobs = cobIds.map(id => cobMap.get(id)).filter(Boolean);
+    const productLobs = lobIds.map(id => lobMap.get(id)).filter((l): l is LineOfBusiness => !!l);
+    const productCobs = cobIds.map(id => cobMap.get(id)).filter((c): c is CobMaster => !!c);
 
     return {
       ...product,
       lobs: productLobs,
       cobs: productCobs,
-      lob: productLobs[0] || null,
-      cob: productCobs[0] || null,
+      lob: productLobs[0] ?? null,
+      cob: productCobs[0] ?? null,
     };
   }
 
-  async createProduct(dto: CreateProductDto, userId?: string): Promise<any> {
+  async createProduct(dto: CreateProductDto, userId?: string): Promise<ProductWithRelations> {
     const exists = await this.dao.findByProductId(dto.product_id);
     if (exists) throw new BadRequestException(`Product ID ${dto.product_id} already exists`);
 
@@ -94,7 +106,11 @@ export class ProductsService {
     return this.findOneProduct(saved.id);
   }
 
-  async updateProduct(id: string, dto: UpdateProductDto, userId?: string): Promise<any> {
+  async updateProduct(
+    id: string,
+    dto: UpdateProductDto,
+    userId?: string,
+  ): Promise<ProductWithRelations> {
     const product = await this.dao.findById(id);
     if (!product) throw new NotFoundException('Product not found');
 

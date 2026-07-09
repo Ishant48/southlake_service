@@ -121,19 +121,20 @@ export class ActivityLogsDao {
       this.repo.countBy({ status: 'Success' }),
       this.repo.countBy({ status: 'Failed' }),
       this.repo.countBy({ status: 'Critical' }),
-      manager.createQueryBuilder()
+      manager
+        .createQueryBuilder()
         .select('COUNT(DISTINCT(user_id))', 'count')
         .from('activity_logs', 'al')
         .where('al.created_at >= :today', { today: startOfToday })
-        .getRawOne(),
+        .getRawOne<{ count: string }>(),
     ]);
 
     return {
       total,
       successful,
-      failed: failed || 0,
-      critical: critical || 0,
-      activeUsers: parseInt(activeUsersResult?.count || '0', 10),
+      failed,
+      critical,
+      activeUsers: parseInt(activeUsersResult?.count ?? '0', 10),
     };
   }
 }

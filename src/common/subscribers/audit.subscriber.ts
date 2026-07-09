@@ -50,6 +50,18 @@ export interface FieldChange {
 }
 
 /**
+ * Common display-name fields used across master/reference entities to build
+ * human-readable audit descriptions. Not every entity has every field.
+ */
+interface AuditableEntity extends ObjectLiteral {
+  name?: string;
+  label?: string;
+  batchNumber?: string;
+  treatyCode?: string;
+  code?: string;
+}
+
+/**
  * Runs on every entity insert/update/remove that goes through
  * Repository.save()/remove() (not repo.update()/.delete(), which are raw
  * queries TypeORM subscribers never see — see docs/AUDIT_LOGGING.md).
@@ -131,17 +143,24 @@ export class AuditSubscriber implements EntitySubscriberInterface {
 
   private async writeLog(
     repo: ReturnType<DataSource['getRepository']>,
-    fields: { action: string; entityType: string; entityId: string; changes?: FieldChange[]; entityObj?: any },
+    fields: {
+      action: string;
+      entityType: string;
+      entityId: string;
+      changes?: FieldChange[];
+      entityObj?: AuditableEntity;
+    },
   ): Promise<void> {
     const userId = this.requestContext.getUserId();
     const rawType = fields.entityType;
     const entity = fields.entityObj;
 
-    const moduleId = ENTITY_TO_MODULE_MAP[rawType] || 'rbac';
+    const moduleId = ENTITY_TO_MODULE_MAP[rawType] ?? 'rbac';
 
     let displayEntityName = rawType;
     if (entity) {
-      const nameVal = entity.name || entity.label || entity.batchNumber || entity.treatyCode || entity.code || '';
+      const nameVal =
+        entity.name ?? entity.label ?? entity.batchNumber ?? entity.treatyCode ?? entity.code ?? '';
       if (nameVal) {
         let typeName = rawType;
         if (rawType === 'Carrier') typeName = 'Risk Company';
@@ -160,14 +179,21 @@ export class AuditSubscriber implements EntitySubscriberInterface {
 
     let description = `${fields.action} ${rawType} ${fields.entityId}`;
     if (entity) {
-      const name = entity.name || entity.label || entity.batchNumber || entity.treatyCode || entity.code || 'Item';
+      const name =
+        entity.name ??
+        entity.label ??
+        entity.batchNumber ??
+        entity.treatyCode ??
+        entity.code ??
+        'Item';
       if (rawType === 'User') {
         if (fields.action === 'create') description = `Created a new user account for ${name}`;
         else if (fields.action === 'update') description = `Updated user profile for ${name}`;
         else if (fields.action === 'delete') description = `Deactivated user account for ${name}`;
       } else if (rawType === 'Role') {
         if (fields.action === 'create') description = `Created a new security role: ${name}`;
-        else if (fields.action === 'update') description = `Updated permissions and configurations for role ${name}`;
+        else if (fields.action === 'update')
+          description = `Updated permissions and configurations for role ${name}`;
         else if (fields.action === 'delete') description = `Deleted role ${name}`;
       } else {
         let typeName = rawType;
@@ -181,9 +207,12 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         else if (rawType === 'ProductMaster') typeName = 'product';
         else if (rawType === 'JournalEntryBatch') typeName = 'journal entry';
 
-        if (fields.action === 'create') description = `Created a new ${typeName.toLowerCase()}: ${name}`;
-        else if (fields.action === 'update') description = `Updated details for ${typeName.toLowerCase()}: ${name}`;
-        else if (fields.action === 'delete') description = `Deleted ${typeName.toLowerCase()}: ${name}`;
+        if (fields.action === 'create')
+          description = `Created a new ${typeName.toLowerCase()}: ${name}`;
+        else if (fields.action === 'update')
+          description = `Updated details for ${typeName.toLowerCase()}: ${name}`;
+        else if (fields.action === 'delete')
+          description = `Deleted ${typeName.toLowerCase()}: ${name}`;
       }
     }
 

@@ -39,7 +39,7 @@ describe('Reserves (e2e)', () => {
   });
 
   it('LaeIbnrService - calculateLAEReserves', () => {
-    const result = laeIbnrService.calculateLAEReserves(100000, 2000, 6.2, 0.0);
+    const result = laeIbnrService.calculateLAEReserves(100000, 2000, 0, 6.2, 0.0);
     expect(result.changeDCCReserves).toBe(0);
     expect(result.changeDCCIBNR).toBe(6200);
     expect(result.currDCCIBNR).toBe(8200);

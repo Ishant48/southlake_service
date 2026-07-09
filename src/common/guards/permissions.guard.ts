@@ -32,7 +32,7 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('Access denied');
     }
 
-    if (user.isSuperAdmin || user.role?.name === 'superadmin') {
+    if (user.isSuperAdmin) {
       return true;
     }
 

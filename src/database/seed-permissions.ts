@@ -240,7 +240,6 @@ export async function seedPermissions(externalQueryRunner?: QueryRunner): Promis
     )) as PermissionRow[];
     const roles = (await queryRunner.query('SELECT id, name FROM roles')) as RoleRow[];
     const superadminRole = roles.find(r => r.name === 'superadmin');
-    const adminRole = roles.find(r => r.name === 'admin');
 
     if (superadminRole) {
       console.warn('Seeding superadmin role permissions (all)...');
@@ -251,33 +250,6 @@ export async function seedPermissions(externalQueryRunner?: QueryRunner): Promis
            ON CONFLICT DO NOTHING`,
           [superadminRole.id, 'rbac', perm.id],
         );
-      }
-    }
-
-    if (adminRole) {
-      console.warn(
-        'Seeding admin role permissions (view/create/edit + user/activity_log management)...',
-      );
-      const adminActions = ['view', 'create', 'edit'];
-      const alwaysGrantToAdmin = [
-        'user.view',
-        'user.create',
-        'user.edit',
-        'activity_log.view',
-        'activity_log.export',
-      ];
-
-      for (const perm of perms) {
-        const [, act] = perm.action.split('.');
-        const grant = alwaysGrantToAdmin.includes(perm.action) || adminActions.includes(act);
-        if (grant) {
-          await queryRunner.query(
-            `INSERT INTO "role_permissions" ("role_id", "module_id", "permission_id")
-             VALUES ($1, $2, $3)
-             ON CONFLICT DO NOTHING`,
-            [adminRole.id, 'rbac', perm.id],
-          );
-        }
       }
     }
 

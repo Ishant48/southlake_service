@@ -13,7 +13,7 @@ function parseUserAgent(ua: string | undefined): { device: string; os: string; b
   if (!ua || ua === 'unknown' || ua === '-') {
     return { device: 'Desktop', os: 'Windows 11', browser: 'Chrome 114' };
   }
-  
+
   // OS parsing
   let os = 'Windows 11';
   if (ua.includes('Windows NT 10.0')) os = 'Windows 11';
@@ -21,22 +21,23 @@ function parseUserAgent(ua: string | undefined): { device: string; os: string; b
   else if (ua.includes('Windows NT 6.2')) os = 'Windows 8';
   else if (ua.includes('Windows NT 6.1')) os = 'Windows 7';
   else if (ua.includes('Mac OS X')) {
-    const match = ua.match(/Mac OS X (\d+[._]\d+[._]\d+)/) || ua.match(/Mac OS X (\d+[._]\d+)/);
+    const match = ua.match(/Mac OS X (\d+[._]\d+[._]\d+)/) ?? ua.match(/Mac OS X (\d+[._]\d+)/);
     os = match ? `macOS ${match[1].replace(/_/g, '.')}` : 'macOS';
-  }
-  else if (ua.includes('Android')) {
+  } else if (ua.includes('Android')) {
     const match = ua.match(/Android\s+([^\s;]+)/);
     os = match ? `Android ${match[1]}` : 'Android';
-  }
-  else if (ua.includes('iPhone') || ua.includes('iPad')) {
+  } else if (ua.includes('iPhone') || ua.includes('iPad')) {
     const match = ua.match(/OS\s+(\d+[._]\d+(?:[._]\d+)?)/);
     os = match ? `iOS ${match[1].replace(/_/g, '.')}` : 'iOS';
-  }
-  else if (ua.includes('Linux')) os = 'Linux';
+  } else if (ua.includes('Linux')) os = 'Linux';
 
   // Device parsing
   let device = 'Desktop';
-  if (ua.includes('Mobile') || ua.includes('iPhone') || (ua.includes('Android') && !ua.includes('Tablet'))) {
+  if (
+    ua.includes('Mobile') ||
+    ua.includes('iPhone') ||
+    (ua.includes('Android') && !ua.includes('Tablet'))
+  ) {
     device = 'Mobile';
   } else if (ua.includes('Tablet') || ua.includes('iPad') || ua.includes('PlayBook')) {
     device = 'Tablet';
@@ -71,8 +72,14 @@ function getProperClientIpAndLocation(req: Request): { ip: string; location: str
 
   const forwarded = req.headers['x-forwarded-for'] as string;
   const ip = forwarded?.split(',')[0]?.trim() ?? req.socket?.remoteAddress ?? 'unknown';
-  
-  if (ip === '::1' || ip === '127.0.0.1' || ip === 'unknown' || ip === 'localhost' || ip.includes('::ffff:127.0.0.1')) {
+
+  if (
+    ip === '::1' ||
+    ip === '127.0.0.1' ||
+    ip === 'unknown' ||
+    ip === 'localhost' ||
+    ip.includes('::ffff:127.0.0.1')
+  ) {
     const items = [
       { ip: '198.51.100.42', location: 'New York, US' },
       { ip: '203.0.113.195', location: 'Dallas, TX, USA' },
@@ -80,7 +87,7 @@ function getProperClientIpAndLocation(req: Request): { ip: string; location: str
       { ip: '103.48.211.102', location: 'San Francisco, CA, USA' },
     ];
     // Deterministic hash based on user-agent string only to remain constant for the same browser
-    const uaStr = req.headers['user-agent'] || 'default-agent';
+    const uaStr = req.headers['user-agent'] ?? 'default-agent';
     let hash = 0;
     for (let i = 0; i < uaStr.length; i++) {
       hash = uaStr.charCodeAt(i) + ((hash << 5) - hash);
@@ -88,7 +95,7 @@ function getProperClientIpAndLocation(req: Request): { ip: string; location: str
     const idx = Math.abs(hash) % items.length;
     return items[idx];
   }
-  
+
   return { ip, location: getLocationByIp(ip) };
 }
 
@@ -120,7 +127,9 @@ export class RequestContextMiddleware implements NestMiddleware {
     const { ip: ipAddress, location } = getProperClientIpAndLocation(req);
     const userAgent = req.headers['user-agent'] ?? undefined;
     const { device, os, browser } = parseUserAgent(userAgent);
-    const correlationId = (req.headers['x-correlation-id'] as string) ?? ('COR-' + Math.floor(10000 + Math.random() * 90000) + '-T');
+    const correlationId =
+      (req.headers['x-correlation-id'] as string) ??
+      'COR-' + Math.floor(10000 + Math.random() * 90000) + '-T';
 
     this.requestContext.run(
       {

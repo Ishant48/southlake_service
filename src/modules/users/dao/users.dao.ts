@@ -39,7 +39,7 @@ export class UsersDao {
     const [total, active, roles_defined, pending_invites] = await Promise.all([
       this.userRepo.count({ where: { isDeleted: false } }),
       this.userRepo.count({ where: { isDeleted: false, status: 'active' } }),
-      this.roleRepo.count(),
+      this.roleRepo.count({ where: { isDeleted: false } }),
       this.inviteRepo.count({ where: { status: 'pending' } }),
     ]);
     return { total, active, roles_defined, pending_invites };
@@ -92,10 +92,9 @@ export class UsersDao {
   countActiveSuperAdmins(): Promise<number> {
     return this.userRepo
       .createQueryBuilder('u')
-      .leftJoin('u.role', 'role')
       .where('u.is_deleted = false')
       .andWhere('u.status = :status', { status: 'active' })
-      .andWhere('(u.is_superadmin = true OR role.name = :roleName)', { roleName: 'superadmin' })
+      .andWhere('u.is_superadmin = true')
       .getCount();
   }
 

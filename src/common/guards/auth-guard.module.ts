@@ -5,18 +5,17 @@ import { AuthGuard } from './auth.guard';
 import { PermissionsGuard } from './permissions.guard';
 import { UserSession } from '../../modules/auth/entities/user-session.entity';
 import { User } from '../../modules/users/entities/user.entity';
-import { RolePermission } from '../../modules/roles/entities/role-permission.entity';
-import { UserPermission } from '../../modules/users/entities/user-permission.entity';
-import { Permission } from '../../modules/permissions/entities/permission.entity';
 import { AuditModule } from '../interceptors/audit.module';
 import { PermissionCacheModule } from '../cache/permission-cache.module';
+import { PermissionsModule } from '../../modules/permissions/permissions.module';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserSession, User, RolePermission, UserPermission, Permission]),
+    TypeOrmModule.forFeature([UserSession, User]),
     AuditModule,
     PermissionCacheModule,
+    PermissionsModule,
   ],
   providers: [
     AuthGuard,

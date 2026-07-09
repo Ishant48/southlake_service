@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { RolesDao } from './dao/roles.dao';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -17,6 +17,12 @@ export interface UpsertRolePermissionEntry {
   submoduleId?: string;
   permissionId: string;
 }
+
+// roles.name is an unbounded varchar in the DB, but a role slug derived
+// from a user-supplied label has no business being arbitrarily long.
+const ROLE_NAME_MAX_LENGTH = 100;
+const POSTGRES_UNIQUE_VIOLATION = '23505';
+const MAX_SLUG_RETRIES = 20;
 
 @Injectable()
 export class RolesService {
@@ -65,19 +71,34 @@ export class RolesService {
   }
 
   async create(dto: CreateRoleDto, createdBy: User): Promise<Role & { user_count: number }> {
-    const existing = await this.dao.findByName(dto.name);
-    if (existing) {
-      throw new BadRequestException(`Role with name '${dto.name}' already exists`);
+    const baseSlug = this.slugify(dto.label);
+    let role: Role | undefined;
+
+    for (let attempt = 0; attempt < MAX_SLUG_RETRIES; attempt++) {
+      const name = this.buildSlugCandidate(baseSlug, attempt);
+      try {
+        role = await this.dao.save({
+          name,
+          label: dto.label,
+          color: dto.color ?? undefined,
+          description: dto.description ?? undefined,
+          isSystem: false,
+          createdBy: createdBy.id,
+        });
+        break;
+      } catch (err) {
+        if (this.isUniqueViolation(err) && attempt < MAX_SLUG_RETRIES - 1) {
+          continue;
+        }
+        throw err;
+      }
     }
 
-    const role = await this.dao.save({
-      name: dto.name,
-      label: dto.label,
-      color: dto.color ?? undefined,
-      description: dto.description ?? undefined,
-      isSystem: false,
-      createdBy: createdBy.id,
-    });
+    if (!role) {
+      throw new BadRequestException(
+        `Could not generate a unique role name from label '${dto.label}'`,
+      );
+    }
 
     if (dto.permissions && dto.permissions.length > 0) {
       await this.saveFlatPermissions(role.id, dto.permissions);
@@ -252,5 +273,29 @@ export class RolesService {
         id: rp.permission.id,
         action: rp.permission.action,
       }));
+  }
+
+  private slugify(label: string): string {
+    const slug = label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return slug || 'role';
+  }
+
+  private buildSlugCandidate(baseSlug: string, attempt: number): string {
+    if (attempt === 0) {
+      return baseSlug.slice(0, ROLE_NAME_MAX_LENGTH);
+    }
+    const suffix = `_${attempt + 1}`;
+    const truncatedBase = baseSlug.slice(0, ROLE_NAME_MAX_LENGTH - suffix.length);
+    return `${truncatedBase}${suffix}`;
+  }
+
+  private isUniqueViolation(err: unknown): boolean {
+    return (
+      err instanceof QueryFailedError &&
+      (err as QueryFailedError & { code?: string }).code === POSTGRES_UNIQUE_VIOLATION
+    );
   }
 }

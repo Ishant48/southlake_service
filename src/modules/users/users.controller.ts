@@ -1,6 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { UsersService } from './users.service';
+import { AuthService } from '../auth/auth.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
@@ -14,7 +16,10 @@ import { User } from './entities/user.entity';
 @ApiBearerAuth()
 @Controller('users')
 export class UsersController {
-  constructor(private readonly service: UsersService) {}
+  constructor(
+    private readonly service: UsersService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Get('stats')
   @RequirePermission('user.view')
@@ -85,6 +90,21 @@ export class UsersController {
     return this.service.deactivate(id, user);
   }
 
+  @Post(':id/reset-password')
+  @RequirePermission('user.edit')
+  @ApiOperation({ summary: 'Admin-initiated reset: emails the user a password reset link' })
+  @ApiResponse({ status: 200, description: 'Password reset email sent' })
+  @ApiResponse({ status: 400, description: 'User is inactive, or too many recent reset requests' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  resetPassword(
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser() user: User,
+    @Req() req: Request,
+  ) {
+    const ipAddress = this.getIpAddress(req);
+    return this.authService.adminInitiatePasswordReset(id, user, ipAddress);
+  }
+
   @Patch(':id')
   @RequirePermission('user.edit')
   @ApiOperation({ summary: 'Update user profile fields' })
@@ -135,5 +155,10 @@ export class UsersController {
     @CurrentUser() user: User,
   ) {
     return this.service.upsertPermissions(id, dto.permissions, user);
+  }
+
+  private getIpAddress(req: Request): string {
+    const forwarded = req.headers['x-forwarded-for'] as string;
+    return forwarded?.split(',')[0]?.trim() ?? req.socket?.remoteAddress ?? 'unknown';
   }
 }

@@ -11,7 +11,7 @@ async function ensureCoa(
     'SELECT id FROM chart_of_accounts WHERE account_code = $1',
     [code],
   )) as Array<{ id: string }>;
-  
+
   if (exists.length > 0) {
     return exists[0].id;
   }
@@ -60,21 +60,20 @@ export async function seedGlMappings(queryRunner: QueryRunner): Promise<void> {
 
   for (const item of mappings) {
     const coaId = await ensureCoa(queryRunner, item.code, item.desc, item.parentId, item.balance);
-    const mappingExists = (await queryRunner.query(
-      'SELECT id FROM gl_mappings WHERE type = $1',
-      [item.type],
-    )) as Array<{ id: string }>;
+    const mappingExists = (await queryRunner.query('SELECT id FROM gl_mappings WHERE type = $1', [
+      item.type,
+    ])) as Array<{ id: string }>;
 
     if (mappingExists.length === 0) {
-      await queryRunner.query(
-        `INSERT INTO gl_mappings (coa_id, type) VALUES ($1, $2)`,
-        [coaId, item.type],
-      );
+      await queryRunner.query(`INSERT INTO gl_mappings (coa_id, type) VALUES ($1, $2)`, [
+        coaId,
+        item.type,
+      ]);
     } else {
-      await queryRunner.query(
-        `UPDATE gl_mappings SET coa_id = $1 WHERE type = $2`,
-        [coaId, item.type],
-      );
+      await queryRunner.query(`UPDATE gl_mappings SET coa_id = $1 WHERE type = $2`, [
+        coaId,
+        item.type,
+      ]);
     }
   }
 }

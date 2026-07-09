@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateProductDto {
   @IsString()
@@ -6,10 +6,10 @@ export class CreateProductDto {
   product_id: string;
 
   @IsOptional()
-  lob_id?: any;
+  lob_id?: string | string[];
 
   @IsOptional()
-  cob_id?: any;
+  cob_id?: string | string[];
 
   @IsString()
   @IsNotEmpty()
@@ -30,10 +30,10 @@ export class UpdateProductDto {
   product_id?: string;
 
   @IsOptional()
-  lob_id?: any;
+  lob_id?: string | string[];
 
   @IsOptional()
-  cob_id?: any;
+  cob_id?: string | string[];
 
   @IsString()
   @IsOptional()

@@ -7,6 +7,8 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResolveChallengeDto } from './dto/resolve-challenge.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { User } from '../users/entities/user.entity';
@@ -94,6 +96,39 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid request or token' })
   acceptInvite(@Body() dto: AcceptInviteDto) {
     return this.authService.acceptInvite(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset link' })
+  @ApiResponse({ status: 200, description: 'Generic response, regardless of whether email exists' })
+  forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    const ipAddress = this.getIpAddress(req);
+    return this.authService.forgotPassword(dto, ipAddress);
+  }
+
+  @Public()
+  @Get('reset-password/validate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify a password reset token is valid' })
+  @ApiResponse({ status: 200, description: 'Token is valid' })
+  @ApiResponse({ status: 404, description: 'Invalid, expired, or already-used token' })
+  validateResetToken(@Query('token') token: string) {
+    return this.authService.validateResetToken(token);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using a valid reset token' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  @ApiResponse({ status: 404, description: 'Invalid, expired, or already-used token' })
+  resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
+    const ipAddress = this.getIpAddress(req);
+    return this.authService.resetPassword(dto, ipAddress);
   }
 
   private getIpAddress(req: Request): string {
