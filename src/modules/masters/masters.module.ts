@@ -24,6 +24,8 @@ import { SequencePrefixCounter } from './entities/sequence-prefix-counter.entity
 import { TreatyCarrier } from './entities/treaty-carrier.entity';
 import { TreatyReinsurer } from './entities/treaty-reinsurer.entity';
 import { TreatyTypeMaster } from './entities/treaty-type-master.entity';
+import { TreatyProduct } from './entities/treaty-product.entity';
+import { ProductReinsurer } from './entities/product-reinsurer.entity';
 
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
 
@@ -102,6 +104,8 @@ if (!existsSync(uploadDir)) {
       TreatyCarrier,
       TreatyReinsurer,
       TreatyTypeMaster,
+      TreatyProduct,
+      ProductReinsurer,
     ]),
     ActivityLogsModule,
   ],

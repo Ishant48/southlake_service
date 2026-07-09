@@ -8,9 +8,16 @@ import { TreatyState } from '../entities/treaty-state.entity';
 import { TreatyMga } from '../entities/treaty-mga.entity';
 import { TreatyCarrier } from '../entities/treaty-carrier.entity';
 import { TreatyReinsurer } from '../entities/treaty-reinsurer.entity';
+import { TreatyProduct } from '../entities/treaty-product.entity';
 import { ReinsurerCompany } from '../entities/reinsurer-company.entity';
 import { RiskCompany } from '../entities/risk-company.entity';
+import { MgaMaster } from '../entities/mga-master.entity';
 import { CreateTreatyDto, UpdateTreatyDto } from '../dto/treaty.dto';
+import { ProductsService } from '../products/products.service';
+
+export interface TreatyDetail extends Treaty {
+  products: { id: string; product_id: string; name: string }[];
+}
 
 /** CRUD for treaty master records, including their carriers, reinsurers, MGAs, states, LOBs and COBs. */
 @Injectable()
@@ -18,19 +25,28 @@ export class TreatiesService {
   constructor(
     private readonly dao: TreatiesDao,
     private readonly dataSource: DataSource,
+    private readonly productsService: ProductsService,
   ) {}
 
   async findAllTreaties(search?: string, isActive?: boolean): Promise<Treaty[]> {
     return this.dao.findAll(search, isActive);
   }
 
-  async findOneTreaty(id: string): Promise<Treaty> {
+  async findOneTreaty(id: string): Promise<TreatyDetail> {
     const treaty = await this.dao.findByIdWithDetails(id);
     if (!treaty) throw new NotFoundException('Treaty not found');
-    return treaty;
+    return {
+      ...treaty,
+      products:
+        treaty.treatyProducts?.map(tp => ({
+          id: tp.product.id,
+          product_id: tp.product.productId,
+          name: tp.product.name,
+        })) ?? [],
+    };
   }
 
-  async createTreaty(dto: CreateTreatyDto, userId: string): Promise<Treaty> {
+  async createTreaty(dto: CreateTreatyDto, userId: string): Promise<TreatyDetail> {
     const exists = await this.dao.findByCode(dto.treaty_code);
     if (exists) throw new BadRequestException(`Treaty code ${dto.treaty_code} already exists`);
 
@@ -103,6 +119,9 @@ export class TreatiesService {
         claimSeqStart: dto.claim_seq_start ?? null,
         claimSeqNext: dto.claim_seq_next ?? dto.claim_seq_start ?? null,
         isActive: dto.is_active ?? true,
+        isContinuous: dto.is_continuous ?? false,
+        policyStateConnector: dto.policy_state_connector ?? false,
+        claimStateConnector: dto.claim_state_connector ?? false,
         createdBy: userId,
         updatedBy: userId,
       });
@@ -177,6 +196,8 @@ export class TreatiesService {
         }
       }
 
+      await this.syncTreatyProducts(savedTreaty.id, dto, firstMgaId, queryRunner, userId);
+
       await queryRunner.commitTransaction();
       return this.findOneTreaty(savedTreaty.id);
     } catch (err) {
@@ -187,7 +208,7 @@ export class TreatiesService {
     }
   }
 
-  async updateTreaty(id: string, dto: UpdateTreatyDto, userId: string): Promise<Treaty> {
+  async updateTreaty(id: string, dto: UpdateTreatyDto, userId: string): Promise<TreatyDetail> {
     const treaty = await this.dao.findById(id);
     if (!treaty) throw new NotFoundException('Treaty not found');
 
@@ -288,6 +309,9 @@ export class TreatiesService {
         claimSeqStart: dto.claim_seq_start ?? treaty.claimSeqStart,
         claimSeqNext: dto.claim_seq_next ?? treaty.claimSeqNext,
         isActive: dto.is_active ?? treaty.isActive,
+        isContinuous: dto.is_continuous ?? treaty.isContinuous,
+        policyStateConnector: dto.policy_state_connector ?? treaty.policyStateConnector,
+        claimStateConnector: dto.claim_state_connector ?? treaty.claimStateConnector,
         updatedBy: userId,
       });
 
@@ -378,6 +402,8 @@ export class TreatiesService {
         }
       }
 
+      await this.syncTreatyProducts(id, dto, updateMgaId, queryRunner, userId);
+
       await queryRunner.commitTransaction();
       return this.findOneTreaty(id);
     } catch (err) {
@@ -385,6 +411,55 @@ export class TreatiesService {
       throw err;
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  private async syncTreatyProducts(
+    treatyId: string,
+    dto: CreateTreatyDto | UpdateTreatyDto,
+    mgaId: string | null,
+    queryRunner: QueryRunner,
+    userId?: string,
+  ): Promise<void> {
+    if (!dto.carriers || dto.carriers.length === 0) return;
+
+    const reinsurerIds = (dto.reinsurers ?? []).map(r => r.reinsurer_id);
+    const lobIds = (dto.lobs ?? []).map(l => l.lob_id);
+    const cobIds = (dto.lobs ?? []).flatMap(l => l.cob_ids ?? []);
+
+    const mga = mgaId
+      ? await queryRunner.manager.findOne(MgaMaster, { where: { id: mgaId } })
+      : null;
+
+    const productIds = new Set<string>();
+    for (const carrier of dto.carriers) {
+      const riskCompany = await queryRunner.manager.findOne(RiskCompany, {
+        where: { id: carrier.risk_company_id },
+      });
+
+      const product = await this.productsService.getOrCreateForCarrier(
+        {
+          riskCompanyId: carrier.risk_company_id,
+          mgaId,
+          reinsurerIds,
+          lobIds,
+          cobIds,
+          carrierName: riskCompany?.name ?? '',
+          mgaName: mga?.name ?? null,
+        },
+        userId,
+        queryRunner.manager,
+      );
+      productIds.add(product.id);
+    }
+
+    await queryRunner.manager.delete(TreatyProduct, { treatyId });
+
+    if (productIds.size > 0) {
+      const treatyProducts = Array.from(productIds).map(productId =>
+        queryRunner.manager.create(TreatyProduct, { treatyId, productId }),
+      );
+      await queryRunner.manager.save(TreatyProduct, treatyProducts);
     }
   }
 

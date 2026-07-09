@@ -17,6 +17,7 @@ import { TreatyState } from './treaty-state.entity';
 import { TreatyMga } from './treaty-mga.entity';
 import { TreatyCarrier } from './treaty-carrier.entity';
 import { TreatyReinsurer } from './treaty-reinsurer.entity';
+import { TreatyProduct } from './treaty-product.entity';
 import { ColumnNumericTransformer } from '../../../common/utils';
 
 @Entity('treaties')
@@ -222,6 +223,15 @@ export class Treaty {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ name: 'is_continuous', type: 'boolean', default: false })
+  isContinuous: boolean;
+
+  @Column({ name: 'policy_state_connector', type: 'boolean', default: false })
+  policyStateConnector: boolean;
+
+  @Column({ name: 'claim_state_connector', type: 'boolean', default: false })
+  claimStateConnector: boolean;
+
   @OneToMany(() => TreatyLob, tl => tl.treaty, { cascade: true })
   treatyLobs: TreatyLob[];
 
@@ -236,6 +246,9 @@ export class Treaty {
 
   @OneToMany(() => TreatyReinsurer, tr => tr.treaty, { cascade: true })
   treatyReinsurers: TreatyReinsurer[];
+
+  @OneToMany(() => TreatyProduct, tp => tp.treaty, { cascade: true })
+  treatyProducts: TreatyProduct[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

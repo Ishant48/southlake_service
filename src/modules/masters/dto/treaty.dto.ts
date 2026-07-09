@@ -215,6 +215,18 @@ export class CreateTreatyDto {
   @IsNumber()
   @IsOptional()
   claim_seq_next?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  is_continuous?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  policy_state_connector?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  claim_state_connector?: boolean;
 }
 
 export class UpdateTreatyDto {
@@ -365,4 +377,16 @@ export class UpdateTreatyDto {
   @IsNumber()
   @IsOptional()
   claim_seq_next?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  is_continuous?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  policy_state_connector?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  claim_state_connector?: boolean;
 }

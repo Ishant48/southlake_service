@@ -2,8 +2,8 @@ import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateProductDto {
   @IsString()
-  @IsNotEmpty()
-  product_id: string;
+  @IsOptional()
+  product_id?: string;
 
   @IsOptional()
   lob_id?: string | string[];

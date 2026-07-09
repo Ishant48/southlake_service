@@ -70,6 +70,8 @@ import { LockedPeriod } from './modules/masters/entities/locked-period.entity';
 import { DocumentType } from './modules/masters/entities/document-type.entity';
 import { SequencePrefixCounter } from './modules/masters/entities/sequence-prefix-counter.entity';
 import { TreatyTypeMaster } from './modules/masters/entities/treaty-type-master.entity';
+import { TreatyProduct } from './modules/masters/entities/treaty-product.entity';
+import { ProductReinsurer } from './modules/masters/entities/product-reinsurer.entity';
 
 @Module({
   imports: [
@@ -133,6 +135,8 @@ import { TreatyTypeMaster } from './modules/masters/entities/treaty-type-master.
           DocumentType,
           SequencePrefixCounter,
           TreatyTypeMaster,
+          TreatyProduct,
+          ProductReinsurer,
         ],
         synchronize: false,
         logging: process.env.NODE_ENV !== 'production',

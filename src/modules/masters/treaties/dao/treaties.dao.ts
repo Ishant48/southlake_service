@@ -41,6 +41,8 @@ const TREATY_DETAIL_RELATIONS = [
   'treatyReinsurers.reinsurer',
   'treatyReinsurers.state',
   'treatyReinsurers.broker',
+  'treatyProducts',
+  'treatyProducts.product',
 ];
 
 @Injectable()

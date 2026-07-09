@@ -3,9 +3,13 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { RiskCompany } from './risk-company.entity';
+import { MgaMaster } from './mga-master.entity';
 
 @Entity('product_master')
 export class Product {
@@ -30,6 +34,22 @@ export class Product {
   // @ManyToOne(() => CobMaster, { onDelete: 'RESTRICT', nullable: true })
   // @JoinColumn({ name: 'cob_id' })
   // cob: CobMaster;
+
+  @Index()
+  @Column({ name: 'risk_company_id', type: 'uuid', nullable: true })
+  riskCompanyId: string | null;
+
+  @ManyToOne(() => RiskCompany, { onDelete: 'RESTRICT', nullable: true })
+  @JoinColumn({ name: 'risk_company_id' })
+  riskCompany: RiskCompany | null;
+
+  @Index()
+  @Column({ name: 'mga_id', type: 'uuid', nullable: true })
+  mgaId: string | null;
+
+  @ManyToOne(() => MgaMaster, { onDelete: 'RESTRICT', nullable: true })
+  @JoinColumn({ name: 'mga_id' })
+  mga: MgaMaster | null;
 
   @Column({ type: 'varchar' })
   name: string;
